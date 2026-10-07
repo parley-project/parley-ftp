@@ -1,8 +1,23 @@
-# BjlNetFtp
+# parley-ftp
 
-The NetFtp project provides an implementation of the FTP protocol (client and server).
+An implementation of the FTP protocol (client and server), part of **Parley**, a family of Java
+libraries for implementing internet protocols.
 
-Requires Java 11 or later and Maven 3.6.3 or later. Depends on `bjl_file_system` and `bjl_net_framework` (which bring in `bjl_core` and `bjl_io`).
+Requires Java 11 or later and Maven 3.6.3 or later. Depends on `parley-files` and `parley-net`
+(which bring in `parley-core` and `parley-io`).
+
+```xml
+<dependency>
+    <groupId>us.bringardner.parley</groupId>
+    <artifactId>parley-ftp</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+> parley-ftp was previously `us.bringardner:bjl_net_ftp` (BjlNetFtp), with packages under
+> `us.bringardner.net.ftp`. Moving over means changing the dependency and replacing
+> `us.bringardner.net.ftp` with `us.bringardner.parley.ftp` in imports and in property names
+> that start with a class name.
 
 ## Build
 

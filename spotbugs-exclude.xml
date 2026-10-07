@@ -30,7 +30,7 @@
 	  that write as "locked" and the constructor/getter accesses as "unlocked".
 	-->
 	<Match>
-		<Class name="us.bringardner.net.ftp.client.FtpClientFile"/>
+		<Class name="us.bringardner.parley.ftp.client.FtpClientFile"/>
 		<Field name="parent"/>
 		<Bug pattern="IS2_INCONSISTENT_SYNC"/>
 	</Match>
@@ -43,7 +43,7 @@
 	  subclass must not rely on them in these methods during construction.
 	-->
 	<Match>
-		<Class name="us.bringardner.net.ftp.server.FtpServer"/>
+		<Class name="us.bringardner.parley.ftp.server.FtpServer"/>
 		<Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
 	</Match>
 
@@ -53,7 +53,7 @@
 	  never needs restoring.
 	-->
 	<Match>
-		<Class name="us.bringardner.net.ftp.server.FtpRequestProcessor"/>
+		<Class name="us.bringardner.parley.ftp.server.FtpRequestProcessor"/>
 		<Field name="transferInProcess"/>
 		<Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED"/>
 	</Match>
@@ -65,8 +65,8 @@
 	-->
 	<Match>
 		<Or>
-			<Class name="us.bringardner.net.ftp.client.ListEntry"/>
-			<Class name="us.bringardner.net.ftp.client.FtpClientFile"/>
+			<Class name="us.bringardner.parley.ftp.client.ListEntry"/>
+			<Class name="us.bringardner.parley.ftp.client.FtpClientFile"/>
 		</Or>
 		<Method name="splitMlsxEntry"/>
 		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
@@ -77,7 +77,7 @@
 	  been decided and reported; a failure to close changes nothing.
 	-->
 	<Match>
-		<Class name="us.bringardner.net.ftp.server.FtpServerStream"/>
+		<Class name="us.bringardner.parley.ftp.server.FtpServerStream"/>
 		<Method name="closeQuietly"/>
 		<Bug pattern="DE_MIGHT_IGNORE"/>
 	</Match>

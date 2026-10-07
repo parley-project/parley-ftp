@@ -38,7 +38,7 @@ head -c 300000 /dev/urandom > "$WORK/local/upload.bin"
 
 # Server: runs until its stdin (this fifo) is closed
 mkfifo "$WORK/stop"
-java -cp "$CP" us.bringardner.net.ftp.test.InteropServer "$ROOT" $EXPLICIT_PORT $IMPLICIT_PORT < "$WORK/stop" > "$WORK/server.log" 2>&1 &
+java -cp "$CP" us.bringardner.parley.ftp.test.InteropServer "$ROOT" $EXPLICIT_PORT $IMPLICIT_PORT < "$WORK/stop" > "$WORK/server.log" 2>&1 &
 SERVER=$!
 exec 3>"$WORK/stop"
 cleanup() { exec 3>&-; wait $SERVER 2>/dev/null; if [ -n "${KEEP_WORK:-}" ]; then echo "kept $WORK"; else rm -rf "$WORK"; fi; }

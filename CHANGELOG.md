@@ -1,5 +1,21 @@
 # Changelog
 
+## parley-ftp 1.0.0 (unreleased)
+
+BjlNetFtp is now **parley-ftp**, part of the Parley library family. The code is the same as
+BjlNetFtp 1.0.0-SNAPSHOT (below, never released under that name); only names changed.
+
+### Changed (needs a code change)
+
+- Maven coordinates: `us.bringardner:bjl_net_ftp` is now `us.bringardner.parley:parley-ftp`.
+- Packages: `us.bringardner.net.ftp` (and `.client`, `.server`, `.server.commands`, ...) is now
+  `us.bringardner.parley.ftp`.
+- Module name (`Automatic-Module-Name`): `us.bringardner.parley.ftp` (none was set before).
+- Property names that start with a class name change with the package, for example
+  `us.bringardner.net.ftp.server.FtpServer.<name>` is now `us.bringardner.parley.ftp.server.FtpServer.<name>`.
+- Dependencies: `bjl_core`, `bjl_io`, `bjl_file_system` and `bjl_net_framework` are now
+  `parley-core`, `parley-io`, `parley-files` and `parley-net`.
+
 ## 1.0.0 (unreleased)
 
 The first release. This section covers the changes since the review that started on 2026-09-29.
