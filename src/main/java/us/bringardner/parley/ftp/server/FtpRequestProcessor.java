@@ -1431,6 +1431,16 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 	}
 
+	/**
+	 * Count a failed login.
+	 *
+	 * @return true if that was one too many (the server's MaxLoginAttempts) and the
+	 * connection should be closed
+	 */
+	public boolean loginFailed() {
+		return ((FtpServer) getServer()).isTooManyLoginFailures(incLoginAttempts());
+	}
+
 	public int incLoginAttempts() {
 
 		return ++loginAttempts;

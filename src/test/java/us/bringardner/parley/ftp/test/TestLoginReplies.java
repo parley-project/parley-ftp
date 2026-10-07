@@ -185,4 +185,38 @@ public class TestLoginReplies {
 			}
 		}
 	}
+
+	/** Fail logins until the server closes the connection; @return how many it took */
+	private static int failuresUntilClosed(int max) throws Exception {
+		try (Control c = new Control()) {
+			for (int i = 1; i <= max+1; i++) {
+				assertEquals(331, c.send("USER plain"));
+				assertEquals(530, c.send("PASS wrong"));
+				c.socket.setSoTimeout(i < max ? 5000 : 2000);
+				try {
+					// A closed connection reads end of stream (or a reset)
+					c.out.write("NOOP\r\n");
+					c.out.flush();
+					if( c.in.readLine() == null ) {
+						return i;
+					}
+				} catch (IOException e) {
+					return i;
+				}
+			}
+			return -1;
+		}
+	}
+
+	/** The shared MaxLoginAttempts setting: 3 by default, as the other servers */
+	@Test
+	public void closedAfterMaxLoginAttempts() throws Exception {
+		assertEquals(3, failuresUntilClosed(3), "closed after the 3rd failed login");
+		server.setMaxLoginAttempts(2);
+		try {
+			assertEquals(2, failuresUntilClosed(2));
+		} finally {
+			server.setMaxLoginAttempts(3);
+		}
+	}
 }

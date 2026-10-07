@@ -104,7 +104,7 @@ public class Acct  extends NoAuthReqBaseCommand {
 		} else {
 			processor.loginFailedDelay();
 			processor.reply(REPLY_530_USER_NOT_LOGGED_IN,"user not authenticated");
-			if( processor.incLoginAttempts() > 3 ) {
+			if( processor.loginFailed() ) {
 				processor.stop();
 			}
 		}

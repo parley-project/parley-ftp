@@ -122,13 +122,13 @@ public class FtpServer extends Server {
 
 	/** Delay (ms) before replying to a failed login, to slow down password guessing. */
 	public static final int DEFAULT_LOGIN_FAILURE_DELAY = 1000;
+	/** Older name of the delay setting, still read: see {@link #getDefaultLoginFailureDelay()} */
 	public static final String LOGIN_FAILURE_DELAY_PROP = FTP_NAME+".loginFailureDelay";
 
 	private volatile int bufferSize = Integer.getInteger(BUFFER_SIZE_PROP, DEFAULT_BUFFER_SIZE);
 	private volatile int dataTimeout = Integer.getInteger(DATA_TIMEOUT_PROP, DEFAULT_DATA_TIMEOUT);
 	private volatile int connectTimeout = Integer.getInteger(CONNECT_TIMEOUT_PROP, DEFAULT_CONNECT_TIMEOUT);
 	private volatile boolean allowForeignDataAddress = Boolean.getBoolean(ALLOW_FOREIGN_DATA_ADDRESS_PROP);
-	private volatile int loginFailureDelay = Integer.getInteger(LOGIN_FAILURE_DELAY_PROP, DEFAULT_LOGIN_FAILURE_DELAY);
 	private volatile SymlinkPolicy symlinkPolicy = SymlinkPolicy.parse(System.getProperty(SYMLINK_POLICY_PROP, "strict"));
 	private volatile java.util.List<String> allowedLinkTargets = parseTargets(System.getProperty(ALLOWED_LINK_TARGETS_PROP, ""));
 	private FileSource ftpRoot;
@@ -450,21 +450,12 @@ public class FtpServer extends Server {
 	}
 
 	/**
-	 * @return the delay (ms) before replying to a failed PASS/ACCT.
+	 * The shared LoginFailureDelay setting (see AbstractCoreServer) defaults to the older
+	 * {@value #LOGIN_FAILURE_DELAY_PROP} system property, else {@value #DEFAULT_LOGIN_FAILURE_DELAY} ms.
 	 */
-	public int getLoginFailureDelay() {
-		return loginFailureDelay;
-	}
-
-	/**
-	 * @param loginFailureDelay delay (ms) before replying to a failed PASS/ACCT (0 = none).
-	 * Combined with the 3 attempts per connection limit this slows down password guessing.
-	 */
-	public void setLoginFailureDelay(int loginFailureDelay) {
-		if( loginFailureDelay < 0 ) {
-			throw new IllegalArgumentException("loginFailureDelay must be >= 0");
-		}
-		this.loginFailureDelay = loginFailureDelay;
+	@Override
+	protected int getDefaultLoginFailureDelay() {
+		return Integer.getInteger(LOGIN_FAILURE_DELAY_PROP, DEFAULT_LOGIN_FAILURE_DELAY);
 	}
 
 	/**

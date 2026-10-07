@@ -90,7 +90,7 @@ public class Pass extends NoAuthReqBaseCommand {
 					processor.setTempValue(PASS, pw);
 					processor.loginFailedDelay();
 					processor.reply(REPLY_530_USER_NOT_LOGGED_IN,"Login incorrect");
-                    if( processor.incLoginAttempts() > 3 ) {
+                    if( processor.loginFailed() ) {
                         processor.stop();
                     }
 				}
