@@ -19,7 +19,6 @@
 	<description>An implementation of the FTP protocol, client and server (FTP, FTPS explicit and implicit, RFC 2228 and RFC 2428), built on parley-net with files served from any parley-files FileSource. Formerly us.bringardner:bjl_net_ftp.</description>
 
 	<properties>
-		<maven.compiler.release>11</maven.compiler.release>
 		<!-- Written to the jar manifest as Automatic-Module-Name -->
 		<parley.moduleName>us.bringardner.parley.ftp</parley.moduleName>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
