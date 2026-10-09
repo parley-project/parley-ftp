@@ -30,13 +30,9 @@
 package us.bringardner.parley.ftp.server;
 
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -1287,9 +1283,9 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				SSLSocket ssl = (SSLSocket) ret;
 				//In FTP a socket connecting to a remote system is still a server for SSL/TLS
 				ssl.setUseClientMode(false);
-				String force = System.getProperty(us.bringardner.parley.core.SecureBaseObject.PROPERTY_FORCE_TLS_VERSION);
-				if( force != null && !force.trim().isEmpty()) {
-					ssl.setEnabledProtocols(new String[] {force.trim()});
+				String[] forced = us.bringardner.parley.core.SecureBaseObject.getForcedTlsProtocols();
+				if( forced != null ) {
+					ssl.setEnabledProtocols(forced);
 				}
 			}
 			if( mine != null ) {
@@ -1415,20 +1411,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			return 0;
 		}
 		return Math.max(con.getLastReadTime(), con.getLastWriteTime());
-	}
-
-	/**
-	 * Wait before replying to a failed login (see {@link FtpServer#setLoginFailureDelay(int)}).
-	 */
-	public void loginFailedDelay() {
-		int delay = ((FtpServer)getServer()).getLoginFailureDelay();
-		if( delay > 0 ) {
-			try {
-				Thread.sleep(delay);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-		}
 	}
 
 	/**

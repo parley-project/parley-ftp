@@ -21,12 +21,10 @@
 
 package us.bringardner.parley.ftp.server;
 
-import java.util.HashMap;
 import java.util.Map;
 
+import us.bringardner.parley.net.server.AbstractCommandFactory;
 import us.bringardner.parley.net.server.ICommand;
-import us.bringardner.parley.net.server.ICommandFactory;
-import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.commands.Abor;
 import us.bringardner.parley.ftp.server.commands.Acct;
 import us.bringardner.parley.ftp.server.commands.Appe;
@@ -80,21 +78,19 @@ import us.bringardner.parley.ftp.server.commands.rfc2428.Eprt;
  * @author Tony Bringardner
  *
  */
-public class FtpCommandFactory implements ICommandFactory {
+public class FtpCommandFactory extends AbstractCommandFactory {
 
 	private static final long serialVersionUID = 1L;
 	
-	private static Map<String, ICommand> commands;
+	private static final Map<String, ICommand> commands = newRegistry();
 	
 	static {
 		//  Create the command processors		
 		//	  These commands are available after authentication
-		commands = new HashMap<String, ICommand>();
 		addCommand(new AuthError());
 		addCommand(new NotAuthError());
 		addCommand(new Abor());
 		addCommand(new Appe());
-		addCommand(new Cdup());
 		addCommand(new Cdup());
 		addCommand(new Cwd());
 		addCommand(new Dele());
@@ -156,29 +152,11 @@ public class FtpCommandFactory implements ICommandFactory {
 		
 	}
 	
+	public FtpCommandFactory() {
+		super(commands);
+	}
+
 	public static void addCommand(ICommand cmd){
-		commands.put(cmd.getName(),cmd);
+		register(commands, cmd);
 	}
-	
-
-	/* (non-Javadoc)
-	 * @see us.bringardner.parley.net.server.ICommandFactory#getCommand(us.bringardner.parley.net.server.IRequestContext)
-	 */
-	public ICommand getCommand(IRequestContext context) {
-
-		String name = context.getFirstToken();
-		ICommand ret = getCommand(name);
-		if( ret == null ) {
-			ret = commands.get(AuthError.AUTH_ERROR);
-		}
-		
-		return ret;
-	}
-
-	public ICommand getCommand(String name) {
-		ICommand ret = commands.get(name.toUpperCase(java.util.Locale.ROOT));
-		
-		return ret;
-	}
-
 }

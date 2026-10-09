@@ -34,18 +34,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
 import java.util.Properties;
 
-import javax.net.ssl.SSLContext;
 
 import us.bringardner.parley.core.ILogger;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.net.Connection;
-import us.bringardner.parley.net.IConnection;
-import us.bringardner.parley.net.IConnectionFactory;
 import us.bringardner.parley.net.IProcessor;
 import us.bringardner.parley.net.IProcessorFactory;
 import us.bringardner.parley.net.server.AbstractPrincipal;
@@ -135,26 +130,6 @@ public class FtpServer extends Server {
 	//private boolean useJdbc = false;
 	private FileSourceFactory factory = FileSourceFactory.getDefaultFactory();
 	
-	private final class ServerConnection extends Connection {
-
-		public ServerConnection( Socket socket, boolean useCRLF,Level logLevel) throws IOException {
-			super(socket,useCRLF); 
-			getLogger().setLevel(logLevel);
-		}
-
-		/**
-		 * The server's one TLS context, whatever the AUTH mechanism (TLS, SSL...).
-		 * Data connections use it too, so they can resume the control connection's session
-		 * (sessions are kept per context). The framework's Server.getSSLContext(String) does
-		 * this since bjl_net_framework 1.0.2 (BJL-38); before that it built a new context
-		 * whenever the AUTH name differed from the configured protocol (BJL-18).
-		 */
-		@Override
-		public SSLContext getSSLContext(String sslOrTsl) throws IOException {
-			return FtpServer.this.getSSLContext(sslOrTsl);
-		}
-		
-	}
 	
 	/**
 	 * @param port
@@ -252,12 +227,8 @@ public class FtpServer extends Server {
 			}			
 		});
 		
-		setConnectionFactory(new IConnectionFactory() {
-			public IConnection getConnection(Socket socket) throws IOException {
-				return new ServerConnection(socket,true,FtpServer.this.getLogger().getLevel());
-			}			
-		});
-		
+		setConnectionFactory(newConnectionFactory());
+
 		//  Determine which FileSource to use
 		String tmp = System.getProperty(FILE_SOURCE_PROP);
 		if( tmp != null ) {

@@ -35,6 +35,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 import us.bringardner.parley.files.FileSource;
+import us.bringardner.parley.net.server.AbstractCommand;
 import us.bringardner.parley.net.server.ICommandProcessor;
 import us.bringardner.parley.net.server.IPermission;
 import us.bringardner.parley.net.server.IRequestContext;
@@ -47,10 +48,25 @@ import us.bringardner.parley.io.IoUtils;
  * @author Tony Bringardner
  *
  */
-public abstract class BaseCommand implements FtpCommand ,FTP {
+public abstract class BaseCommand extends AbstractCommand implements FtpCommand ,FTP {
 
 	private static final long serialVersionUID = 1L;
 	
+	/**
+	 * The text after the command name, with its leading space (the form
+	 * {@link FtpRequestProcessor#createNewFile(String)} takes: file names may have spaces, so the
+	 * context's tokens can't be used). Replies 501 and returns null if there is none.
+	 */
+	protected static String pathArgument(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		String commandLine = context.getCommandLine();
+		int idx = commandLine.indexOf(' ');
+		if( idx > 0 ){
+			return commandLine.substring(idx);
+		}
+		processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Not enough parameters");
+		return null;
+	}
+
 	/** Buffer for directory listings sent on the data connection (BJL-30) */
 	public static final int LISTING_BUFFER_SIZE = 64*1024;
 
@@ -126,28 +142,17 @@ public abstract class BaseCommand implements FtpCommand ,FTP {
 
 	private static final byte[] CRLF = { '\r', '\n' };
 
-	private String name ;
-	private String help = "No help availibl";
 	
 	
 	/**
 	 * 
 	 */
 	public BaseCommand(String command) {
-		this.name = command.toUpperCase(java.util.Locale.ROOT);
-		help = "No help availibl for "+name;		
+		super(command);
 	}
 
-	@Override
-	public String getName() {
-		return name;
-	}
 	
 	
-	@Override
-	public String getHelp() {
-		return help;
-	}
 	
 	
 	/*
@@ -164,14 +169,6 @@ public abstract class BaseCommand implements FtpCommand ,FTP {
 	
 	
 	
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public void setHelp(String help) {
-		this.help = help;
-	}
-
 	
 	@Override
 	public IPermission getPermission() {

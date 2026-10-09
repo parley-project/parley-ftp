@@ -71,14 +71,8 @@ public class Appe  extends BaseCommand {
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
-		String commandLine = context.getCommandLine();
-		
-		//  can't use the context because file names may have spaces
-		int idx = commandLine.indexOf(' ');
-		if( idx > 0 ){
-			commandLine = commandLine.substring(idx);
-		} else {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Not enough parameters");
+		String commandLine = pathArgument(processor, context);
+		if( commandLine == null ) {
 			return;
 		}
 			
