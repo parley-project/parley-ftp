@@ -41,6 +41,18 @@ import us.bringardner.parley.ftp.FTP;
 
 public class FtpClientFile extends BaseObject {
 
+	/**
+	 * Where a file gets its FTP connection (which can be opened on first use, so it can fail) and
+	 * where it logs. A subclass such as the one in parley-files-ftp supplies its own.
+	 */
+	public interface Source {
+		FtpClient getFtpClient() throws IOException;
+
+		/** Where this file's log messages go. */
+		BaseObject getLogSource();
+	}
+
+
 	public static final char TYPE_DIR = 'd';
 	public static final char TYPE_FILE = '-';
 	//public static final ThreadSafeDateFormat YOUNG_DATE_FORMAT = new ThreadSafeDateFormat("MMM dd HH:mm yyyy");
@@ -49,21 +61,35 @@ public class FtpClientFile extends BaseObject {
 	//public static final ThreadSafeDateFormat MLST_DATE_FORMAT = new ThreadSafeDateFormat("yyyyMMddHHmmSS.sss");
 	//public static final ThreadSafeDateFormat MLST_SHORT_DATE_FORMAT = new ThreadSafeDateFormat("yyyyMMddHHmmSS");
 
-	private String listEntry;
-	private String parent;
-	private FtpClient client;
-	private String name;
-	private String owner;
-	private String group;
-	private long length;
-	private long lastModified;
-	private char type;
-	private char[] permissions;
-	private String mlstPermissions;
+	protected String listEntry;
+	protected String parent;
+	private final Source source;
+	protected String name;
+	protected String owner;
+	protected String group;
+	protected long length;
+	protected long lastModified;
+	protected char type;
+	protected char[] permissions;
+	protected String mlstPermissions;
 	// volatile: lazily created with double-checked locking in getParentFile()
 	private volatile FtpClientFile parentFile;
 
 	
+	private static Source of(FtpClient client) {
+		return new Source() {
+			@Override
+			public FtpClient getFtpClient() {
+				return client;
+			}
+
+			@Override
+			public BaseObject getLogSource() {
+				return client;
+			}
+		};
+	}
+
 	/**
 	 * Only used from command line processor and probably not working
 	 * @param listEntry
@@ -71,25 +97,26 @@ public class FtpClientFile extends BaseObject {
 	 * @throws IOException
 	 */
 	public FtpClientFile(String listEntry, FtpClient client) throws IOException {
-		this.client = client;
+		this.source = of(client);
 		this.listEntry = listEntry;
 		parseEntry(listEntry);
-		//parent = client.executePwd();
 	}
 
-
 	/**
-	 * Only used from command line processor
-	 * @param dirPath
-	 * @param listEntry
+	 * @param dirPath the directory the entry is in
+	 * @param listEntry a LIST or MLSx line, or null/empty if this is a directory known only by its path
 	 * @param client
 	 * @throws IOException
 	 */
 	public FtpClientFile(String dirPath, String listEntry, FtpClient client) throws IOException {
-		this.client = client;
+		this(dirPath, listEntry, of(client));
+	}
+
+	/** As above, for a connection that comes from a {@link Source}. */
+	protected FtpClientFile(String dirPath, String listEntry, Source source) throws IOException {
+		this.source = source;
 		this.listEntry = listEntry;
 		this.parent = dirPath.trim();
-
 		if( listEntry != null && !listEntry.isEmpty()) {
 			parseEntry(listEntry);
 		} else {
@@ -102,54 +129,62 @@ public class FtpClientFile extends BaseObject {
 			} else {
 				this.parent = "";
 				this.name = dirPath;
-
 			}
 		}
 	}
 
 	public FtpClientFile(FtpClient client) {
-		this.client = client;
+		this(of(client));
 	}
-	
+
+	protected FtpClientFile(Source source) {
+		this.source = source;
+	}
+
+	/** The FTP connection; opened on first use if the {@link Source} does that. */
+	protected final FtpClient client() throws IOException {
+		return source.getFtpClient();
+	}
+
 	@Override
-	public void logDebug(String msg) {client.logDebug(msg);}
+	public void logDebug(String msg) {source.getLogSource().logDebug(msg);}
 	@Override
 	public void logDebug(String msg, Throwable error) {
-		client.logDebug(msg, error);
+		source.getLogSource().logDebug(msg, error);
 	}
 	
 	@Override
 	public void logError(String msg) {
-		client.logError(msg);
+		source.getLogSource().logError(msg);
 	}
 	
 	@Override
 	public void logError(String msg, Throwable error) {
-		client.logError(msg, error);
+		source.getLogSource().logError(msg, error);
 	}
 	
 	@Override
 	public void logInfo(String msg) {
-		client.logInfo(msg);
+		source.getLogSource().logInfo(msg);
 	}
 	
 	@Override
 	public void logInfo(String msg, Throwable error) {
-		client.logInfo(msg, error);
+		source.getLogSource().logInfo(msg, error);
 	}
 	
 	@Override
 	public boolean isDebugEnabled() {
-		return client.isDebugEnabled();
+		return source.getLogSource().isDebugEnabled();
 	}
 	
 	@Override
 	public boolean isErrorEnabled() {
-		return client.isErrorEnabled();
+		return source.getLogSource().isErrorEnabled();
 	}
 	@Override
 	public boolean isInfoEnabled() {
-		return client.isInfoEnabled();
+		return source.getLogSource().isInfoEnabled();
 	}
 	
 	public String toString() {
@@ -180,7 +215,7 @@ public class FtpClientFile extends BaseObject {
 					if( idx > 0 ) {
 						String pp = parent.substring(0,idx);
 						String pn = parent.substring(idx+1);
-						parentFile = new FtpClientFile(client);
+						parentFile = newPlaceholder();
 						parentFile.listEntry = "";
 						parentFile.name = pn;                        
 						parentFile.parent = pp;
@@ -204,9 +239,14 @@ public class FtpClientFile extends BaseObject {
 		return parentFile;
 	}
 
+	/** An empty file object on the same connection, for {@link #getParetFile()}. */
+	protected FtpClientFile newPlaceholder() {
+		return new FtpClientFile(source);
+	}
+
 	private void parseEntry(String entry) throws IOException {
 		//  The parsing is shared with bjl_file_system_ftp's FtpFile, see ListEntry
-		ListEntry e = ListEntry.parse(entry, client.isMlstSupported(), this::logError);
+		ListEntry e = ListEntry.parse(entry, client().isMlstSupported(), this::logError);
 		name = e.getName();
 		owner = e.getOwner();
 		group = e.getGroup();
@@ -263,7 +303,11 @@ public class FtpClientFile extends BaseObject {
 		return group;
 	}
 
-	public char[] getPermissions() {
+	/**
+	 * The permissions of a Unix style LIST line (rwxr-xr-x), or null. A subclass may fetch them
+	 * from the server when they weren't in the entry, which is why this can fail.
+	 */
+	public char[] getPermissions() throws IOException {
 		return permissions;
 	}
 
@@ -279,21 +323,21 @@ public class FtpClientFile extends BaseObject {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client.getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii);
+		return client().getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii);
 	}
 
 	public InputStream getInputStream(boolean ascii, long startingPos) throws IOException {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client.getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii, startingPos);
+		return client().getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii, startingPos);
 	}
 
 	public OutputStream getOutputStream(boolean ascii, boolean append) throws IOException {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client.getOutputStream(getParent()+FtpClient.SEPERATOR+name, ascii, append);
+		return client().getOutputStream(getParent()+FtpClient.SEPERATOR+name, ascii, append);
 	}
 
 	public String getAbsolutePath() {
@@ -312,7 +356,7 @@ public class FtpClientFile extends BaseObject {
 
 	public boolean delete() throws IOException {
 
-		return client.delete(getAbsolutePath());
+		return client().delete(getAbsolutePath());
 	}
 
 	public boolean canRead() {
@@ -350,18 +394,18 @@ public class FtpClientFile extends BaseObject {
 	}
 
 	public boolean mkdir() throws IOException {
-		boolean ret = client.mkDir(getAbsolutePath());
+		boolean ret = client().mkDir(getAbsolutePath());
 		return ret;
 	}
 
 	public boolean mkdirs() throws IOException {
-		boolean ret = client.mkDirs(getAbsolutePath());
+		boolean ret = client().mkDirs(getAbsolutePath());
 		return ret;
 	}
 
 	public boolean renameTo(String newAbsolutePath) throws IOException {
 
-		return client.rename(getAbsolutePath(), newAbsolutePath);
+		return client().rename(getAbsolutePath(), newAbsolutePath);
 	}
 
 	public OutputStream getAppendOutputStream() throws IOException {
@@ -373,21 +417,22 @@ public class FtpClientFile extends BaseObject {
 	 * This is not supported by standard Ftp.
 	 * However, us.bringardner.parley.ftp.server.Server supports a 'SITE' command
 	 * that allows us to do it.
-	 * 
+	 *
 	 * @param lastModifiedTime
+	 * @return true if the server accepted it
 	 * @see us.bringardner.parley.ftp.server.FtpServer
 	 */
-	public void setLastModified(long lastModifiedTime) {
-
+	public boolean setLastModified(long lastModifiedTime) {
 		try {
-			ClientFtpResponse res = client.executeCommand(FTP.SITE,"modDate "+lastModifiedTime+" "+getAbsolutePath());
-
+			ClientFtpResponse res = client().executeCommand(FTP.SITE,"modDate "+lastModifiedTime+" "+getAbsolutePath());
 			if( res._getResponseCode() == FTP.REPLY_213_FILE_STATUS) {
 				this.lastModified = lastModifiedTime;
+				return true;
 			}
 		} catch (IOException e) {
 			logError("Error setting modDate",e);
 		}
+		return false;
 	}
 
 	public void dereferenceChildern() {
