@@ -71,4 +71,43 @@ public class TestListEntry {
 		assertEquals(0, e.getLastModified());
 		assertEquals(1, problems.size(), problems.toString());
 	}
+
+	@Test
+	public void testUnixLink() {
+		ListEntry e = ListEntry.parse("lrwxrwxrwx   1 tony     staff          11 Oct  1 12:25 current -> releases/v2", false, null);
+		assertEquals("current", e.getName(), "the name is not followed by the arrow");
+		assertEquals(ListEntry.TYPE_LINK, e.getType());
+		assertEquals("releases/v2", e.getLinkTarget());
+		assertEquals(11, e.getLength());
+
+		e = ListEntry.parse("lrwxrwxrwx 1 tony staff 4 Oct  1 12:25 my link -> /var/my target dir/x", false, null);
+		assertEquals("my link", e.getName());
+		assertEquals("/var/my target dir/x", e.getLinkTarget());
+
+		assertNull(ListEntry.parse("-rw-r--r-- 1 tony staff 7 Oct  1 12:25 plain.txt", false, null).getLinkTarget());
+		// a link line the server wrote without a target is still a link
+		e = ListEntry.parse("lrwxrwxrwx 1 tony staff 4 Oct  1 12:25 bare", false, null);
+		assertEquals("bare", e.getName());
+		assertEquals(ListEntry.TYPE_LINK, e.getType());
+		assertNull(e.getLinkTarget());
+	}
+
+	@Test
+	public void testMlsxLink() {
+		// RFC 3659 section 7.5.1: a type of the server's system, here a Unix symbolic link
+		ListEntry e = ListEntry.parse("type=OS.unix=slink:/data/current;size=11;modify=20260102030405;perm=adfrw; current", true, null);
+		assertEquals("current", e.getName());
+		assertEquals(ListEntry.TYPE_LINK, e.getType());
+		assertEquals("/data/current", e.getLinkTarget());
+		assertEquals(11, e.getLength());
+
+		e = ListEntry.parse("type=OS.unix=symlink;size=0;modify=20260102030405; /d/l", true, null);
+		assertEquals(ListEntry.TYPE_LINK, e.getType());
+		assertNull(e.getLinkTarget());
+
+		// the other types are as they were
+		assertEquals(ListEntry.TYPE_DIR, ListEntry.parse("type=cdir;size=0;modify=20260102030405; /d", true, null).getType());
+		assertEquals(ListEntry.TYPE_FILE, ListEntry.parse("type=FILE;size=1;modify=20260102030405; /f", true, null).getType());
+		assertNull(ListEntry.parse("type=file;size=1;modify=20260102030405; /f", true, null).getLinkTarget());
+	}
 }

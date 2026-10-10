@@ -72,6 +72,8 @@ public class FtpClientFile extends BaseObject {
 	protected char type;
 	protected char[] permissions;
 	protected String mlstPermissions;
+	/** Where a symbolic link points, as the server wrote it; null if this isn't one (see {@link ListEntry#getLinkTarget()}). */
+	protected String linkTarget;
 	// volatile: lazily created with double-checked locking in getParentFile()
 	private volatile FtpClientFile parentFile;
 
@@ -253,6 +255,7 @@ public class FtpClientFile extends BaseObject {
 		length = e.getLength();
 		lastModified = e.getLastModified();
 		type = e.getType();
+		linkTarget = e.getLinkTarget();
 		permissions = e.getPermissions();
 		mlstPermissions = e.getMlstPermissions();
 	}
@@ -273,6 +276,11 @@ public class FtpClientFile extends BaseObject {
 	@Deprecated
 	public static String mlsxName(String pathname) {
 		return ListEntry.mlsxName(pathname);
+	}
+
+	/** @return where this symbolic link points as the server wrote it (maybe relative), or null if it isn't a link */
+	public String getLinkTarget() {
+		return linkTarget;
 	}
 
 	public boolean isDirectory() {

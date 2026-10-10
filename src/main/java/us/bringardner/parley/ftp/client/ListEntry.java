@@ -46,6 +46,8 @@ public final class ListEntry {
 	public static final char TYPE_DIR = 'd';
 	/** {@link #getType()} of a file */
 	public static final char TYPE_FILE = '-';
+	/** {@link #getType()} of a symbolic link: 'l' in a LIST line, "OS.unix=slink" in an MLSx type fact */
+	public static final char TYPE_LINK = 'l';
 
 	private String name;
 	private String owner;
@@ -55,6 +57,7 @@ public final class ListEntry {
 	private char type;
 	private char[] permissions;
 	private String mlstPermissions;
+	private String linkTarget;
 
 	private ListEntry() {
 	}
@@ -191,8 +194,18 @@ public final class ListEntry {
 			} else if( fact.equals(FTP.SIZE)) {
 				length = Long.parseLong(tmp[1]);
 			} else if( fact.equals(FTP.TYPE)) {
-				if(tmp[1].equalsIgnoreCase("file")) {
+				// the value is everything after the first '=': "file", "dir", "cdir", "pdir", or a
+				// type of the server's system, as "OS.unix=slink:/where/it/points" (RFC 3659 7.5.1)
+				String value = parts[idx].substring(parts[idx].indexOf('=')+1).trim();
+				String lower = value.toLowerCase(Locale.ROOT);
+				if( lower.equals("file") ) {
 					type = TYPE_FILE;
+				} else if( lower.startsWith("os.unix=slink") || lower.startsWith("os.unix=symlink") ) {
+					type = TYPE_LINK;
+					int colon = value.indexOf(':');
+					if( colon >= 0 && colon+1 < value.length() ) {
+						linkTarget = value.substring(colon+1);
+					}
 				} else {
 					type = TYPE_DIR;
 				}
@@ -217,6 +230,14 @@ public final class ListEntry {
 		entry = cleanup(entry.trim());
 
 		type = entry.charAt(0);
+		if( type == TYPE_LINK ) {
+			// "name -> where/it/points": ls shows both, and the name is only the first
+			int arrow = name.indexOf(" -> ");
+			if( arrow > 0 ) {
+				linkTarget = name.substring(arrow+4).trim();
+				name = name.substring(0, arrow);
+			}
+		}
 		permissions = entry.substring(1,10).toCharArray();
 		String [] parts = entry.split(" ");
 		owner = parts[ownerPos];
@@ -261,6 +282,14 @@ public final class ListEntry {
 	/** @return {@link #TYPE_DIR}, {@link #TYPE_FILE}, or the type character of a LIST line ('l' for a link, say) */
 	public char getType() {
 		return type;
+	}
+
+	/**
+	 * @return where a symbolic link points, as the server wrote it (it may be relative); null if
+	 * this isn't a link, or the server didn't say
+	 */
+	public String getLinkTarget() {
+		return linkTarget;
 	}
 
 	/** @return the 9 permission characters of a LIST line ("rwxr-xr-x"), null for an MLSx line */
