@@ -163,27 +163,30 @@ public class Site  extends BaseCommand {
 			return;
 		} 
 
-		if(!target.canWrite()) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
-			return;
-		}
-
+		// Not a check of target.canWrite(): changing a file's permissions takes owning it, not being
+		// able to write it. That check refused to make a read-only file writable again (and made a
+		// read-only directory impossible to clean up). The file system decides, and a setter that
+		// can't do it says so.
 		try {
-
+			boolean done = true;
 			for(int idx = 0; idx < 3; idx++ ) {
 				String str = ""+number.charAt(idx);
 				int val = Integer.parseInt(str);
-				int r = val & 4;
-				int w = val & 2;
-				int x = val & 1;
+				boolean r = (val & 4) != 0;
+				boolean w = (val & 2) != 0;
+				boolean x = (val & 1) != 0;
 				switch (idx) {
-				case 0: target.setOwnerReadable(r!=0);target.setOwnerWritable(w!=0);target.setOwnerExecutable(x!=0);break;
-				case 1: target.setGroupReadable(r!=0);target.setGroupWritable(w!=0);target.setGroupExecutable(x!=0);break;
-				case 2: target.setOtherReadable(r!=0);target.setOtherWritable(w!=0);target.setOtherExecutable(x!=0);break;
+				case 0: done &= target.setOwnerReadable(r); done &= target.setOwnerWritable(w); done &= target.setOwnerExecutable(x); break;
+				case 1: done &= target.setGroupReadable(r); done &= target.setGroupWritable(w); done &= target.setGroupExecutable(x); break;
+				case 2: done &= target.setOtherReadable(r); done &= target.setOtherWritable(w); done &= target.setOtherExecutable(x); break;
 				default: break; // only 3 permission digits are used
 				}
 			}
-		} catch (Exception e) {
+			if( !done ) {
+				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				return;
+			}
+		} catch (IOException | RuntimeException e) {
 			processor.reply(REPLY_450_FILE_ACTION_FAILED," Can't change permissions '"+e+"'");
 			return;
 		}
