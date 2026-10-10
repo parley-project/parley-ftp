@@ -327,17 +327,27 @@ public class FtpClientFile extends BaseObject {
 	}
 
 	public InputStream getInputStream(boolean ascii, long startingPos) throws IOException {
+		return getInputStream(ascii, startingPos, 0);
+	}
+
+	/** @param bufferSize this stream's buffer in bytes, or 0 for the client's transfer buffer size */
+	public InputStream getInputStream(boolean ascii, long startingPos, int bufferSize) throws IOException {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client().getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii, startingPos);
+		return client().getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii, startingPos, bufferSize);
 	}
 
 	public OutputStream getOutputStream(boolean ascii, boolean append) throws IOException {
+		return getOutputStream(ascii, append, 0);
+	}
+
+	/** @param bufferSize this stream's buffer in bytes, or 0 for the client's transfer buffer size */
+	public OutputStream getOutputStream(boolean ascii, boolean append, int bufferSize) throws IOException {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client().getOutputStream(getParent()+FtpClient.SEPERATOR+name, ascii, append);
+		return client().getOutputStream(getParent()+FtpClient.SEPERATOR+name, ascii, append, bufferSize);
 	}
 
 	public String getAbsolutePath() {

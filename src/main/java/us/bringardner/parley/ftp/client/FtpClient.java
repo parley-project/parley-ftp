@@ -1653,15 +1653,24 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	 * @throws IOException
 	 */
 	public InputStream getInputStream(String path, boolean ascii, long startingPos) throws IOException {
+		return getInputStream(path, ascii, startingPos, 0);
+	}
+
+	/**
+	 * Open an input stream to a remote file with a buffer of its own.
+	 * @param bufferSize the size of the stream's buffer in bytes (at least 8 KB is used), or 0 for
+	 * {@link #getTransferBufferSize()}
+	 */
+	public InputStream getInputStream(String path, boolean ascii, long startingPos, int bufferSize) throws IOException {
 		commandLock.lock();
 		try {
 			checkStreamInProcess(path);
 			ClientFtpInputStream ret;
 			try {
-				ret = new ClientFtpInputStream(path,this,ascii, startingPos);
+				ret = new ClientFtpInputStream(path,this,ascii, startingPos, bufferSize);
 			} catch (Tls12Needed e) {
 				fallBackToTls12(e);
-				ret = new ClientFtpInputStream(path,this,ascii, startingPos);
+				ret = new ClientFtpInputStream(path,this,ascii, startingPos, bufferSize);
 			}
 			streamsInProcess.put(path, ret);
 
@@ -1697,17 +1706,26 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	}
 
 	public OutputStream getOutputStream(String path, boolean ascii, boolean append) throws IOException {
+		return getOutputStream(path, ascii, append, 0);
+	}
+
+	/**
+	 * Open an output stream to a remote file with a buffer of its own.
+	 * @param bufferSize the size of the stream's buffer in bytes (at least 8 KB is used), or 0 for
+	 * {@link #getTransferBufferSize()}
+	 */
+	public OutputStream getOutputStream(String path, boolean ascii, boolean append, int bufferSize) throws IOException {
 		commandLock.lock();
 		try {
 			checkStreamInProcess(path);
 
 			ClientFtpOutputStream ret;
 			try {
-				ret = new ClientFtpOutputStream(path,this,ascii, append);
+				ret = new ClientFtpOutputStream(path,this,ascii, append, bufferSize);
 			} catch (Tls12Needed e) {
 				// nothing was written yet
 				fallBackToTls12(e);
-				ret = new ClientFtpOutputStream(path,this,ascii, append);
+				ret = new ClientFtpOutputStream(path,this,ascii, append, bufferSize);
 			}
 			streamsInProcess.put(path, ret);
 

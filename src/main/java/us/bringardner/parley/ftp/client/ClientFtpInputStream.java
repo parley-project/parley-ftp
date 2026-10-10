@@ -47,6 +47,8 @@ public class ClientFtpInputStream extends InputStream implements FTP {
     private ClientDataTransferProcess dtp ;
     private boolean ascii;
     private long startAt;
+    /** What the buffer was made with: the size asked for, or the client's, and never under 8 KB. */
+    private int effectiveBufferSize;
     /** The final reply, when it was read before the stream was handed out */
     private ClientFtpResponse earlyReply;
 
@@ -59,10 +61,19 @@ public class ClientFtpInputStream extends InputStream implements FTP {
     }
 
     public ClientFtpInputStream(String path, FtpClient client, boolean ascii, long startingPos) throws IOException {
+        this(path,client,ascii,startingPos,0);
+    }
+
+    /**
+     * @param bufferSize the size of this stream's buffer, or 0 for the client's
+     * {@link FtpClient#getTransferBufferSize()} (it is never less than 8 KB)
+     */
+    public ClientFtpInputStream(String path, FtpClient client, boolean ascii, long startingPos, int bufferSize) throws IOException {
         this.path = path;
         this.ascii = ascii;
         this.client = client;
         this.startAt = startingPos;
+        this.effectiveBufferSize = Math.max(8192, bufferSize > 0 ? bufferSize : client.getTransferBufferSize());
         startDownload();
 
     }
@@ -115,7 +126,7 @@ public class ClientFtpInputStream extends InputStream implements FTP {
             return;
         }
         // Buffered: read() on a raw socket stream is one system call per byte
-        in = new BufferedInputStream(dtp.getInput(), Math.max(8192, client.getTransferBufferSize()));
+        in = new BufferedInputStream(dtp.getInput(), effectiveBufferSize);
         if( client.isDataChannelSecure() ) {
             /*
              * A server that refuses the TLS session after the handshake (vsftpd with TLS 1.3)
@@ -212,6 +223,11 @@ public class ClientFtpInputStream extends InputStream implements FTP {
      * Closing before EOF abandons the transfer, so a negative reply is expected and ignored.
      * Calling close more than once has no effect.
      */
+    /** @return the size of this stream's buffer: what it was opened with, else the client's, and at least 8 KB */
+    public int getBufferSize() {
+        return effectiveBufferSize;
+    }
+
     public void close() throws IOException {
         if( closed ) {
             return;

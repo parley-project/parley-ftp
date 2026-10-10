@@ -44,13 +44,24 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     private ClientDataTransferProcess dtp ;
     private boolean ascii;
     private boolean append = false;
+    /** What the buffer was made with: the size asked for, or the client's, and never under 8 KB. */
+    private int effectiveBufferSize;
     private boolean closed = false;
     
     public ClientFtpOutputStream(String path, FtpClient client, boolean ascii, boolean append) throws IOException {
+        this(path,client,ascii,append,0);
+    }
+
+    /**
+     * @param bufferSize the size of this stream's buffer, or 0 for the client's
+     * {@link FtpClient#getTransferBufferSize()} (it is never less than 8 KB)
+     */
+    public ClientFtpOutputStream(String path, FtpClient client, boolean ascii, boolean append, int bufferSize) throws IOException {
         this.path = path;
         this.client = client;
         this.ascii = ascii;
         this.append = append;
+        this.effectiveBufferSize = Math.max(8192, bufferSize > 0 ? bufferSize : client.getTransferBufferSize());
         startUpload();
     }
 
@@ -83,13 +94,18 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
             throw new IOException(cmd+" "+path+": the server ended the transfer before any data was sent ("+finished+")");
         }
         // Buffered: write(int) on a raw socket stream is one system call (and TCP packet) per byte
-        out = new BufferedOutputStream(dtp.getOutput(), Math.max(8192, client.getTransferBufferSize()));
+        out = new BufferedOutputStream(dtp.getOutput(), effectiveBufferSize);
         
         closed = false;
     }
 
     public void write(int b) throws IOException {
         out.write(b);
+    }
+
+    /** @return the size of this stream's buffer: what it was opened with, else the client's, and at least 8 KB */
+    public int getBufferSize() {
+        return effectiveBufferSize;
     }
 
     public void close() throws IOException {
