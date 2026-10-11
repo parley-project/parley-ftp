@@ -91,6 +91,11 @@ public class Stor  extends BaseCommand {
 			return;
 		} 
 		processor.logDebug(getName()+" target = "+target.getAbsolutePath());
+		if( processor.isLink(target) ) {
+			// the original is not to be changed through a link, and the user is not to know why
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
+			return;
+		}
 
 		Long rest = (Long)processor.removeTempValue(REST);
 		// REST 0 means "no restart" (RFC 3659)

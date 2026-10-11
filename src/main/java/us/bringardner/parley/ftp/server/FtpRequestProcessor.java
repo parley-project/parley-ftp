@@ -373,6 +373,22 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * </ul>
 	 * In every mode ".." cannot leave the root, and the root itself may be a link.
 	 */
+	/**
+	 * True if this path is a symbolic link. An administrator makes files visible to users with
+	 * links and doesn't want them known, so a link is shown as what it leads to; the same
+	 * administrator doesn't want the original changed through one. A command that would write to
+	 * what a link leads to (store, append, chmod, set the modified time) treats the link as
+	 * something the user may not change, and refuses it as it refuses any denied write, without
+	 * saying why. Deleting or renaming a link, which acts on the link only, is not affected.
+	 */
+	public boolean isLink(FileSource file) {
+		try {
+			return file != null && file.getLinkedTo() != null;
+		} catch (IOException | RuntimeException e) {
+			return false;
+		}
+	}
+
 	public boolean isInsideRoot(FileSource file) {
 		if( file == null || rootName == null ) {
 			return false;

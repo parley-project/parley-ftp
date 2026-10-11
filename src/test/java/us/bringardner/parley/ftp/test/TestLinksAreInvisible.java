@@ -331,4 +331,83 @@ public class TestLinksAreInvisible {
 		assertFalse(new File(root, "realdir/inner.txt").exists());
 		assertTrue(isLink(new File(root, "ln-dir")), "the link itself is untouched");
 	}
+
+	// ------------------------------------------------------------ the original is not changed through a link
+
+	/** The reply code and text of a command that starts a transfer, which is refused before any data. */
+	private static String refused(Session s, String command, String name) throws IOException {
+		try (Socket data = s.pasv()) {
+			s.send(command + " " + name);
+			TestTransferReliability.Reply r = s.read(5000);
+			if (r.code < 400) {
+				data.close();
+				s.read(5000);
+				return "accepted " + r.code;
+			}
+			return r.code + " " + r.text.trim();
+		}
+	}
+
+	private static void assertSaysNothingAboutLinks(String reply) {
+		String lower = reply.toLowerCase();
+		assertFalse(lower.contains("link") || lower.contains("symbolic") || lower.contains("->"), reply);
+		assertFalse(reply.contains(base.getPath()), "no real path: " + reply);
+	}
+
+	@Test
+	public void aFileOnALinkCanNotBeStoredOrAppendedTo() throws Exception {
+		try (Session s = new Session(PORT)) {
+			for (String link : new String[] {"ln-file", "shared-file"}) {
+				for (String command : new String[] {"STOR", "APPE"}) {
+					String reply = refused(s, command, link);
+					assertTrue(reply.startsWith("550 "), command + " " + link + " => " + reply);
+					assertTrue(reply.toLowerCase().contains("permission denied"), reply);
+					assertSaysNothingAboutLinks(reply);
+				}
+			}
+		}
+		// nothing changed: still links, and the originals are as they were
+		assertTrue(isLink(new File(root, "ln-file")));
+		assertTrue(isLink(new File(root, "shared-file")));
+		assertEquals("real content", read(new File(root, "real.txt")));
+		assertEquals("shared document", read(new File(shared, "doc.txt")));
+	}
+
+	@Test
+	public void theModeAndTimeOfALinkedFileCanNotBeChanged() throws Exception {
+		File real = new File(root, "real.txt");
+		String mode = java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(real.toPath()));
+		long modified = real.lastModified();
+		try (Session s = new Session(PORT)) {
+			for (String link : new String[] {"ln-file", "shared-file", "ln-dir"}) {
+				s.send("SITE CHMOD 444 " + link);
+				TestTransferReliability.Reply r = s.read(5000);
+				assertEquals(450, r.code, link + " => " + r);
+				assertSaysNothingAboutLinks(r.text);
+				s.send("SITE modDate 1600000000000 " + link);
+				r = s.read(5000);
+				assertEquals(450, r.code, link + " => " + r);
+				assertSaysNothingAboutLinks(r.text);
+			}
+		}
+		assertEquals(mode, java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(real.toPath())));
+		assertEquals(modified, real.lastModified());
+		assertEquals("-rw-r--r--", "-" + mode, "the original is still rw-r--r--");
+	}
+
+	@Test
+	public void aFileThatIsNotALinkIsStillWritable() throws Exception {
+		try (Session s = new Session(PORT)) {
+			// the original, by its own name, and a file inside a linked directory
+			s.put("real.txt", "replaced".getBytes(StandardCharsets.UTF_8));
+			s.put("ln-dir/inner.txt", "inner replaced".getBytes(StandardCharsets.UTF_8));
+			assertEquals("200", code(s, "SITE CHMOD 640 real.txt"));
+			assertEquals("213", code(s, "SITE modDate 1600000000000 ln-dir/inner.txt"));
+		}
+		assertEquals("replaced", read(new File(root, "real.txt")));
+		assertEquals("inner replaced", read(new File(root, "realdir/inner.txt")));
+		assertEquals("rw-r-----", java.nio.file.attribute.PosixFilePermissions.toString(
+				Files.getPosixFilePermissions(new File(root, "real.txt").toPath())));
+		assertEquals(1_600_000_000_000L, new File(root, "realdir/inner.txt").lastModified());
+	}
 }

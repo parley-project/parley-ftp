@@ -163,6 +163,12 @@ public class Site  extends BaseCommand {
 			return;
 		} 
 
+		if( processor.isLink(target) ) {
+			// not to be changed through a link; and the user is not to know it is one
+			processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+			return;
+		}
+
 		// Not a check of target.canWrite(): changing a file's permissions takes owning it, not being
 		// able to write it. That check refused to make a read-only file writable again (and made a
 		// read-only directory impossible to clean up). The file system decides, and a setter that
@@ -280,7 +286,7 @@ public class Site  extends BaseCommand {
 			return;
 		} 
 
-		if(!target.canWrite()) {
+		if(!target.canWrite() || processor.isLink(target)) {
 			processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
 			return;
 		}

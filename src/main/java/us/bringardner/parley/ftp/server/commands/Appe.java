@@ -83,7 +83,12 @@ public class Appe  extends BaseCommand {
 			return;
 		} 
 
-		
+		if( processor.isLink(target) ) {
+			// the original is not to be changed through a link, and the user is not to know why
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
+			return;
+		}
+
 		// Get the data connection before opening the file
 		processor.receiveFile(target, true);
 
