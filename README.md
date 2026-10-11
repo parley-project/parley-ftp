@@ -49,12 +49,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 ### Behaviour notes
 
 - **Paths are confined to the user's root.** `..` stops at `/`, as in a chroot, in every mode.
-- **Symbolic links** inside a root are handled according to `JFtp.symlinkPolicy`:
-  - `strict` (default): a link that leads outside the root is refused, so it can't be used to reach other files.
-  - `allowedTargets`: links may lead outside the root only into the directories listed in `JFtp.allowedLinkTargets`, e.g. to share `/data/shared` in every user's root.
-  - `follow`: every link inside the root is followed. Use it only when users can't create links by other means (shell, SFTP, Samba, unpacked archives).
-
-  Clients always see the link's own path (`/shared`), never the server's real path. Hard links need no setting; they are ordinary files inside the root.
+- **Symbolic links** are how an administrator makes files visible to users without copying them. They are covered in [Links](#links) below: clients don't know a link is one, and what they can do to it.
 - **STOR is safe to retry.** Data is written to a hidden temporary file (`.name.<id>.ftp-part`), which replaces the target only when the upload completes. APPE and STOR after REST append in place.
 - **Transfer replies:**
   - A successful transfer gets `150` then `226`.
@@ -67,6 +62,80 @@ Each setting can be passed as a system property or set with the matching `FtpSer
   - **Implicit TLS:** `setSecure(true)`. Data connections use TLS unless the client sends `PROT C`.
   - **PROT levels:** only `C` and `P` are supported; `S` and `E` get `536`.
 - **Failed logins** wait `JFtp.loginFailureDelay` ms (default 1000) before the reply, and a connection is closed after 3 failures.
+
+## Links
+
+An administrator can make a file or a directory appear in a user's root without copying it, by making a
+**symbolic link** to it (`ln -s /data/reports/q3.pdf /ftp/alice/q3.pdf`). FTP has no command to make a link,
+so links are made outside FTP: on the file system, through SFTP, or through the `FileSource` API.
+
+**The clients are not to know.** FTP clients don't know about links, and the server doesn't tell them. A
+link is shown, and acts, as the file or directory it leads to.
+
+> **This is the FTP model, and only FTP's.** The FTP protocol has no idea of a link: a client can't see
+> one, make one or read one, so the server hides them and decides for itself what a write to one means
+> (below: it replaces the link). A protocol that is aware of links has other rules. SFTP lets a client see
+> a link (`lstat`, `readlink`) and make one (`symlink`), and a write through a link changes the file it
+> leads to, as it does in the `FileSource` API (see [parley-files](https://github.com/tony-bringardner/parley-files#links)).
+> Nothing in this section applies to them.
+
+### What a client sees
+
+| Client does | Result |
+|---|---|
+| `LIST`, `NLST`, `MLSD`, `MLST` | An ordinary file (`-rw-r--r--`, `type=file`) or directory (`d`, `type=dir`) with the size, time, owner and permissions **of what it leads to**. No `->`, no `l`, no `OS.unix=slink`. |
+| `RETR`, `SIZE`, `MDTM`, `CWD`, `PWD` | As for the file or directory. `PWD` shows the client's path (`/q3.pdf`), never the server's real path. |
+| A refused command | A reply that doesn't say the file is a link. No reply carries the server's real path (the tests check this). |
+
+### What a client can do to it
+
+What a client does to a link never changes the file it leads to.
+
+| Client does | Result |
+|---|---|
+| `DELE`, `RMD`, `RNFR` + `RNTO` | Acts on the **link**. The linked file or directory is untouched. |
+| `STOR` | The link is **replaced by a regular file** that holds the upload. The original is untouched. |
+| `APPE`, `STOR` after `REST`, `SITE CHMOD`, `SITE modDate` | The link is first replaced by a regular **copy** of the file (same content, permissions and time), and the command applies to that copy. The original is untouched. |
+| `STOR`, `MKD`, `DELE` **inside** a linked directory | Happens in the directory it leads to. The link is the way in, and a client with write permission changes what is behind it, as it would in any directory it can write to. |
+| `SITE CHMOD`, `SITE modDate` on a linked **directory** | Refused (`450 Permission denied.`). A directory isn't copied. |
+
+So a client that writes to a linked file ends up with its own regular file in the same place, and the
+administrator's link, and the original, are not harmed.
+
+### Making a link read-only
+
+The administrator's control is permissions, the same as for any file:
+
+- **A file's write permission is honored.** `STOR` and `APPE` to a file that can't be written are refused
+  (`550 Permission denied.`). A link has the permissions of the file it leads to, so make that file
+  read-only (`chmod a-w`) and the link is read-only for the users, whichever of their roots it appears in.
+- **A directory that can't be written keeps its entries.** A link in a directory without the write
+  permission can't be deleted, renamed or replaced (`450`, `550`, `553`), as for any file in it.
+- A symbolic link has no permissions of its own on most systems, so there is nothing to set on the link
+  itself.
+
+To keep the contents of a linked *directory* from being changed, make that directory (and what is in it)
+read-only. The server doesn't treat everything behind a link as read-only, so a linked drop folder can
+accept uploads.
+
+### Where a link may lead
+
+`JFtp.symlinkPolicy` decides whether a link may lead outside the user's root:
+
+- `strict` (default): a link that leads outside the root is refused, so it can't be used to reach other files.
+- `allowedTargets`: links may lead outside the root only into the directories listed in `JFtp.allowedLinkTargets`,
+  e.g. to share `/data/shared` in every user's root. **This is the setting for linking in files from elsewhere.**
+- `follow`: every link inside the root is followed. Use it only when users can't create links by other means
+  (shell, SFTP, Samba, unpacked archives).
+
+`..` never leaves the root. Hard links need no setting; they are ordinary files inside the root.
+
+### The client library reads links too
+
+The client (`FtpClient`, `FtpClientFile`, `ListEntry`) understands the two ways a server can say an entry is
+a link, so it works against servers that do: a `LIST` line `name -> target` and an `MLST`/`MLSD` type
+`OS.unix=slink:target`. `ListEntry.getType()` is `ListEntry.TYPE_LINK` and `getLinkTarget()` is where it
+points. This server doesn't say, for the reasons above.
 
 ## Client notes
 
