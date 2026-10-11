@@ -164,9 +164,19 @@ public class Site  extends BaseCommand {
 		} 
 
 		if( processor.isLink(target) ) {
-			// not to be changed through a link; and the user is not to know it is one
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
-			return;
+			// A change to a link's mode is a write: the link is replaced by a regular copy that gets
+			// it, and what it led to is not changed. A directory isn't copied, so it is refused.
+			if( target.isDirectory() ) {
+				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				return;
+			}
+			try {
+				target = processor.replaceLinkWithCopy(target);
+			} catch (IOException e) {
+				processor.logError("Can't replace link "+target, e);
+				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				return;
+			}
 		}
 
 		// Not a check of target.canWrite(): changing a file's permissions takes owning it, not being
@@ -286,9 +296,19 @@ public class Site  extends BaseCommand {
 			return;
 		} 
 
-		if(!target.canWrite() || processor.isLink(target)) {
+		if(!target.canWrite() || (processor.isLink(target) && target.isDirectory())) {
 			processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
 			return;
+		}
+		if( processor.isLink(target) ) {
+			// the link is replaced by a regular copy that gets the time, as for a mode
+			try {
+				target = processor.replaceLinkWithCopy(target);
+			} catch (IOException e) {
+				processor.logError("Can't replace link "+target, e);
+				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				return;
+			}
 		}
 
 		try {

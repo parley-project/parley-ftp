@@ -83,10 +83,19 @@ public class Appe  extends BaseCommand {
 			return;
 		} 
 
-		if( processor.isLink(target) ) {
-			// the original is not to be changed through a link, and the user is not to know why
+		if( target.exists() && !target.canWrite() ) {
 			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
 			return;
+		}
+		if( processor.isLink(target) ) {
+			// an append to a link goes on a regular copy that takes its place: what it led to is not changed
+			try {
+				target = processor.replaceLinkWithCopy(target);
+			} catch (IOException e) {
+				processor.logError("Can't replace link "+target, e);
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
+				return;
+			}
 		}
 
 		// Get the data connection before opening the file

@@ -91,8 +91,11 @@ public class Stor  extends BaseCommand {
 			return;
 		} 
 		processor.logDebug(getName()+" target = "+target.getAbsolutePath());
-		if( processor.isLink(target) ) {
-			// the original is not to be changed through a link, and the user is not to know why
+		// A file that can't be written can't be replaced either (the upload goes to a temporary
+		// file that is renamed over it, which ignores the file's own permissions). A link has the
+		// permissions of what it leads to, so an administrator makes one read-only by making that
+		// read-only, or the directory it is in.
+		if( target.exists() && !target.canWrite() ) {
 			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
 			return;
 		}
@@ -100,6 +103,16 @@ public class Stor  extends BaseCommand {
 		Long rest = (Long)processor.removeTempValue(REST);
 		// REST 0 means "no restart" (RFC 3659)
 		boolean resume = rest != null && rest.longValue() > 0;
+		if( resume && processor.isLink(target) ) {
+			// carrying on a file that is a link: it becomes a regular copy first, so the original isn't added to
+			try {
+				target = processor.replaceLinkWithCopy(target);
+			} catch (IOException e) {
+				processor.logError("Can't replace link "+target, e);
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
+				return;
+			}
+		}
 		if( resume ){
 			long len = target.exists() ? target.length() : 0;
 			if( len != rest.longValue()) {

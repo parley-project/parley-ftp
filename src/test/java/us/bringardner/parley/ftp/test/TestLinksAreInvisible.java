@@ -334,6 +334,20 @@ public class TestLinksAreInvisible {
 
 	// ------------------------------------------------------------ the original is not changed through a link
 
+	private static String store(Session s, String command, String name, String content) throws IOException {
+		try (Socket data = s.pasv()) {
+			s.send(command + " " + name);
+			TestTransferReliability.Reply r = s.read(5000);
+			if (r.code >= 400) {
+				return "refused " + r.code + " " + r.text.trim();
+			}
+			data.getOutputStream().write(content.getBytes(StandardCharsets.UTF_8));
+			data.getOutputStream().flush();
+		}
+		TestTransferReliability.Reply r = s.read(5000);
+		return "done " + r.code + " " + r.text.trim();
+	}
+
 	/** The reply code and text of a command that starts a transfer, which is refused before any data. */
 	private static String refused(Session s, String command, String name) throws IOException {
 		try (Socket data = s.pasv()) {
@@ -354,45 +368,133 @@ public class TestLinksAreInvisible {
 		assertFalse(reply.contains(base.getPath()), "no real path: " + reply);
 	}
 
+	private static String mode(File f) throws IOException {
+		return java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(f.toPath()));
+	}
+
+	private static void assertRegularFile(File f, String content) throws IOException {
+		assertFalse(isLink(f), f + " is still a link");
+		assertEquals(content, read(f));
+	}
+
+	/** A write replaces the link with a regular file, and what the link led to is never changed. */
 	@Test
-	public void aFileOnALinkCanNotBeStoredOrAppendedTo() throws Exception {
+	public void aWriteToALinkReplacesItWithARegularFile() throws Exception {
 		try (Session s = new Session(PORT)) {
-			for (String link : new String[] {"ln-file", "shared-file"}) {
-				for (String command : new String[] {"STOR", "APPE"}) {
-					String reply = refused(s, command, link);
-					assertTrue(reply.startsWith("550 "), command + " " + link + " => " + reply);
-					assertTrue(reply.toLowerCase().contains("permission denied"), reply);
-					assertSaysNothingAboutLinks(reply);
-				}
-			}
+			s.put("ln-file", "NEW".getBytes(StandardCharsets.UTF_8));
+			s.put("shared-file", "NEW2".getBytes(StandardCharsets.UTF_8));
 		}
-		// nothing changed: still links, and the originals are as they were
-		assertTrue(isLink(new File(root, "ln-file")));
-		assertTrue(isLink(new File(root, "shared-file")));
+		assertRegularFile(new File(root, "ln-file"), "NEW");
+		assertRegularFile(new File(root, "shared-file"), "NEW2");
+		assertEquals("real content", read(new File(root, "real.txt")), "the original is as it was");
+		assertEquals("shared document", read(new File(shared, "doc.txt")), "also outside the root");
+	}
+
+	@Test
+	public void anAppendGoesOnACopyAndTheOriginalIsNotChanged() throws Exception {
+		try (Session s = new Session(PORT)) {
+			assertEquals("done 226", store(s, "APPE", "ln-file", "+more").substring(0, 8));
+			assertEquals("done 226", store(s, "APPE", "shared-file", "+more").substring(0, 8));
+		}
+		assertRegularFile(new File(root, "ln-file"), "real content+more");
+		assertRegularFile(new File(root, "shared-file"), "shared document+more");
 		assertEquals("real content", read(new File(root, "real.txt")));
 		assertEquals("shared document", read(new File(shared, "doc.txt")));
 	}
 
 	@Test
-	public void theModeAndTimeOfALinkedFileCanNotBeChanged() throws Exception {
-		File real = new File(root, "real.txt");
-		String mode = java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(real.toPath()));
-		long modified = real.lastModified();
+	public void aResumedUploadAlsoGoesOnACopy() throws Exception {
 		try (Session s = new Session(PORT)) {
-			for (String link : new String[] {"ln-file", "shared-file", "ln-dir"}) {
-				s.send("SITE CHMOD 444 " + link);
-				TestTransferReliability.Reply r = s.read(5000);
-				assertEquals(450, r.code, link + " => " + r);
-				assertSaysNothingAboutLinks(r.text);
-				s.send("SITE modDate 1600000000000 " + link);
-				r = s.read(5000);
-				assertEquals(450, r.code, link + " => " + r);
-				assertSaysNothingAboutLinks(r.text);
-			}
+			assertEquals("350", code(s, "REST 12"));
+			assertEquals("done 226", store(s, "STOR", "ln-file", "ABC").substring(0, 8));
 		}
-		assertEquals(mode, java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(real.toPath())));
-		assertEquals(modified, real.lastModified());
-		assertEquals("-rw-r--r--", "-" + mode, "the original is still rw-r--r--");
+		assertRegularFile(new File(root, "ln-file"), "real contentABC");
+		assertEquals("real content", read(new File(root, "real.txt")));
+	}
+
+	@Test
+	public void theModeAndTimeOfALinkedFileAreSetOnACopy() throws Exception {
+		File real = new File(root, "real.txt");
+		String originalMode = mode(real);
+		long originalTime = new File(shared, "doc.txt").lastModified();
+		try (Session s = new Session(PORT)) {
+			assertEquals("200", code(s, "SITE CHMOD 640 ln-file"));
+			assertEquals("213", code(s, "SITE modDate 1600000000000 shared-file"));
+		}
+		assertRegularFile(new File(root, "ln-file"), "real content");
+		assertEquals("rw-r-----", mode(new File(root, "ln-file")));
+		assertRegularFile(new File(root, "shared-file"), "shared document");
+		assertEquals(1_600_000_000_000L, new File(root, "shared-file").lastModified());
+		assertEquals(originalMode, mode(real), "the original's mode is as it was");
+		assertEquals(originalTime, new File(shared, "doc.txt").lastModified(), "and its time");
+	}
+
+	@Test
+	public void aLinkedDirectoryIsNotCopiedSoItsModeIsNotSet() throws Exception {
+		File realdir = new File(root, "realdir");
+		String modeBefore = mode(realdir);
+		long timeBefore = realdir.lastModified();
+		try (Session s = new Session(PORT)) {
+			assertEquals("450", code(s, "SITE CHMOD 700 ln-dir"));
+			assertEquals("450", code(s, "SITE modDate 1600000000000 ln-dir"));
+		}
+		assertTrue(isLink(new File(root, "ln-dir")), "still a link");
+		assertEquals(modeBefore, mode(realdir), "the directory it leads to is unchanged");
+		assertEquals(timeBefore, realdir.lastModified());
+	}
+
+	// ------------------------------------------------------------ permissions are the administrator's control
+
+	@Test
+	public void aReadOnlyFileCanNotBeStoredOrAppendedToThroughALink() throws Exception {
+		File real = new File(root, "real.txt");
+		real.setWritable(false);
+		try {
+			try (Session s = new Session(PORT)) {
+				String store = refused(s, "STOR", "ln-file");
+				assertTrue(store.startsWith("550 "), store);
+				String append = refused(s, "APPE", "ln-file");
+				assertTrue(append.startsWith("550 "), append);
+				assertSaysNothingAboutLinks(store);
+				assertSaysNothingAboutLinks(append);
+			}
+			assertTrue(isLink(new File(root, "ln-file")), "the link is still there");
+			assertEquals("real content", read(real));
+		} finally {
+			real.setWritable(true);
+		}
+	}
+
+	@Test
+	public void aReadOnlyFileIsNotOverwrittenByAnUploadEither() throws Exception {
+		File ro = new File(root, "ro.txt");
+		write(ro, "protected");
+		ro.setWritable(false);
+		try (Session s = new Session(PORT)) {
+			String store = refused(s, "STOR", "ro.txt");
+			assertTrue(store.startsWith("550 "), "an upload used to replace a read-only file: " + store);
+		} finally {
+			ro.setWritable(true);
+		}
+		assertEquals("protected", read(ro));
+	}
+
+	@Test
+	public void aReadOnlyDirectoryKeepsItsLinks() throws Exception {
+		File holder = new File(root, "holder");
+		assertTrue(holder.mkdir());
+		Files.createSymbolicLink(new File(holder, "inside-link").toPath(), new File(root, "real.txt").toPath());
+		holder.setWritable(false);
+		try (Session s = new Session(PORT)) {
+			assertEquals("450", code(s, "DELE holder/inside-link"));
+			assertEquals("350", code(s, "RNFR holder/inside-link"));
+			assertEquals("550", code(s, "RNTO holder/other"));
+			assertTrue(refused(s, "STOR", "holder/inside-link").startsWith("5"), "an upload can't replace it");
+		} finally {
+			holder.setWritable(true);
+		}
+		assertTrue(isLink(new File(holder, "inside-link")), "the link is untouched");
+		assertEquals("real content", read(new File(root, "real.txt")));
 	}
 
 	@Test

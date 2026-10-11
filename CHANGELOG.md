@@ -29,15 +29,24 @@ BjlNetFtp 1.0.0-SNAPSHOT (below, never released under that name); only names cha
 
 ### Changed (no code change needed)
 
-- **A link is not a way to change the original.** An administrator makes files visible to users with
-  links, to avoid copies, and doesn't want them to know. The server already showed a link as the file or
-  directory it leads to (in `LIST`, `MLSD`, `MLST` and `NLST`: no arrow, no `slink` type, the target's size
-  and facts). `STOR` and `APPE` to a link, and `SITE CHMOD` and `SITE modDate` on one, are now refused as
-  any denied write (`550 Permission denied.` and `450 Permission denied.`), without saying why. A store
-  used to replace the link with a regular file, an append changed the original, and chmod and modDate
-  changed the original's mode and time. `DELE`, `RNFR`/`RNTO` and `RMD` on a link act on the link only,
-  and work inside a linked directory happens in the directory it leads to (both pinned by tests).
-  Links that lead outside the root still need the symlink policy (`allowedTargets`).
+- **A link looks and acts like the file or directory it leads to, and a write never changes the
+  original.** An administrator makes files visible to users with links, to avoid copies, and the users are
+  not to know. `LIST`, `MLSD`, `MLST` and `NLST` show a link as what it leads to (no arrow, no `slink`
+  type, the target's size and facts), and reading, `CWD`, `SIZE` and `MDTM` work through it. `DELE`, `RMD`
+  and `RNFR`/`RNTO` on a link act on the link only. A write replaces the link with a regular file, so
+  what it led to is never changed: `STOR` stores a new file in its place; `APPE`, a resumed `STOR`
+  (`REST` then `STOR`), `SITE CHMOD` and `SITE modDate` first make that regular file a copy of what the
+  link led to (with its permissions and time) and then apply to the copy. A linked *directory* isn't
+  copied, so `SITE CHMOD` and `SITE modDate` on one are refused (`450 Permission denied.`); work inside it
+  happens in the directory it leads to. (A store used to replace the link, an append changed the
+  original, and chmod and modDate changed the original's mode and time.) Links that lead outside the root
+  still need the symlink policy (`allowedTargets`).
+- **Permissions are the administrator's control.** `STOR` now honors a file's write permission: a file
+  that can't be written is refused (`550 Permission denied.`) like `APPE` always was. An upload used to
+  replace a read-only file, because it goes to a temporary file that is renamed over it. A link has the
+  permissions of what it leads to, so a link is made read-only by making the file it leads to read-only,
+  and a directory that can't be written keeps its entries (links included) from being deleted, renamed or
+  replaced, as for any file.
 - `SITE CHMOD` takes owning the file, not being able to write it, so a read-only file can be made writable
   again.
 

@@ -375,11 +375,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 */
 	/**
 	 * True if this path is a symbolic link. An administrator makes files visible to users with
-	 * links and doesn't want them known, so a link is shown as what it leads to; the same
-	 * administrator doesn't want the original changed through one. A command that would write to
-	 * what a link leads to (store, append, chmod, set the modified time) treats the link as
-	 * something the user may not change, and refuses it as it refuses any denied write, without
-	 * saying why. Deleting or renaming a link, which acts on the link only, is not affected.
+	 * links, to avoid copies, and a client is not to know: it sees an ordinary file or directory,
+	 * which it can delete or rename (that acts on the link, never on what it leads to).
 	 */
 	public boolean isLink(FileSource file) {
 		try {
@@ -387,6 +384,50 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		} catch (IOException | RuntimeException e) {
 			return false;
 		}
+	}
+
+	/**
+	 * A write to a link replaces the link with a regular file, so what it led to is never changed.
+	 * When what is written is the file's current content (an append, or a change to its mode or
+	 * time) the regular file starts as a copy of it, with the same permissions and modified time.
+	 *
+	 * @return the file to write to: the copy that now has the link's name, or the argument if
+	 * it isn't a link to a file
+	 */
+	public FileSource replaceLinkWithCopy(FileSource link) throws IOException {
+		if( !isLink(link) || !link.isFile() ) {
+			return link;
+		}
+		FileSource dir = link.getParentFile();
+		if( dir == null ) {
+			throw new IOException("No directory for "+link.getName());
+		}
+		FileSource copy = dir.getChild("."+link.getName()+"."+Long.toHexString(java.util.concurrent.ThreadLocalRandom.current().nextLong() & Long.MAX_VALUE)+".ftp-copy");
+		try {
+			us.bringardner.parley.files.FileSourceCopy.copy(link, copy);
+			// it is what the client saw: the same permissions and time
+			copy.setOwnerReadable(link.canOwnerRead());
+			copy.setOwnerWritable(link.canOwnerWrite());
+			copy.setOwnerExecutable(link.canOwnerExecute());
+			copy.setGroupReadable(link.canGroupRead());
+			copy.setGroupWritable(link.canGroupWrite());
+			copy.setGroupExecutable(link.canGroupExecute());
+			copy.setOtherReadable(link.canOtherRead());
+			copy.setOtherWritable(link.canOtherWrite());
+			copy.setOtherExecutable(link.canOtherExecute());
+			copy.setLastModifiedTime(link.lastModified());
+			// deleting a link removes the link and not what it leads to
+			if( !link.delete() ) {
+				throw new IOException("Can't replace "+link.getName());
+			}
+			if( !copy.renameTo(link) ) {
+				throw new IOException("Can't replace "+link.getName());
+			}
+		} catch (IOException | RuntimeException e) {
+			copy.delete();
+			throw e;
+		}
+		return link;
 	}
 
 	public boolean isInsideRoot(FileSource file) {
