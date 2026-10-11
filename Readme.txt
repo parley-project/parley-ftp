@@ -16,15 +16,17 @@
  #   
  #	@author Tony Bringardner   
  #
- NetFtp Project:
+ parley-ftp:
  
- The NetFtp project provides an implementation for the FTP protocol (client and server).
+ parley-ftp is an implementation of the FTP protocol (client and server), part of Parley, a family of
+ Java libraries for implementing internet protocols. (It was BjlNetFtp, bjl_net_ftp.)
  
  
  Requires Java 11 or greater (Maven 3.6.3 or greater to build).
  Dependencies:  
- 	bjl_file_system
- 	bjl_net_framework
- 	(these bring in bjl_core and bjl_io)
+ 	parley-files
+ 	parley-net
+ 	(these bring in parley-core and parley-io)
  
- See README.md for build and configuration details.
+ See README.md for build and configuration details, and its "Links" section for how the server
+ treats symbolic links.
