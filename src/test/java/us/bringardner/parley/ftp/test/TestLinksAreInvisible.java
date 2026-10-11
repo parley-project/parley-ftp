@@ -415,6 +415,7 @@ public class TestLinksAreInvisible {
 		assertEquals("real content", read(new File(root, "real.txt")));
 	}
 
+	@org.junit.jupiter.api.condition.DisabledOnOs(value = org.junit.jupiter.api.condition.OS.WINDOWS, disabledReason = "POSIX permission modes: Windows has ACLs and no group or other")
 	@Test
 	public void theModeAndTimeOfALinkedFileAreSetOnACopy() throws Exception {
 		File real = new File(root, "real.txt");
@@ -432,6 +433,7 @@ public class TestLinksAreInvisible {
 		assertEquals(originalTime, new File(shared, "doc.txt").lastModified(), "and its time");
 	}
 
+	@org.junit.jupiter.api.condition.DisabledOnOs(value = org.junit.jupiter.api.condition.OS.WINDOWS, disabledReason = "POSIX permission modes: Windows has ACLs and no group or other")
 	@Test
 	public void aLinkedDirectoryIsNotCopiedSoItsModeIsNotSet() throws Exception {
 		File realdir = new File(root, "realdir");
@@ -482,6 +484,7 @@ public class TestLinksAreInvisible {
 		assertEquals("protected", read(ro));
 	}
 
+	@org.junit.jupiter.api.condition.DisabledOnOs(value = org.junit.jupiter.api.condition.OS.WINDOWS, disabledReason = "POSIX permission modes: Windows has ACLs and no group or other")
 	@Test
 	public void aReadOnlyDirectoryKeepsItsLinks() throws Exception {
 		File holder = new File(root, "holder");
@@ -500,6 +503,7 @@ public class TestLinksAreInvisible {
 		assertEquals("real content", read(new File(root, "real.txt")));
 	}
 
+	@org.junit.jupiter.api.condition.DisabledOnOs(value = org.junit.jupiter.api.condition.OS.WINDOWS, disabledReason = "POSIX permission modes: Windows has ACLs and no group or other")
 	@Test
 	public void aFileThatIsNotALinkIsStillWritable() throws Exception {
 		try (Session s = new Session(PORT)) {

@@ -104,6 +104,7 @@ public class TestSiteChmod {
 		return c.executeCommand(FTP.SITE, Site.CMD_CHMOD, number, path);
 	}
 
+	@org.junit.jupiter.api.condition.DisabledOnOs(value = org.junit.jupiter.api.condition.OS.WINDOWS, disabledReason = "POSIX permission modes: Windows has ACLs and no group or other")
 	@Test
 	public void aReadOnlyFileCanBeMadeWritableAgain() throws Exception {
 		File f = new File(rootDir, "readonly.txt");
@@ -120,6 +121,7 @@ public class TestSiteChmod {
 		}
 	}
 
+	@org.junit.jupiter.api.condition.DisabledOnOs(value = org.junit.jupiter.api.condition.OS.WINDOWS, disabledReason = "POSIX permission modes: Windows has ACLs and no group or other")
 	@Test
 	public void aReadOnlyDirectoryCanBeMadeWritableAgain() throws Exception {
 		File d = new File(rootDir, "readonlydir");

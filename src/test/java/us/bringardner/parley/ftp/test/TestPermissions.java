@@ -186,6 +186,7 @@ public class TestPermissions {
 		}
 	}
 
+	@org.junit.jupiter.api.condition.DisabledOnOs(value = org.junit.jupiter.api.condition.OS.WINDOWS, disabledReason = "POSIX permission modes: Windows has ACLs and no group or other")
 	@Test
 	@Order(1)
 	public void testPermissions() throws IOException {

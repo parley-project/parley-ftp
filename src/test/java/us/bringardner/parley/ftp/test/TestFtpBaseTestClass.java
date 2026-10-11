@@ -453,9 +453,16 @@ public abstract class TestFtpBaseTestClass {
 		assertEquals(9, parts.length,"Should only be 9 parts. val="+ls[0]);
 
 		int pos = 0;
-		assertEquals("-rw-r--r--", parts[pos],"Permission don't match"+parts[pos]);
+		boolean windows = System.getProperty("os.name", "").toLowerCase().startsWith("windows");
+		if( !windows ) {
+			//  Windows has ACLs, not POSIX modes: what the owner, group and other bits say is not 644
+			assertEquals("-rw-r--r--", parts[pos],"Permission don't match"+parts[pos]);
+		}
 		assertEquals("1", parts[++pos],"Link count does not match"+parts[pos]);
-		assertEquals(System.getProperty("user.name"), parts[++pos],"User name does not match"+parts[pos]);
+		String owner = parts[++pos];
+		String user = System.getProperty("user.name");
+		//  A Windows owner is the domain, a backslash, then the user name
+		assertTrue(owner.equals(user) || (windows && owner.endsWith("\\"+user)), "User name does not match "+owner);
 		assertEquals(parts[++pos], parts[pos],"Assume the group is correct");
 		assertEquals(""+APPE_TEXT.length(), parts[++pos],"Size does not match"+parts[pos]);
 
