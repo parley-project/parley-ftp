@@ -16,6 +16,31 @@ BjlNetFtp 1.0.0-SNAPSHOT (below, never released under that name); only names cha
 - Dependencies: `bjl_core`, `bjl_io`, `bjl_file_system` and `bjl_net_framework` are now
   `parley-core`, `parley-io`, `parley-files` and `parley-net`.
 
+### Added
+
+- `ListEntry` reads symbolic links: a `LIST` line `name -> target` gives the name `name` and the target, and
+  an `MLST`/`MLSD` type `OS.unix=slink:target` (or `OS.unix=symlink`) is type `ListEntry.TYPE_LINK`
+  (it was read as a directory). `ListEntry.getLinkTarget()` and `FtpClientFile.getLinkTarget()` give the
+  target as the server wrote it.
+- Stream buffer sizes: `FtpClient.getInputStream(path, ascii, startingPos, bufferSize)`,
+  `getOutputStream(path, ascii, append, bufferSize)`, and `FtpClientFile` overloads, take the size of the
+  stream's buffer (0 for `getTransferBufferSize()`, at least 8 KB). The streams report it with
+  `getBufferSize()`.
+
+### Changed (no code change needed)
+
+- **A link is not a way to change the original.** An administrator makes files visible to users with
+  links, to avoid copies, and doesn't want them to know. The server already showed a link as the file or
+  directory it leads to (in `LIST`, `MLSD`, `MLST` and `NLST`: no arrow, no `slink` type, the target's size
+  and facts). `STOR` and `APPE` to a link, and `SITE CHMOD` and `SITE modDate` on one, are now refused as
+  any denied write (`550 Permission denied.` and `450 Permission denied.`), without saying why. A store
+  used to replace the link with a regular file, an append changed the original, and chmod and modDate
+  changed the original's mode and time. `DELE`, `RNFR`/`RNTO` and `RMD` on a link act on the link only,
+  and work inside a linked directory happens in the directory it leads to (both pinned by tests).
+  Links that lead outside the root still need the symlink policy (`allowedTargets`).
+- `SITE CHMOD` takes owning the file, not being able to write it, so a read-only file can be made writable
+  again.
+
 ## 1.0.0 (unreleased)
 
 The first release. This section covers the changes since the review that started on 2026-09-29.
