@@ -228,7 +228,7 @@ public class List  extends BaseCommand {
 				;
 		
 		ret = (file.isDirectory() ? "d":"-")+perm+
-				"   1 "+file.getOwner()+"  "+file.getGroup()+" "+
+				"   1 "+listingName(file.getOwner())+"  "+listingName(file.getGroup())+" "+
 				pad(""+file.length(),26)+" "+
 				dt+" "+
 				file.getName()
@@ -236,6 +236,20 @@ public class List  extends BaseCommand {
 
 		return ret;
 
+	}
+
+	/**
+	 * An owner or group name as one column of an ls -l style line: clients split the line on
+	 * white space, so the name can't hold any. Windows names are like "PC\tony (User)" and
+	 * "BUILTIN\Users (Alias)": the account type is dropped and any space left becomes '_'.
+	 */
+	static String listingName(Object principal) {
+		if( principal == null ) {
+			return "-";
+		}
+		//  Its toString() is what went into the line before
+		String ret = principal.toString().trim().replaceAll("\\s+\\([A-Za-z ]+\\)$", "").replaceAll("\\s+", "_");
+		return ret.isEmpty() ? "-" : ret;
 	}
 
 	private String pad(String val, int sz)
