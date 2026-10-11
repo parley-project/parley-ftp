@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import us.bringardner.parley.core.BjlLogger;
+import us.bringardner.parley.core.ParleyLogger;
 import us.bringardner.parley.core.ILogger;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
@@ -77,8 +77,8 @@ public class TestPermissions {
 			_client = new FtpClient("localhost", ftpPort2);
 			ILogger logger = _client.getLogger();
 			// Put the client logging on err so I tell client log from server log at runtime.
-			if (logger instanceof BjlLogger	) {
-				BjlLogger l = (BjlLogger) logger;
+			if (logger instanceof ParleyLogger	) {
+				ParleyLogger l = (ParleyLogger) logger;
 				l.setOut(System.err);				
 			}
 			_client.setSecure(false);
