@@ -402,13 +402,16 @@ public class TestLinksAreInvisible {
 		assertEquals("shared document", read(new File(shared, "doc.txt")));
 	}
 
+	/** REST and STOR carry on an unfinished upload; a file that is a link isn't one, so it is not added to. */
 	@Test
-	public void aResumedUploadAlsoGoesOnACopy() throws Exception {
+	public void aRestartOntoALinkIsRefusedAndNothingChanges() throws Exception {
 		try (Session s = new Session(PORT)) {
 			assertEquals("350", code(s, "REST 12"));
-			assertEquals("done 226", store(s, "STOR", "ln-file", "ABC").substring(0, 8));
+			String reply = store(s, "STOR", "ln-file", "ABC");
+			assertTrue(reply.startsWith("refused 450"), reply);
+			assertSaysNothingAboutLinks(reply);
 		}
-		assertRegularFile(new File(root, "ln-file"), "real contentABC");
+		assertTrue(isLink(new File(root, "ln-file")), "still a link");
 		assertEquals("real content", read(new File(root, "real.txt")));
 	}
 

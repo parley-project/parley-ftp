@@ -112,6 +112,35 @@ public class FtpServer extends Server {
 		}
 	}
 	public static final String SYMLINK_POLICY_PROP = FTP_NAME+".symlinkPolicy";
+
+	/**
+	 * How STOR puts an upload in place.
+	 */
+	public enum UploadMode {
+		/**
+		 * The data goes to a hidden temporary file that replaces the target only when the whole
+		 * upload has arrived (default). The original is never half replaced, and an interrupted
+		 * upload leaves nothing behind, so there is nothing to resume: the client starts again.
+		 */
+		ATOMIC,
+		/**
+		 * The data goes straight into the target, which STOR empties first. An interrupted upload
+		 * leaves what arrived, and the client can carry on with REST and STOR. The original is gone
+		 * as soon as the upload starts, and a half written file is visible meanwhile.
+		 */
+		IN_PLACE;
+
+		/** Parse "atomic" or "inPlace" / "in_place" / "in-place" (case-insensitive). */
+		public static UploadMode parse(String value) {
+			String v = value.trim().replace("_", "").replace("-", "").toLowerCase(java.util.Locale.ROOT);
+			switch (v) {
+			case "atomic": return ATOMIC;
+			case "inplace": return IN_PLACE;
+			default: throw new IllegalArgumentException("Invalid upload mode '"+value+"' (use atomic or inPlace)");
+			}
+		}
+	}
+	public static final String UPLOAD_MODE_PROP = FTP_NAME+".uploadMode";
 	/** Directories that links may lead into with SymlinkPolicy.ALLOWED_TARGETS, separated by commas. */
 	public static final String ALLOWED_LINK_TARGETS_PROP = FTP_NAME+".allowedLinkTargets";
 
@@ -125,6 +154,67 @@ public class FtpServer extends Server {
 	private volatile int connectTimeout = Integer.getInteger(CONNECT_TIMEOUT_PROP, DEFAULT_CONNECT_TIMEOUT);
 	private volatile boolean allowForeignDataAddress = Boolean.getBoolean(ALLOW_FOREIGN_DATA_ADDRESS_PROP);
 	private volatile SymlinkPolicy symlinkPolicy = SymlinkPolicy.parse(System.getProperty(SYMLINK_POLICY_PROP, "strict"));
+	private volatile UploadMode uploadMode = UploadMode.parse(System.getProperty(UPLOAD_MODE_PROP, "atomic"));
+
+	/** How many unfinished uploads are remembered (the oldest are forgotten first). */
+	static final int MAX_UNFINISHED_UPLOADS = 1000;
+	/**
+	 * Files an upload left unfinished (path to the length it stopped at), so that REST and STOR can
+	 * carry on with them. A file that isn't here is complete as far as the server knows, and REST
+	 * can't make STOR add to it: that is how an upload resumed with the length of the OLD file
+	 * (which SIZE gives) used to be appended to it. Kept in memory, so after a restart a client
+	 * starts again.
+	 */
+	private final java.util.Map<String,Long> unfinishedUploads = java.util.Collections.synchronizedMap(new UnfinishedUploads());
+
+	/** The oldest entries go first once there are {@link FtpServer#MAX_UNFINISHED_UPLOADS}. */
+	private static final class UnfinishedUploads extends java.util.LinkedHashMap<String,Long> {
+		private static final long serialVersionUID = 1L;
+
+		UnfinishedUploads() {
+			super(16, 0.75f, false);
+		}
+
+		@Override
+		protected boolean removeEldestEntry(java.util.Map.Entry<String,Long> eldest) {
+			return size() > MAX_UNFINISHED_UPLOADS;
+		}
+	}
+
+	/** @return how STOR puts an upload in place (default ATOMIC). */
+	public UploadMode getUploadMode() {
+		return uploadMode;
+	}
+
+	/**
+	 * @param mode ATOMIC (default): the upload goes to a temporary file and replaces the target when it
+	 * is complete, so a broken upload can't be resumed; IN_PLACE: the upload goes into the target, so
+	 * a broken one can be resumed with REST. Takes effect on the next upload.
+	 */
+	public void setUploadMode(UploadMode mode) {
+		if( mode == null ) {
+			throw new IllegalArgumentException("mode must not be null");
+		}
+		this.uploadMode = mode;
+	}
+
+	void markUnfinished(String path, long length) {
+		if( length > 0 ) {
+			unfinishedUploads.put(path, length);
+		} else {
+			unfinishedUploads.remove(path);
+		}
+	}
+
+	void clearUnfinished(String path) {
+		unfinishedUploads.remove(path);
+	}
+
+	/** @return true if an upload of this file stopped when the file was this long */
+	boolean isUnfinished(String path, long length) {
+		Long at = unfinishedUploads.get(path);
+		return at != null && at.longValue() == length;
+	}
 	private volatile java.util.List<String> allowedLinkTargets = parseTargets(System.getProperty(ALLOWED_LINK_TARGETS_PROP, ""));
 	private FileSource ftpRoot;
 	//private boolean useJdbc = false;

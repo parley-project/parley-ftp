@@ -27,6 +27,10 @@ BjlNetFtp 1.0.0-SNAPSHOT (below, never released under that name); only names cha
   stream's buffer (0 for `getTransferBufferSize()`, at least 8 KB). The streams report it with
   `getBufferSize()`.
 
+- **`JFtp.uploadMode`** (`FtpServer.setUploadMode`): `atomic` (default, as before: the upload goes to a
+  temporary file and replaces the target when complete) or `inPlace` (the upload goes straight into the
+  target, and one that breaks leaves what arrived, which `REST` and `STOR` can carry on). See the README's
+  "Uploads and resuming".
 ### Changed (no code change needed)
 
 - **A link looks and acts like the file or directory it leads to, and a write never changes the
@@ -34,13 +38,20 @@ BjlNetFtp 1.0.0-SNAPSHOT (below, never released under that name); only names cha
   not to know. `LIST`, `MLSD`, `MLST` and `NLST` show a link as what it leads to (no arrow, no `slink`
   type, the target's size and facts), and reading, `CWD`, `SIZE` and `MDTM` work through it. `DELE`, `RMD`
   and `RNFR`/`RNTO` on a link act on the link only. A write replaces the link with a regular file, so
-  what it led to is never changed: `STOR` stores a new file in its place; `APPE`, a resumed `STOR`
-  (`REST` then `STOR`), `SITE CHMOD` and `SITE modDate` first make that regular file a copy of what the
+  what it led to is never changed: `STOR` stores a new file in its place; `APPE`, `SITE CHMOD` and
+  `SITE modDate` first make that regular file a copy of what the
   link led to (with its permissions and time) and then apply to the copy. A linked *directory* isn't
   copied, so `SITE CHMOD` and `SITE modDate` on one are refused (`450 Permission denied.`); work inside it
   happens in the directory it leads to. (A store used to replace the link, an append changed the
   original, and chmod and modDate changed the original's mode and time.) Links that lead outside the root
   still need the symlink policy (`allowedTargets`).
+- **`REST` then `STOR` carries on only an upload the server knows is unfinished.** It was accepted for
+  any file whose length equalled the marker, and then appended to it. A client that resumes by asking
+  `SIZE` and sending the rest of its file, after an upload interrupted over an existing file, was given the
+  old file's length, so the new data was appended to the old file, which is neither version. It is now
+  refused (`450`) and the client stores the file again. In the default `atomic` mode an interrupted upload
+  leaves nothing (as before), so there is nothing to resume; resuming works with the new `inPlace` mode.
+  `APPE` is unchanged.
 - **Permissions are the administrator's control.** `STOR` now honors a file's write permission: a file
   that can't be written is refused (`550 Permission denied.`) like `APPE` always was. An upload used to
   replace a read-only file, because it goes to a temporary file that is renamed over it. A link has the

@@ -227,18 +227,25 @@ public class TestTransferReliability {
 		}
 	}
 
+	/**
+	 * REST and STOR carry on an upload that stopped (see TestUploadResume). A file that is complete
+	 * isn't one, so STOR is refused: it used to be added to, which is what a client resuming with the
+	 * length of the OLD file (the size SIZE gives) got.
+	 */
 	@Test
-	public void restartedUploadAppends() throws Exception {
+	public void restartedUploadOntoACompleteFileIsRefused() throws Exception {
 		try (Session s = new Session()) {
 			s.put("rest.txt", "Hello ".getBytes(StandardCharsets.UTF_8));
 			try (Socket data = s.pasv()) {
 				s.send("REST 6");
 				s.expect(350);
 				s.send("STOR rest.txt");
-				s.expectPreliminary();
-				data.getOutputStream().write("World".getBytes(StandardCharsets.UTF_8));
+				TestTransferReliability.Reply r = s.read(5000);
+				assertEquals(450, r.code, "refused before any data: " + r);
 			}
-			s.expectComplete();
+			assertArrayEquals("Hello ".getBytes(StandardCharsets.UTF_8), s.get("rest.txt"), "unchanged");
+			// a plain STOR still replaces it
+			s.put("rest.txt", "Hello World".getBytes(StandardCharsets.UTF_8));
 			assertArrayEquals("Hello World".getBytes(StandardCharsets.UTF_8), s.get("rest.txt"));
 		}
 	}

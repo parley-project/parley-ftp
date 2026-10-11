@@ -463,6 +463,32 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 	}
 
+	/** @return how STOR puts an upload in place on this server */
+	public FtpServer.UploadMode getUploadMode() {
+		IServer server = getServer();
+		return server instanceof FtpServer ? ((FtpServer)server).getUploadMode() : FtpServer.UploadMode.ATOMIC;
+	}
+
+	/** @return true if an earlier upload of this file stopped when it was this long (so REST can carry on) */
+	public boolean isUnfinishedUpload(FileSource target, long length) {
+		IServer server = getServer();
+		return server instanceof FtpServer && ((FtpServer)server).isUnfinished(target.getAbsolutePath(), length);
+	}
+
+	private void markUnfinishedUpload(FileSource target, long length) {
+		IServer server = getServer();
+		if( server instanceof FtpServer ) {
+			((FtpServer)server).markUnfinished(target.getAbsolutePath(), length);
+		}
+	}
+
+	private void clearUnfinishedUpload(FileSource target) {
+		IServer server = getServer();
+		if( server instanceof FtpServer ) {
+			((FtpServer)server).clearUnfinished(target.getAbsolutePath());
+		}
+	}
+
 	private FtpServer.SymlinkPolicy getSymlinkPolicy() {
 		IServer server = getServer();
 		return server instanceof FtpServer ? ((FtpServer)server).getSymlinkPolicy() : FtpServer.SymlinkPolicy.STRICT;
@@ -1151,6 +1177,17 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @param append true to append to the target in place
 	 */
 	public void receiveFile(final FileSource target, boolean append) throws IOException {
+		receiveFile(target, append, false);
+	}
+
+	/**
+	 * As {@link #receiveFile(FileSource, boolean)}, and when inPlace is true the data goes straight
+	 * into the target (emptied first unless append is true) and the server remembers where an upload
+	 * that doesn't complete stopped, so that REST and STOR can carry on with it.
+	 *
+	 * @param inPlace true to write into the target, with resuming
+	 */
+	public void receiveFile(final FileSource target, boolean append, final boolean inPlace) throws IOException {
 		Socket sock = getDataSocket();
 		if( sock == null ){
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data socket");
@@ -1168,7 +1205,20 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		OutputStream out = null;
 		FtpServerStream.CompletionHandler handler = null;
 		try {
-			if( append ) {
+			if( inPlace ) {
+				out = target.getOutputStream(append);
+				handler = new FtpServerStream.CompletionHandler() {
+					@Override
+					public void transferComplete(boolean success) throws IOException {
+						if( success ) {
+							clearUnfinishedUpload(target);
+						} else {
+							// what arrived is there, and REST can carry on from its length
+							markUnfinishedUpload(target, target.length());
+						}
+					}
+				};
+			} else if( append ) {
 				out = target.getOutputStream(true);
 			} else {
 				final FileSource temp = siblingOf(target, UPLOAD_TEMP_SUFFIX);

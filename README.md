@@ -43,6 +43,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 | `JFtp.allowForeignDataAddress` | false | Allow PORT/EPRT to other hosts or ports below 1024, and PASV connections from other hosts (needed only for FXP). `setAllowForeignDataAddress()` |
 | `JFtp.symlinkPolicy` | `strict` | How symbolic links inside a user's root are treated: `strict`, `allowedTargets` or `follow` (see below). `setSymlinkPolicy()` |
 | `JFtp.allowedLinkTargets` | none | Comma-separated directories that links may lead into when the policy is `allowedTargets`. `setAllowedLinkTargets()` |
+| `JFtp.uploadMode` | `atomic` | How `STOR` puts an upload in place: `atomic` or `inPlace` (see [Uploads and resuming](#uploads-and-resuming)). `setUploadMode()` |
 | `JFtp.loginFailureDelay` | 1000 ms | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
 | `JavaFtpServer.linger` | off | SO_LINGER (seconds) for data connections |
 
@@ -50,7 +51,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 
 - **Paths are confined to the user's root.** `..` stops at `/`, as in a chroot, in every mode.
 - **Symbolic links** are how an administrator makes files visible to users without copying them. They are covered in [Links](#links) below: clients don't know a link is one, and what they can do to it.
-- **STOR is safe to retry.** Data is written to a hidden temporary file (`.name.<id>.ftp-part`), which replaces the target only when the upload completes. APPE and STOR after REST append in place.
+- **STOR is safe to retry.** By default data is written to a hidden temporary file (`.name.<id>.ftp-part`), which replaces the target only when the upload completes. What that means for resuming is in [Uploads and resuming](#uploads-and-resuming).
 - **Transfer replies:**
   - A successful transfer gets `150` then `226`.
   - ABOR gets `426` then `226`.
@@ -62,6 +63,32 @@ Each setting can be passed as a system property or set with the matching `FtpSer
   - **Implicit TLS:** `setSecure(true)`. Data connections use TLS unless the client sends `PROT C`.
   - **PROT levels:** only `C` and `P` are supported; `S` and `E` get `536`.
 - **Failed logins** wait `JFtp.loginFailureDelay` ms (default 1000) before the reply, and a connection is closed after 3 failures.
+
+## Uploads and resuming
+
+`STOR` puts an upload in place in one of two ways, set with `JFtp.uploadMode` / `setUploadMode()`. They
+trade two things against each other: a file that is never half replaced, and an upload that can be resumed.
+
+| | `atomic` (default) | `inPlace` |
+|---|---|---|
+| Where the data goes | A hidden temporary file in the same directory, renamed over the target when the whole upload has arrived | Straight into the target, which `STOR` empties first |
+| An upload that breaks | The temporary file is deleted. The target is untouched (a new file doesn't exist). | What arrived stays in the target. |
+| Resuming it | **Not possible.** `REST` then `STOR` is refused (`450`) and the client starts again. | `REST <length>` then `STOR` carries on. |
+| The original while it uploads | Still there, complete | Gone as soon as the upload starts; a half written file is visible |
+
+**`REST` then `STOR` carries on only an upload the server knows is unfinished.** It is accepted when the
+marker equals the file's length *and* an earlier upload of that file stopped at that length (a break in
+`inPlace` mode; the server remembers up to 1000 such files, in memory, so after a restart a client starts
+again). Otherwise it is refused (`450`) and nothing is written. A complete file can't be added to with
+`REST`. This used to be possible, and it corrupted files: a client that resumes by asking `SIZE` and sending
+the rest from that offset, after an upload that was interrupted *over an existing file*, got the old file's
+length, the marker matched, and the new data was appended to the old file, which is neither version.
+
+- **`APPE` is unchanged**: it always appends to the file, so a client that resumes with `APPE` and the
+  tail of a local file adds to whatever is there. Use `REST` and `STOR` for resuming.
+- **`SIZE`** gives the length of the file that exists, which in `atomic` mode is the old file, not what had
+  arrived.
+- A file changed after the break (so its length is no longer where the upload stopped) is not resumed.
 
 ## Links
 
@@ -95,7 +122,8 @@ What a client does to a link never changes the file it leads to.
 |---|---|
 | `DELE`, `RMD`, `RNFR` + `RNTO` | Acts on the **link**. The linked file or directory is untouched. |
 | `STOR` | The link is **replaced by a regular file** that holds the upload. The original is untouched. |
-| `APPE`, `STOR` after `REST`, `SITE CHMOD`, `SITE modDate` | The link is first replaced by a regular **copy** of the file (same content, permissions and time), and the command applies to that copy. The original is untouched. |
+| `APPE`, `SITE CHMOD`, `SITE modDate` | The link is first replaced by a regular **copy** of the file (same content, permissions and time), and the command applies to that copy. The original is untouched. |
+| `REST` then `STOR` | Refused (`450`): a link isn't an unfinished upload (see [Uploads and resuming](#uploads-and-resuming)). Nothing changes. |
 | `STOR`, `MKD`, `DELE` **inside** a linked directory | Happens in the directory it leads to. The link is the way in, and a client with write permission changes what is behind it, as it would in any directory it can write to. |
 | `SITE CHMOD`, `SITE modDate` on a linked **directory** | Refused (`450 Permission denied.`). A directory isn't copied. |
 

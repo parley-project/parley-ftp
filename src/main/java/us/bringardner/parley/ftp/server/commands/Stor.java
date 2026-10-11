@@ -103,29 +103,38 @@ public class Stor  extends BaseCommand {
 		Long rest = (Long)processor.removeTempValue(REST);
 		// REST 0 means "no restart" (RFC 3659)
 		boolean resume = rest != null && rest.longValue() > 0;
-		if( resume && processor.isLink(target) ) {
-			// carrying on a file that is a link: it becomes a regular copy first, so the original isn't added to
-			try {
-				target = processor.replaceLinkWithCopy(target);
-			} catch (IOException e) {
-				processor.logError("Can't replace link "+target, e);
-				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
-				return;
-			}
-		}
 		if( resume ){
 			long len = target.exists() ? target.length() : 0;
 			if( len != rest.longValue()) {
 				processor.reply(REPLY_450_FILE_ACTION_FAILED," Restart marker "+rest+" does not match the file size ("+len+")");
 				return;
 			}
+			/*
+			 * REST and STOR carry on an upload that stopped. A file the server doesn't know to be
+			 * unfinished is complete: SIZE gives its length, and a client that resumes with that
+			 * (an upload that was interrupted over an old file) would have it added to, which is
+			 * neither version. It starts again instead.
+			 */
+			if( !processor.isUnfinishedUpload(target, len) ) {
+				processor.reply(REPLY_450_FILE_ACTION_FAILED," Restart marker "+rest+" is not accepted: store the file again without REST");
+				return;
+			}
+		}
+		boolean inPlace = resume || processor.getUploadMode() == us.bringardner.parley.ftp.server.FtpServer.UploadMode.IN_PLACE;
+		if( inPlace && !resume && processor.isLink(target) ) {
+			// written in place a link would be written through, and the original changed: a store
+			// replaces the link with a regular file (a temporary file does that by itself)
+			if( !target.delete() ) {
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied.");
+				return;
+			}
 		}
 		/*
 		 * receiveFile gets the data connection before touching the file and, unless
-		 * this is a restart, writes to a temporary file that replaces the target only
-		 * when the whole upload has been received.
+		 * this is a restart or the upload mode is IN_PLACE, writes to a temporary file that
+		 * replaces the target only when the whole upload has been received.
 		 */
-		processor.receiveFile(target, resume);
+		processor.receiveFile(target, resume, inPlace);
 
 	}
 	
