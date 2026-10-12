@@ -368,7 +368,22 @@ public abstract class TestFtpBaseTestClass {
 
 	}
 
-
+	/**
+	 * @return the mode a new file gets here, as ls shows it: it follows the umask
+	 * (-rw-r--r-- with 022, -rw-rw-r-- with 002)
+	 */
+	private static String newFileMode() throws IOException {
+		java.nio.file.Path dir = Files.createTempDirectory("ftpmode");
+		java.nio.file.Path f = dir.resolve("f");
+		try {
+			// Files.createTempFile would ignore the umask (it is always 600)
+			Files.newOutputStream(f).close();
+			return "-"+java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(f));
+		} finally {
+			Files.deleteIfExists(f);
+			Files.delete(dir);
+		}
+	}
 
 	@Test
 	@Order(4)
@@ -456,7 +471,7 @@ public abstract class TestFtpBaseTestClass {
 		boolean windows = System.getProperty("os.name", "").toLowerCase().startsWith("windows");
 		if( !windows ) {
 			//  Windows has ACLs, not POSIX modes: what the owner, group and other bits say is not 644
-			assertEquals("-rw-r--r--", parts[pos],"Permission don't match"+parts[pos]);
+			assertEquals(newFileMode(), parts[pos],"Permission don't match"+parts[pos]);
 		}
 		assertEquals("1", parts[++pos],"Link count does not match"+parts[pos]);
 		String owner = parts[++pos];
