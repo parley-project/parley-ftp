@@ -103,7 +103,7 @@ link is shown, and acts, as the file or directory it leads to.
 > one, make one or read one, so the server hides them and decides for itself what a write to one means
 > (below: it replaces the link). A protocol that is aware of links has other rules. SFTP lets a client see
 > a link (`lstat`, `readlink`) and make one (`symlink`), and a write through a link changes the file it
-> leads to, as it does in the `FileSource` API (see [parley-files](https://github.com/tony-bringardner/parley-files#links)).
+> leads to, as it does in the `FileSource` API (see [parley-files](https://github.com/parley-project/parley-files#links)).
 > Nothing in this section applies to them.
 
 ### What a client sees
