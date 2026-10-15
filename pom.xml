@@ -113,7 +113,7 @@
 						</includes>
 						<merge>true</merge>
 						<repositoryName>parley-ftp</repositoryName>
-						<repositoryOwner>tony-bringardner</repositoryOwner>
+						<repositoryOwner>parley-project</repositoryOwner>
 						<server>github</server>
 					</configuration>
 					<executions>
@@ -132,8 +132,8 @@
 	<distributionManagement>
 		<repository>
 			<id>github</id>
-			<name>tony-bringardner</name>
-			<url>https://maven.pkg.github.com/tony-bringardner/parley-ftp</url>
+			<name>parley-project</name>
+			<url>https://maven.pkg.github.com/parley-project/parley-ftp</url>
 		</repository>
 	</distributionManagement>
 
