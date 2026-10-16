@@ -15,6 +15,8 @@ BjlNetFtp 1.0.0-SNAPSHOT (below, never released under that name); only names cha
   `us.bringardner.net.ftp.server.FtpServer.<name>` is now `us.bringardner.parley.ftp.server.FtpServer.<name>`.
 - Dependencies: `bjl_core`, `bjl_io`, `bjl_file_system` and `bjl_net_framework` are now
   `parley-core`, `parley-io`, `parley-files` and `parley-net`.
+- `FtpClientFile.splitMlsxEntry` and `FtpClientFile.mlsxName`, deprecated pass-throughs in BjlNetFtp, are
+  removed: use `ListEntry.splitMlsxEntry` and `ListEntry.mlsxName`.
 
 ### Added
 
