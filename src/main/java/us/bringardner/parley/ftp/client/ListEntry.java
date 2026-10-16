@@ -36,7 +36,7 @@ import us.bringardner.parley.ftp.server.commands.Mlst;
  * One parsed entry of a directory listing: an MLSx line (RFC 3659) or a Unix style LIST line
  * ("-rw-r--r--   1 owner group  1234 Oct  1 12:25 name").
  * <p>
- * Shared by {@link FtpClientFile} and bjl_file_system_ftp's FtpFile, so both read listings the
+ * Shared by {@link FtpClientFile} and parley-files-ftp's FtpFile, so both read listings the
  * same way (they used to have their own copies, and the file system's still had a bug fixed here).
  * Immutable.
  */

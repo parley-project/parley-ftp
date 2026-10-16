@@ -117,7 +117,7 @@ public class TestPermissions {
 			}
 
 			System.setProperty(FileBasedAcl.PROP_FILE_NAME, "FtpTestAcl.txt");
-			System.setProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
+			System.setProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
 			
 			ftpServer = new FtpServer();
 			ftpServer.setSecure(false);

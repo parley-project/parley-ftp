@@ -37,7 +37,6 @@ import java.util.regex.Pattern;
 
 
 import us.bringardner.parley.net.server.IRequestContext;
-import us.bringardner.parley.ftp.server.FtpCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.commands.BaseCommand;
 

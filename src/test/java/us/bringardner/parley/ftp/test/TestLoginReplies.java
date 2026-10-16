@@ -48,7 +48,7 @@ public class TestLoginReplies {
 				+ " plain      , 1234 , READ\n"
 				+ " tony@sales , 5678 , READ\n").getBytes(StandardCharsets.UTF_8));
 		System.setProperty(FileBasedAcl.PROP_FILE_NAME, acl.getPath());
-		System.setProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY, FileBasedAcl.class.getCanonicalName());
+		System.setProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileBasedAcl.class.getCanonicalName());
 
 		FileSource fs = FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath());
 		server = new FtpServer();
@@ -68,7 +68,7 @@ public class TestLoginReplies {
 	@AfterAll
 	public static void stopServer() throws Exception {
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		System.clearProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY);
+		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		if (server != null) {
 			server.stop();
 			long start = System.currentTimeMillis();

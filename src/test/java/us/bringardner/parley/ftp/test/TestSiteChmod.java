@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 
 import org.junit.jupiter.api.AfterAll;
@@ -39,7 +38,7 @@ public class TestSiteChmod {
 
 	@BeforeAll
 	public static void startServer() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY);
+		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
 
 		rootDir = new File(ROOT_PATH).getAbsoluteFile();

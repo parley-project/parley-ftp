@@ -247,7 +247,7 @@ public class FtpClientFile extends BaseObject {
 	}
 
 	private void parseEntry(String entry) throws IOException {
-		//  The parsing is shared with bjl_file_system_ftp's FtpFile, see ListEntry
+		//  The parsing is shared with parley-files-ftp's FtpFile, see ListEntry
 		ListEntry e = ListEntry.parse(entry, client().isMlstSupported(), this::logError);
 		name = e.getName();
 		owner = e.getOwner();

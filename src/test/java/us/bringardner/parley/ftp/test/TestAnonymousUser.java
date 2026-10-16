@@ -14,7 +14,7 @@ public class TestAnonymousUser extends TestFtpBaseTestClass {
 		TestFtpBaseTestClass.useFileBasedAcl=false;
 		// Other test classes configure a file based ACL through system properties; clear it so
 		// this class gets the built in anonymous ACL regardless of test execution order.
-		System.clearProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY);
+		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		TestFtpBaseTestClass.implicitSecure = false;
 		
 		TestFtpBaseTestClass._client = null;

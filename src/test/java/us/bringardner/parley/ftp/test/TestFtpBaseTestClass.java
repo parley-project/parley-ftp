@@ -287,7 +287,7 @@ public abstract class TestFtpBaseTestClass {
 			if( useFileBasedAcl) {
 				//  this is for testing the server will use a different one based on the properties. 
 				System.setProperty(FileBasedAcl.PROP_FILE_NAME, "FtpTestAcl.txt");
-				System.setProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
+				System.setProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
 			} 
 			
 			//  Force a FileProxy storage
