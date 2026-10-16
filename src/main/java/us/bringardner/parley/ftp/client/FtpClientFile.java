@@ -260,24 +260,6 @@ public class FtpClientFile extends BaseObject {
 		mlstPermissions = e.getMlstPermissions();
 	}
 
-	/**
-	 * @see ListEntry#splitMlsxEntry(String)
-	 * @deprecated moved to {@link ListEntry#splitMlsxEntry(String)}
-	 */
-	@Deprecated
-	public static String[] splitMlsxEntry(String entry) {
-		return ListEntry.splitMlsxEntry(entry);
-	}
-
-	/**
-	 * @see ListEntry#mlsxName(String)
-	 * @deprecated moved to {@link ListEntry#mlsxName(String)}
-	 */
-	@Deprecated
-	public static String mlsxName(String pathname) {
-		return ListEntry.mlsxName(pathname);
-	}
-
 	/** @return where this symbolic link points as the server wrote it (maybe relative), or null if it isn't a link */
 	public String getLinkTarget() {
 		return linkTarget;
