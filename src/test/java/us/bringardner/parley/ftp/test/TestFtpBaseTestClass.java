@@ -127,7 +127,6 @@ public abstract class TestFtpBaseTestClass {
 	 * one is already there: it must load and hold the key, with a certificate that is still
 	 * valid tomorrow (BJL-7). The result is checked by loading it; keytool's messages differ
 	 * between JDKs, so comparing them failed the first test class on some JDKs.
-	 * makecert.sh does the same by hand.
 	 */
 	public static synchronized void makeTestKeystore(File file) throws IOException {
 		if( isUsableKeystore(file)) {
