@@ -58,7 +58,7 @@ public class TestTransferReliability {
 	@BeforeAll
 	public static void startServer() throws Exception {
 		// Other test classes leave a file based ACL configured; this class uses the built in anonymous ACL.
-		System.clearProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY);
+		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
 
 		rootDir = new File(ROOT_PATH).getAbsoluteFile();

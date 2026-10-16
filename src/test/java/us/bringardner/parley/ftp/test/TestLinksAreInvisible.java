@@ -44,7 +44,7 @@ public class TestLinksAreInvisible {
 
 	@BeforeAll
 	public static void start() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATOION_PROVIDER_PROPERTY);
+		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
 		base = new File("target/FtpLinksInvisible").getAbsoluteFile();
 		deleteAll(base);

@@ -516,11 +516,11 @@ public class FtpClient extends SecureBaseObject implements FTP {
 
 	/** @return the control connection's TLS version, or null if it isn't encrypted */
 	String controlTlsProtocol() {
-		Socket s = sslSocket != null ? sslSocket : socket;
-		if( s instanceof SSLSocket ) {
-			return ((SSLSocket) s).getSession().getProtocol();
+		SSLSocket ssl = sslSocket;
+		if( ssl == null && socket instanceof SSLSocket ) {
+			ssl = (SSLSocket) socket;
 		}
-		return null;
+		return ssl == null ? null : ssl.getSession().getProtocol();
 	}
 
 	/**

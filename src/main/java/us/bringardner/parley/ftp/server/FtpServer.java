@@ -38,7 +38,6 @@ import java.util.Properties;
 
 
 import us.bringardner.parley.core.ILogger;
-import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.IProcessor;
