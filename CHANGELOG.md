@@ -1,6 +1,6 @@
 # Changelog
 
-## parley-ftp 1.0.0 (unreleased)
+## parley-ftp 1.0.0 (2026-10-16)
 
 BjlNetFtp is now **parley-ftp**, part of the Parley library family. The code is the same as
 BjlNetFtp 1.0.0-SNAPSHOT (below, never released under that name); only names changed.
