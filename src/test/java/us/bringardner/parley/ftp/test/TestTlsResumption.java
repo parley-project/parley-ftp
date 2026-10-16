@@ -104,7 +104,7 @@ public class TestTlsResumption {
 		System.setProperty("FtpServer.Algorithm", "SunX509");
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		root = new File("target/FtpTlsResumption").getAbsoluteFile();
+		root = new File(FtpTestSupport.scratchDir("FtpTlsResumption")).getAbsoluteFile();
 		root.mkdirs();
 		Files.write(new File(root, "file.txt").toPath(), CONTENT);
 

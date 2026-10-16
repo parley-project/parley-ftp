@@ -50,7 +50,7 @@ public class TestTransferReliability {
 
 	private static final int PORT = 8031;
 	private static final int DATA_TIMEOUT_MS = 1500;
-	private static final String ROOT_PATH = "target/FtpRootReliability";
+	private static final String ROOT_PATH = FtpTestSupport.scratchDir("FtpRootReliability");
 
 	private static FtpServer server;
 	private static File rootDir;

@@ -50,7 +50,7 @@ public class TestTlsDataChannel {
 
 	@BeforeAll
 	public static void start() throws Exception {
-		File keystore = new File("target/serverkeystore.p12");
+		File keystore = new File(TestFtpBaseTestClass.TEST_KEYSTORE);
 		TestFtpBaseTestClass.makeTestKeystore(keystore);
 		System.setProperty("FtpServer.KeyStoreName", keystore.getPath());
 		System.setProperty("FtpServer.KeyStorePassword", "peekab00");
@@ -59,7 +59,7 @@ public class TestTlsDataChannel {
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
 
-		root = new File("target/FtpTlsData").getAbsoluteFile();
+		root = new File(FtpTestSupport.scratchDir("FtpTlsData")).getAbsoluteFile();
 		deleteAll(root);
 		assertTrue(root.mkdirs());
 		Files.write(new File(root, "file.txt").toPath(), CONTENT);

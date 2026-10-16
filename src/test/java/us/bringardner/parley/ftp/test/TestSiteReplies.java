@@ -41,7 +41,7 @@ public class TestSiteReplies {
 
 	@BeforeAll
 	public static void startServer() throws Exception {
-		base = new File("target/TestSiteReplies").getAbsoluteFile();
+		base = new File(FtpTestSupport.scratchDir("TestSiteReplies")).getAbsoluteFile();
 		File root = new File(base, "root");
 		assertTrue(root.mkdirs() || root.isDirectory());
 		assertTrue(new File(base, "other").mkdirs() || new File(base, "other").isDirectory());

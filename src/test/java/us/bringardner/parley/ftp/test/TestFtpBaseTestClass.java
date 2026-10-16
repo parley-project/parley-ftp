@@ -86,7 +86,7 @@ public abstract class TestFtpBaseTestClass {
 	private static FtpServer ftpServer;
 
 	private static FileSource root;
-	private static String rootPath = "target/FtpRoot";
+	private static String rootPath = FtpTestSupport.scratchDir("FtpRoot");
 	private static String testFileDirName = "TestFiles";
 
 	public static FtpClient _client;
@@ -118,7 +118,7 @@ public abstract class TestFtpBaseTestClass {
 
 	}; 
 
-	public static final String TEST_KEYSTORE = "target/serverkeystore.p12";
+	public static final String TEST_KEYSTORE = FtpTestSupport.scratchDir("serverkeystore.p12");
 	public static final String TEST_KEYSTORE_PASSWORD = "peekab00";
 	public static final String TEST_KEY_ALIAS = "serverkey";
 
@@ -272,7 +272,7 @@ public abstract class TestFtpBaseTestClass {
 
 
 	public  static void startFtpServer() throws IOException  {
-		System.setProperty("FtpServer.KeyStoreName", "target/serverkeystore.p12");
+		System.setProperty("FtpServer.KeyStoreName", TEST_KEYSTORE);
 		System.setProperty("FtpServer.KeyStorePassword", "peekab00");
 		System.setProperty("FtpServer.KeyStoreType", "PKCS12");
 		System.setProperty("FtpServer.Algorithm", "SunX509");
@@ -581,7 +581,7 @@ public abstract class TestFtpBaseTestClass {
 	@Order(1)
 	public void testSendFileWithClient () throws UnknownHostException, IOException {
 
-		FileSource localDir = FileSourceFactory.getDefaultFactory().createFileSource(testFileDirName);
+		FileSource localDir = FileSourceFactory.getDefaultFactory().createFileSource(FtpTestSupport.testFilesDir().getAbsolutePath());
 		FtpClient client = getFtpClient();
 
 

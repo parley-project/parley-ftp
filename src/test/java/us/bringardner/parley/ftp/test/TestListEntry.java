@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import us.bringardner.parley.ftp.client.ListEntry;
 
 /**
- * ListEntry: the listing parser shared by FtpClientFile and bjl_file_system_ftp's FtpFile.
+ * ListEntry: the listing parser shared by FtpClientFile and parley-files-ftp's FtpFile.
  */
 public class TestListEntry {
 
@@ -35,7 +35,7 @@ public class TestListEntry {
 	@Test
 	public void testNonAsciiOwner() {
 		//  The old byte based cleanup used a UTF-8 byte index as a character index, so a non-ASCII
-		//  owner or group garbled the name (bjl_file_system_ftp still had that copy)
+		//  owner or group garbled the name (parley-files-ftp still had that copy)
 		ListEntry e = ListEntry.parse("-rw-r--r--   1 jörg     grüppe        5 Oct  1 12:25 a.txt", false, null);
 		assertEquals("jörg", e.getOwner());
 		assertEquals("grüppe", e.getGroup());

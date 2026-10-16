@@ -52,7 +52,7 @@ public class TestListingTransfer {
 	public static void start() throws Exception {
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		root = new File("target/FtpListingTransfer").getAbsoluteFile();
+		root = new File(FtpTestSupport.scratchDir("FtpListingTransfer")).getAbsoluteFile();
 		File big = new File(root, "big");
 		big.mkdirs();
 		new File(root, "empty").mkdirs();

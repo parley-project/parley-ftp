@@ -57,7 +57,7 @@ public class TestVirtualTransfers {
 	public static void start() throws Exception {
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		File root = new File("target/TestVirtualTransfers").getAbsoluteFile();
+		File root = new File(FtpTestSupport.scratchDir("TestVirtualTransfers")).getAbsoluteFile();
 		root.mkdirs();
 		content = new byte[SIZE];
 		new Random(52).nextBytes(content);

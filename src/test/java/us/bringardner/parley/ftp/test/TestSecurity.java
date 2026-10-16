@@ -42,7 +42,7 @@ import us.bringardner.parley.ftp.test.TestTransferReliability.Session;
 public class TestSecurity {
 
 	private static final int PORT = 8032;
-	private static final String BASE = "target/FtpSecurity";
+	private static final String BASE = FtpTestSupport.scratchDir("FtpSecurity");
 
 	private static FtpServer server;
 	private static File base, root, outside, sibling;
@@ -254,7 +254,7 @@ public class TestSecurity {
 
 	@Test
 	public void authMechanismIsCaseInsensitive() throws Exception {
-		File keystore = new File("target/serverkeystore.p12");
+		File keystore = new File(TestFtpBaseTestClass.TEST_KEYSTORE);
 		TestFtpBaseTestClass.makeTestKeystore(keystore);
 		System.setProperty("FtpServer.KeyStoreName", keystore.getPath());
 		System.setProperty("FtpServer.KeyStorePassword", "peekab00");

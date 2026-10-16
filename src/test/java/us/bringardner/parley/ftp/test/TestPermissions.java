@@ -62,7 +62,7 @@ public class TestPermissions {
 	private static FtpServer ftpServer;
 
 	private static FileSource root;
-	private static String rootPath = "target/FtpRoot2";
+	private static String rootPath = FtpTestSupport.scratchDir("FtpRoot2");
 	private static String testFileDirName = "TestFiles";
 
 	public static FtpClient _client;

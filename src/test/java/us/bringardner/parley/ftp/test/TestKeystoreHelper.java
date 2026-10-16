@@ -15,7 +15,7 @@ public class TestKeystoreHelper {
 
 	@Test
 	public void aKeystoreIsMadeAndReused() throws Exception {
-		File file = new File("target/keystore-helper-test.p12");
+		File file = new File(FtpTestSupport.scratchDir("keystore-helper-test.p12"));
 		Files.deleteIfExists(file.toPath());
 		TestFtpBaseTestClass.makeTestKeystore(file);
 		assertTrue(TestFtpBaseTestClass.isUsableKeystore(file));
@@ -29,7 +29,7 @@ public class TestKeystoreHelper {
 
 	@Test
 	public void anExpiredOrBrokenKeystoreIsReplaced() throws Exception {
-		File file = new File("target/keystore-helper-expired.p12");
+		File file = new File(FtpTestSupport.scratchDir("keystore-helper-expired.p12"));
 		Files.deleteIfExists(file.toPath());
 		// a certificate that expired yesterday
 		String keytool = Paths.get(System.getProperty("java.home"), "bin",
@@ -38,7 +38,7 @@ public class TestKeystoreHelper {
 				"-dname", "CN=expired", "-keystore", file.getPath(), "-storetype", "PKCS12",
 				"-storepass", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD, "-keypass", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD,
 				"-keyalg", "RSA", "-keysize", "2048", "-startdate", "-3d", "-validity", "1")
-				.redirectErrorStream(true).redirectOutput(new File("target/keystore-helper-expired.log")).start();
+				.redirectErrorStream(true).redirectOutput(new File(FtpTestSupport.scratchDir("keystore-helper-expired.log"))).start();
 		assertEquals(0, p.waitFor());
 		assertTrue(file.isFile());
 		assertFalse(TestFtpBaseTestClass.isUsableKeystore(file), "expired");

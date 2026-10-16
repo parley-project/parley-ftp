@@ -46,7 +46,7 @@ public class TestLinksAreInvisible {
 	public static void start() throws Exception {
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		base = new File("target/FtpLinksInvisible").getAbsoluteFile();
+		base = new File(FtpTestSupport.scratchDir("FtpLinksInvisible")).getAbsoluteFile();
 		deleteAll(base);
 		root = new File(base, "root");
 		shared = new File(base, "shared");
