@@ -31,7 +31,7 @@ import us.bringardner.parley.net.server.IServer;
 public class TestStreamBufferSize {
 
 	private static final int PORT = 8037;
-	private static final String ROOT_PATH = "target/FtpRootStreamBuffer";
+	private static final String ROOT_PATH = FtpTestSupport.scratchDir("FtpRootStreamBuffer");
 
 	private static FtpServer server;
 	private static File rootDir;

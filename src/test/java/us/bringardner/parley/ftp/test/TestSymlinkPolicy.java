@@ -45,7 +45,7 @@ public class TestSymlinkPolicy {
 	public static void start() throws Exception {
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		base = new File("target/FtpSymlinkPolicy").getAbsoluteFile();
+		base = new File(FtpTestSupport.scratchDir("FtpSymlinkPolicy")).getAbsoluteFile();
 		deleteAll(base);
 		root = new File(base, "root");
 		outside = new File(base, "outside");

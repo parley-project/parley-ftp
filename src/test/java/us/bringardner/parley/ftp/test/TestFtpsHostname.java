@@ -91,7 +91,7 @@ public class TestFtpsHostname {
 
 	@BeforeAll
 	public static void setUp() throws Exception {
-		dir = Files.createTempDirectory("bjl-ftps-host").toFile();
+		dir = Files.createTempDirectory("parley-ftps-host").toFile();
 		localhostCert = serverContext("localhost.p12", "CN=localhost", "dns:localhost,ip:127.0.0.1");
 		otherNameCert = serverContext("other.p12", "CN=bringardner.us", null);
 	}

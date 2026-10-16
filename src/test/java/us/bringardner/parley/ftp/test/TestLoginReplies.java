@@ -39,7 +39,7 @@ public class TestLoginReplies {
 
 	@BeforeAll
 	public static void startServer() throws Exception {
-		base = new File("target/TestLoginReplies").getAbsoluteFile();
+		base = new File(FtpTestSupport.scratchDir("TestLoginReplies")).getAbsoluteFile();
 		File root = new File(base, "root");
 		assertTrue(root.mkdirs() || root.isDirectory());
 		File acl = new File(base, "acl.txt");

@@ -31,7 +31,7 @@ import us.bringardner.parley.net.server.IServer;
 public class TestSiteChmod {
 
 	private static final int PORT = 8041;
-	private static final String ROOT_PATH = "target/FtpRootSiteChmod";
+	private static final String ROOT_PATH = FtpTestSupport.scratchDir("FtpRootSiteChmod");
 
 	private static FtpServer server;
 	private static File rootDir;

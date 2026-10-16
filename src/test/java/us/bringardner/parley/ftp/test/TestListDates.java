@@ -126,7 +126,7 @@ public class TestListDates {
 	public void clientReadsRecentEntriesWithTheRightYear() throws Exception {
 		LocalDateTime recent = LocalDateTime.now(ZoneId.systemDefault()).minusDays(3).withSecond(0).withNano(0);
 		String entry = "-rw-r--r--   1 tony  staff                       1330 " + List.RECENT_FORMAT.format(recent) + " a.txt";
-		//  The client's LIST parsing (shared with bjl_file_system_ftp) is in ListEntry
+		//  The client's LIST parsing (shared with parley-files-ftp) is in ListEntry
 		ListEntry f = ListEntry.parse(entry, false, null);
 		assertEquals(recent.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), f.getLastModified(), entry);
 		assertEquals("a.txt", f.getName());

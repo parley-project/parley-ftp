@@ -41,7 +41,7 @@ public class TestTransferThreads {
 	private static FtpServer startServer() throws Exception {
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		File root = new File("target/TestTransferThreads").getAbsoluteFile();
+		File root = new File(FtpTestSupport.scratchDir("TestTransferThreads")).getAbsoluteFile();
 		root.mkdirs();
 		File big = new File(root, "big.bin");
 		if (big.length() != SIZE) {

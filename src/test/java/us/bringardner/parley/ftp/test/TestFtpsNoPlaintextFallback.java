@@ -62,7 +62,7 @@ public class TestFtpsNoPlaintextFallback {
 
 	@BeforeAll
 	public static void setUp() throws Exception {
-		dir = Files.createTempDirectory("bjl-ftps-fallback").toFile();
+		dir = Files.createTempDirectory("parley-ftps-fallback").toFile();
 		File ks = new File(dir, "other.p12");
 		String keytool = System.getProperty("java.home")+File.separator+"bin"+File.separator+"keytool";
 		Process p = new ProcessBuilder(keytool, "-genkeypair", "-noprompt", "-alias", "server",
