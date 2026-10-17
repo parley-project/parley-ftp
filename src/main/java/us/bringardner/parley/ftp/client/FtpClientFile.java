@@ -124,7 +124,7 @@ public class FtpClientFile extends BaseObject {
 		} else {
 			//  Assume this is a directory
 			this.type = TYPE_DIR;
-			int idx = dirPath.lastIndexOf(FtpClient.SEPERATOR_CHAR);
+			int idx = dirPath.lastIndexOf(FtpClient.SEPARATOR_CHAR);
 			if(idx >= 0){
 				this.parent = dirPath.substring(0,idx);
 				this.name = dirPath.substring(idx+1);
@@ -210,10 +210,10 @@ public class FtpClientFile extends BaseObject {
 	}
 
 	public FtpClientFile getParetFile() {
-		if( parentFile == null && name.length()>0 && !name.equals(FtpClient.SEPERATOR)) {
+		if( parentFile == null && name.length()>0 && !name.equals(FtpClient.SEPARATOR)) {
 			synchronized (this) {
 				if( parentFile == null ) {
-					int idx = parent.lastIndexOf(FtpClient.SEPERATOR_CHAR);
+					int idx = parent.lastIndexOf(FtpClient.SEPARATOR_CHAR);
 					if( idx > 0 ) {
 						String pp = parent.substring(0,idx);
 						String pn = parent.substring(idx+1);
@@ -313,7 +313,7 @@ public class FtpClientFile extends BaseObject {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client().getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii);
+		return client().getInputStream(getParent()+FtpClient.SEPARATOR+name, ascii);
 	}
 
 	public InputStream getInputStream(boolean ascii, long startingPos) throws IOException {
@@ -325,7 +325,7 @@ public class FtpClientFile extends BaseObject {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client().getInputStream(getParent()+FtpClient.SEPERATOR+name, ascii, startingPos, bufferSize);
+		return client().getInputStream(getParent()+FtpClient.SEPARATOR+name, ascii, startingPos, bufferSize);
 	}
 
 	public OutputStream getOutputStream(boolean ascii, boolean append) throws IOException {
@@ -337,7 +337,7 @@ public class FtpClientFile extends BaseObject {
 		if( !isFile() ) {
 			throw new IOException("Can't create stream from directory");
 		}
-		return client().getOutputStream(getParent()+FtpClient.SEPERATOR+name, ascii, append, bufferSize);
+		return client().getOutputStream(getParent()+FtpClient.SEPARATOR+name, ascii, append, bufferSize);
 	}
 
 	public String getAbsolutePath() {
@@ -345,9 +345,9 @@ public class FtpClientFile extends BaseObject {
 		String nm = getName();
 		String ret = null;
 		if( p.equals("/")) {
-			ret = FtpClient.SEPERATOR+nm;
+			ret = FtpClient.SEPARATOR+nm;
 		} else {
-			ret = p+FtpClient.SEPERATOR+nm;
+			ret = p+FtpClient.SEPARATOR+nm;
 		}
 		
 		

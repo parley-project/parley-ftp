@@ -133,7 +133,11 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 	public static final int FACT_GROUP = 5;
 
 
-	public static final String SEPERATOR = ";";
+	/** Ends each fact in an MLSx entry. */
+	public static final String SEPARATOR = ";";
+	/** @deprecated misspelled, use {@link #SEPARATOR} (same value); to be removed in 2.0.0 */
+	@Deprecated
+	public static final String SEPERATOR = SEPARATOR;
 
 	static {
 		//  These are the only supported facts
@@ -438,7 +442,7 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 				ret.append(key);
 				ret.append("=");
 				ret.append(val);
-				ret.append(SEPERATOR);
+				ret.append(SEPARATOR);
 			}
 
 		}
@@ -491,7 +495,7 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 			if( wanted.containsKey(key)){
 				buf.append('*');
 			}
-			buf.append(SEPERATOR);
+			buf.append(SEPARATOR);
 		}
 
 		return buf.toString();

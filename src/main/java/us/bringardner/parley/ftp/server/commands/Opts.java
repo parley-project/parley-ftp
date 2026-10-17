@@ -310,7 +310,7 @@ Internet Draft        draft-ietf-ftpext-mlst-16.txt       September 2002
 		if( !wanted.isEmpty() ) {
 			reply.append(' ');
 			for(String fact : wanted.keySet()) {
-				reply.append(fact).append(Mlst.SEPERATOR);
+				reply.append(fact).append(Mlst.SEPARATOR);
 			}
 		}
 		processor.setTempValue(Mlst.FACTS, java.util.Collections.unmodifiableMap(wanted));
