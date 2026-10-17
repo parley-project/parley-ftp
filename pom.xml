@@ -13,7 +13,7 @@
 	</parent>
 
 	<artifactId>parley-ftp</artifactId>
-	<version>1.0.0</version>
+	<version>1.1.0-SNAPSHOT</version>
 	<name>Parley FTP</name>
 	<inceptionYear>2004</inceptionYear>
 	<description>An implementation of the FTP protocol, client and server (FTP, FTPS explicit and implicit, RFC 2228 and RFC 2428), built on parley-net with files served from any parley-files FileSource. Formerly us.bringardner:bjl_net_ftp.</description>

@@ -89,8 +89,16 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	    }
 	}
 
-	public static final char SEPERATOR_CHAR = '/';
-	public static final String SEPERATOR = ""+SEPERATOR_CHAR;
+	/** The path separator FTP servers use. */
+	public static final char SEPARATOR_CHAR = '/';
+	/** {@link #SEPARATOR_CHAR} as a String. */
+	public static final String SEPARATOR = ""+SEPARATOR_CHAR;
+	/** @deprecated misspelled, use {@link #SEPARATOR_CHAR} (same value); to be removed in 2.0.0 */
+	@Deprecated
+	public static final char SEPERATOR_CHAR = SEPARATOR_CHAR;
+	/** @deprecated misspelled, use {@link #SEPARATOR} (same value); to be removed in 2.0.0 */
+	@Deprecated
+	public static final String SEPERATOR = SEPARATOR;
 	private static final String [] SECURE_TYPES = {"TLS","SSL"};
 
 	/**
@@ -1802,7 +1810,7 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		checkStreamInProcess(absolutePath);
 		boolean ret = mkDir(absolutePath);
 		if( !ret ) {
-			int idx = absolutePath.lastIndexOf(SEPERATOR_CHAR);
+			int idx = absolutePath.lastIndexOf(SEPARATOR_CHAR);
 			if( idx > 0 ) {
 				String path = absolutePath.substring(0,idx);
 				if(mkDirs(path)) {

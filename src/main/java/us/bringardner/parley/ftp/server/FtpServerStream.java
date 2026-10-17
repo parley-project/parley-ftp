@@ -90,7 +90,7 @@ public class FtpServerStream extends BaseThread {
 	private final int timeout;
 	private final CompletionHandler completionHandler;
 
-	private volatile long bytesTransfered = 0;
+	private volatile long bytesTransferred = 0;
 	private volatile long lastProgress;
 	private volatile boolean aborted = false;
 	private volatile boolean timedOut = false;
@@ -167,8 +167,15 @@ public class FtpServerStream extends BaseThread {
 		return !finished;
 	}
 
+	/** @return the number of bytes moved so far */
+	public long getBytesTransferred() {
+		return bytesTransferred;
+	}
+
+	/** @deprecated misspelled, use {@link #getBytesTransferred()}; to be removed in 2.0.0 */
+	@Deprecated
 	public long getBytesTransfered() {
-		return bytesTransfered;
+		return getBytesTransferred();
 	}
 
 	/**
@@ -272,7 +279,7 @@ public class FtpServerStream extends BaseThread {
 						localError = upload;
 						throw e;
 					}
-					bytesTransfered += got;
+					bytesTransferred += got;
 					lastProgress = System.currentTimeMillis();
 				}
 			}
@@ -289,7 +296,7 @@ public class FtpServerStream extends BaseThread {
 			if( aborted || timedOut ) {
 				processor.logDebug("Transfer stopped (aborted="+aborted+" timedOut="+timedOut+")", e);
 			} else {
-				processor.logError("Error in data transfer after "+bytesTransfered+" bytes", e);
+				processor.logError("Error in data transfer after "+bytesTransferred+" bytes", e);
 			}
 		} finally {
 			if( watchdog != null ) {
@@ -363,7 +370,7 @@ public class FtpServerStream extends BaseThread {
 				try {
 					if( !isControlConnectionOpen() ) {
 						// The session has ended (that is why the transfer was stopped): no one to reply to
-						processor.logDebug("Session ended, transfer stopped after "+bytesTransfered+" bytes");
+						processor.logDebug("Session ended, transfer stopped after "+bytesTransferred+" bytes");
 					} else if( aborted ) {
 						/*
 						 * RFC 959: the server aborts the FTP service in progress and closes the data
@@ -371,18 +378,18 @@ public class FtpServerStream extends BaseThread {
 						 * terminated abnormally.  The server then sends a 226 reply, indicating that
 						 * the abort command was successfully processed.
 						 */
-						processor.reply(FTP.REPLY_426_CON_CLOSED,"Transfer aborted. "+bytesTransfered+" bytes transfered");
+						processor.reply(FTP.REPLY_426_CON_CLOSED,"Transfer aborted. "+bytesTransferred+" bytes transferred");
 						processor.reply(FTP.REPLY_226_CLOSING_DATA_CON,"ABOR command successful");
 					} else if( success ) {
-						processor.reply(FTP.REPLY_226_CLOSING_DATA_CON,"Transfer complete. "+bytesTransfered+" bytes transfered");
+						processor.reply(FTP.REPLY_226_CLOSING_DATA_CON,"Transfer complete. "+bytesTransferred+" bytes transferred");
 					} else if( commitError != null ) {
 						processor.reply(FTP.REPLY_451_ACTION_ABORTED_LOCAL_ERROR,"Transfer failed, local error: "+commitError);
 					} else if( timedOut ) {
-						processor.reply(FTP.REPLY_426_CON_CLOSED,"Data connection idle for more than "+(timeout/1000.0)+" seconds; transfer aborted after "+bytesTransfered+" bytes");
+						processor.reply(FTP.REPLY_426_CON_CLOSED,"Data connection idle for more than "+(timeout/1000.0)+" seconds; transfer aborted after "+bytesTransferred+" bytes");
 					} else if( localError ) {
 						processor.reply(FTP.REPLY_451_ACTION_ABORTED_LOCAL_ERROR,"Transfer failed, local error: "+(error == null ? "unknown" : error.getMessage()));
 					} else {
-						processor.reply(FTP.REPLY_426_CON_CLOSED,"Data connection failed; transfer aborted after "+bytesTransfered+" bytes"+(error == null ? "" : ": "+error.getMessage()));
+						processor.reply(FTP.REPLY_426_CON_CLOSED,"Data connection failed; transfer aborted after "+bytesTransferred+" bytes"+(error == null ? "" : ": "+error.getMessage()));
 					}
 				} finally {
 					finished = true;
