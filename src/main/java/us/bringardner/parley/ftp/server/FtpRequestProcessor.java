@@ -99,6 +99,19 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 
 		/**
+		 * @return the bytes the current transfer has moved so far, or -1 when none is in progress
+		 * @since 1.1.0
+		 */
+		public long getBytesTransferred() {
+			controlLock.lock();
+			try {
+				return stream.isActive() ? stream.getBytesTransferred() : -1;
+			} finally {
+				controlLock.unlock();
+			}
+		}
+
+		/**
 		 * @return true if a data transfer has been started and has not sent its final reply.
 		 */
 		public boolean isTransferInProgress() {
@@ -934,6 +947,57 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 	public PassiveSocket getPasvSocket() {
 		return pasvSocket;
+	}
+
+	/** @return true if an active mode (PORT/EPRT) data connection is open and not yet used */
+	public boolean hasDataSocket() {
+		return dataSocket != null;
+	}
+
+	/**
+	 * REIN (RFC 959): ends the login and puts the session back as it was when the control connection
+	 * was opened; a USER command may follow. A transfer in progress is allowed to complete first. The
+	 * login is forgotten (and anything USER, PASS, ACCT, REST, RANG, RNFR or OPTS MLST left for a later
+	 * command), the data connection is closed, TYPE is ASCII again, and the root and file system are
+	 * the server's again (a login or SITE may have changed them). Failed logins still count.
+	 * <p>
+	 * The 220 reply is sent, and then a control connection protected with AUTH goes back to clear text
+	 * and PBSZ and PROT are forgotten (RFC 4217 section 13: the reply is sent protected). A connection
+	 * that was TLS from the start (implicit TLS) stays TLS.
+	 * @since 1.1.0
+	 */
+	public void reinitialize() throws IOException {
+		while( transferInProcess.isTransferInProgress() ) {
+			// the transfer sends its own final reply, before this one
+			try {
+				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new java.io.InterruptedIOException("REIN interrupted waiting for a transfer to complete");
+			}
+		}
+		resetDataConnection();
+		passive = false;
+		tempStorage.clear();
+		setPrincipal(null);
+		representationType = TYPE_ASCII;
+		FtpServer server = (FtpServer) getServer();
+		// not setFactory(): that would look for the current root in the server's file system
+		this.factory = server.getFileSourceFactory();
+		setFtpRoot(server.getFtpRoot());
+
+		reply(REPLY_220_READY_NEW_USER, "Service ready for new user");
+
+		setPbsz(-1);
+		setProtLevel(null);
+		if( channelSecure ) {
+			try {
+				makeChannelSecure(null);
+			} catch (Exception ex) {
+				logError("REIN: can't end TLS on the control connection", ex);
+				throw new IOException("Can't end TLS on the control connection", ex);
+			}
+		}
 	}
 
 	private void resetDataConnection() {
