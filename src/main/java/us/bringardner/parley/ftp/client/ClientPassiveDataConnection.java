@@ -76,6 +76,21 @@ public final class ClientPassiveDataConnection extends ClientDataTransferProcess
         getLogger().setLevel(client.getLogger().getLevel());
         setPassive(true);
 
+        if( client.isUseSinglePort() && client.getFeatResponse().containsKey(SPSV) ) {
+            // draft-rosenau-ftp-single-port: the data connection goes to the control port
+            ClientFtpResponse res = client.executeCommand(SPSV);
+            String text = res.getResponseText();
+            int open = text == null ? -1 : text.lastIndexOf('(');
+            int close = text == null ? -1 : text.lastIndexOf(')');
+            if( res._getResponseCode() == 227 && open >= 0 && close > open+1 ) {
+                setHost(client.getHost());
+                setPort(client.getPort());
+                setSinglePortId(text.substring(open+1, close));
+                return;
+            }
+            // refused (e.g. the data protection differs from the control port's): the usual way
+        }
+
         /*
          * RFC 2428: EPSV returns only a port, the address is the control connection's
          * (works for IPv6 and through NAT). Fall back to PASV if the server doesn't know it.

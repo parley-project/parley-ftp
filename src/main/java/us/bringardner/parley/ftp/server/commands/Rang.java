@@ -104,6 +104,11 @@ public class Rang extends BaseCommand implements FeatCommand {
 		int idx = commandLine.indexOf(' ');
 		String[] args = idx > 0 ? commandLine.substring(idx).trim().split(" +") : new String[0];
 
+		if( processor.isModeZ() ) {
+			processor.removeTempValue(RANG);
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"RANG can't be used in MODE Z; MODE S first");
+			return;
+		}
 		long start;
 		long end;
 		if( args.length != 2 || !isDigits(args[0]) || !isDigits(args[1]) ) {

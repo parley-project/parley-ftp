@@ -102,7 +102,8 @@ public abstract class BaseCommand extends AbstractCommand implements FtpCommand 
 		processor.reply(REPLY_150_FILE_STATUS_OK, openMessage);
 		IOException dataError = null;
 		int sent = 0;
-		try (OutputStream out = new BufferedOutputStream(sock.getOutputStream(), LISTING_BUFFER_SIZE)) {
+		OutputStream data = null;
+		try (OutputStream out = new BufferedOutputStream(data = processor.dataOutput(sock), LISTING_BUFFER_SIZE)) {
 			if( sock instanceof javax.net.ssl.SSLSocket ) {
 				// TLS even for an empty listing (RFC 4217, see FtpServerStream)
 				((javax.net.ssl.SSLSocket) sock).startHandshake();
@@ -125,6 +126,9 @@ public abstract class BaseCommand extends AbstractCommand implements FtpCommand 
 				out.write(CRLF);
 			}
 			out.flush();
+			// MODE Z: the end of the deflated stream
+			FtpRequestProcessor.finishData(data);
+			data.flush();
 			// close_notify only, not user_canceled (GnuTLS clients, BJL-2)
 			FtpRequestProcessor.shutdownTlsOutput(sock);
 		} catch (IOException e) {

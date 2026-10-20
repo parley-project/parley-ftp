@@ -337,6 +337,8 @@ public class FtpServerStream extends BaseThread {
 				// close_notify only, not user_canceled (GnuTLS clients, BJL-2)
 				if( !upload ) {
 					try {
+						// MODE Z: the end of the deflated stream
+						FtpRequestProcessor.finishData(output);
 						output.flush();
 					} catch (IOException e) {
 						processor.logDebug("Flush before TLS shutdown failed", e);

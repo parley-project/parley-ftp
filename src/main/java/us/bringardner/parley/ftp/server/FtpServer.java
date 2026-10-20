@@ -245,6 +245,25 @@ public class FtpServer extends Server {
 	}
 	private volatile java.util.List<String> allowedLinkTargets = parseTargets(System.getProperty(ALLOWED_LINK_TARGETS_PROP, ""));
 	private FileSource ftpRoot;
+	/** SPSV identifiers waiting for their SPDT connection */
+	private final java.util.Map<String, FtpRequestProcessor.SinglePort> singlePorts = new java.util.concurrent.ConcurrentHashMap<String, FtpRequestProcessor.SinglePort>();
+
+	void addSinglePort(FtpRequestProcessor.SinglePort sp) {
+		singlePorts.put(sp.id, sp);
+	}
+
+	void removeSinglePort(String id) {
+		singlePorts.remove(id);
+	}
+
+	/**
+	 * @return the SPSV session waiting for this identifier, which is used up; null if none is
+	 * @since 1.1.0
+	 */
+	public FtpRequestProcessor.SinglePort takeSinglePort(String id) {
+		return id == null ? null : singlePorts.remove(id);
+	}
+
 	/** Virtual host name (lower case) to its root */
 	private final java.util.Map<String, FileSource> virtualHosts = new java.util.concurrent.ConcurrentHashMap<String, FileSource>();
 	//private boolean useJdbc = false;

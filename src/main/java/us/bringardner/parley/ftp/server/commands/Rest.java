@@ -156,6 +156,11 @@ http://www.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-16.txt
 		}
 
 		
+		if( processor.isModeZ() ) {
+			// the offset in a deflated stream isn't defined (draft-preston-ftpext-deflate)
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"REST can't be used in MODE Z; MODE S first");
+			return;
+		}
 		try {
 			Long marker = (Long.parseLong(commandLine));
 			// the last of RANG and REST is the one the transfer uses

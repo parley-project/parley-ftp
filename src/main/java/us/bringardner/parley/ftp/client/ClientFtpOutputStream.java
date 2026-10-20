@@ -46,6 +46,8 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     private boolean append = false;
     /** Where STOR starts writing (sent as REST first); 0 for a plain STOR or APPE. */
     private long startAt = 0;
+    /** MODE Z: the deflater the data goes through, or null */
+    private FtpClient.ZOutputStream deflater;
     /** STOU: the name to start from (may be null) and the name the server stored under */
     private boolean unique = false;
     private String storedName;
@@ -222,7 +224,12 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
             throw new IOException(cmd+" "+path+": the server ended the transfer before any data was sent ("+finished+")");
         }
         // Buffered: write(int) on a raw socket stream is one system call (and TCP packet) per byte
-        out = new BufferedOutputStream(dtp.getOutput(), effectiveBufferSize);
+        OutputStream data = dtp.getOutput();
+        if( client.isModeZActive() ) {
+            // MODE Z (draft-preston-ftpext-deflate)
+            data = deflater = client.deflate(data);
+        }
+        out = new BufferedOutputStream(data, effectiveBufferSize);
         
         closed = false;
     }
@@ -260,6 +267,9 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
 
     private void completeUpload() throws IOException {
     	flush();
+    	if( deflater != null ) {
+    		deflater.finishAndEnd();
+    	}
         dtp.close();
         
         long time = System.currentTimeMillis();
