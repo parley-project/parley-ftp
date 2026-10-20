@@ -48,6 +48,7 @@ import us.bringardner.parley.ftp.server.commands.Digests;
 import us.bringardner.parley.ftp.server.commands.Hash;
 import us.bringardner.parley.ftp.server.commands.Mfxx;
 import us.bringardner.parley.ftp.server.commands.Avbl;
+import us.bringardner.parley.ftp.server.commands.Clnt;
 import us.bringardner.parley.ftp.server.commands.Spdt;
 import us.bringardner.parley.ftp.server.commands.Spsv;
 import us.bringardner.parley.ftp.server.commands.Csid;
@@ -191,6 +192,7 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		feat.addSupportedCommand(new Mode());
 		// draft-rosenau-ftp-single-port
 		feat.addSupportedCommand(new Spsv());
+		feat.addSupportedCommand(new Clnt());
 		addCommand(new Spdt());
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XCRC, Digests.CRC32));
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XMD5, Digests.MD5));

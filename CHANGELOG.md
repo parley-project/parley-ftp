@@ -28,6 +28,10 @@ removed in 2.0.0.
 - `STOU` (store under a unique name, `150 FILE: name`), the RFC 775 forms `XCWD`, `XMKD`, `XPWD`, `XRMD` and
   `XCUP`, `SMNT` (`502`), and `LPRT`/`LPSV` (RFC 1639). Client: `FtpClient.storeUnique()`
   (`ClientFtpOutputStream.getStoredName()`), and `LPSV`/`LPRT` when a server refuses `PASV` or `EPRT`.
+- `CLNT` (server, shown by `STAT`). Client: `status()`/`status(path)` (STAT), `nameList()` (NLST), `reinitialize()`
+  (REIN, then logs in again), `clearCommandChannel()` (CCC); it sends `ABOR` when a download is closed before its end
+  (`setAbortOnClose(false)` to not) and `CLNT parley-ftp <version>` to servers that list it (`setSendClientName(false)`
+  to not).
 - `SPSV`/`SPDT` (draft-rosenau-ftp-single-port) and `MODE Z` with `OPTS MODE Z LEVEL` (draft-preston-ftpext-deflate),
   both in `FEAT`. Client: `FtpClient.setUseSinglePort()` and `setCompression()`, off by default.
 - `AVBL`, `DSIZ`, `RMDA`, `THMB` and `CSID` (draft-peterson-streamlined-ftp-command-extensions). Client:
@@ -56,6 +60,10 @@ removed in 2.0.0.
 - The 226 and 426 replies that report a byte count say "transferred" (were "transfered").
 
 ### Fixed
+
+- `CCC` and `REIN` end TLS on the control connection both ways (RFC 4217 section 12.3): the server sends close_notify
+  and reads the client's, which was taken for a command. `CCC` keeps `PBSZ`/`PROT`, so data connections stay protected
+  (they were clear after it), and gets `533` when there was no `AUTH TLS`.
 
 - `STRU` sent a second reply (`215` and the server's name, copied from `SYST`) after its own, so a client read
   it as the reply to its next command.

@@ -236,9 +236,19 @@ public class ClientFtpInputStream extends InputStream implements FTP {
         if( earlyReply != null ) {
             return earlyReply;
         }
+        // closed before the end: ABOR stops the server sending the rest (RFC 959)
+        boolean abort = !eof && client.isAbortOnClose();
+        if( abort ) {
+            client.writeLine(ABOR);
+        }
         dtp.close();
         try {
-            return client.readResponse();
+            ClientFtpResponse ret = client.readResponse();
+            if( abort ) {
+                // two replies: the transfer's (426, or 226 if it had ended) and ABOR's (226 or 225)
+                client.readResponse();
+            }
+            return ret;
         } catch(SocketTimeoutException ex) {
             // We don't know where the control connection is in the conversation any more;
             // drop it so the next command reconnects instead of reading the wrong reply.

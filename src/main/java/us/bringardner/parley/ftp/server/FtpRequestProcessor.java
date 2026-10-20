@@ -1065,13 +1065,9 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 		setPbsz(-1);
 		setProtLevel(null);
+		tlsNegotiated = false;
 		if( channelSecure ) {
-			try {
-				makeChannelSecure(null);
-			} catch (Exception ex) {
-				logError("REIN: can't end TLS on the control connection", ex);
-				throw new IOException("Can't end TLS on the control connection", ex);
-			}
+			endControlTls();
 		}
 	}
 
@@ -1856,7 +1852,72 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		if( level == null ) {
 			return isSecure();
 		}
-		return DATA_CHANNEL_PROTECTION_LEVEL_PRIVATE.equals(level) && (isSecure() || isChannelSecure());
+		// after CCC the control connection is clear, but data connections are still protected as PROT says
+		return DATA_CHANNEL_PROTECTION_LEVEL_PRIVATE.equals(level) && (isSecure() || isChannelSecure() || tlsNegotiated);
+	}
+
+	/** AUTH TLS was done on this session (CCC doesn't undo it; REIN does) */
+	private volatile boolean tlsNegotiated = false;
+
+	/**
+	 * Ends TLS on the control connection as RFC 4217 section 12.3 shows it, both ways: this side's
+	 * close_notify, then the client's, read so it isn't taken for a command (for 2 seconds; a client
+	 * that sends none should wait that long before its next command). Then the connection is clear.
+	 */
+	private void endControlTls() {
+		us.bringardner.parley.net.IConnection con = getConnection();
+		Socket s = con == null ? null : con.getSocket();
+		if( s instanceof SSLSocket && channelSecure ) {
+			SSLSocket ssl = (SSLSocket) s;
+			try {
+				ssl.shutdownOutput();
+			} catch (IOException | UnsupportedOperationException e) {
+				logDebug("Can't send close_notify", e);
+			}
+			int timeout = 0;
+			try {
+				timeout = ssl.getSoTimeout();
+				ssl.setSoTimeout(2000);
+				InputStream in = ssl.getInputStream();
+				while( in.read() >= 0 ) {
+					// nothing should come but the close_notify
+				}
+			} catch (IOException e) {
+				logDebug("No close_notify from the client", e);
+			}
+			try {
+				// no timeout while TLS is closed: with one, closing reads what comes next (the client's
+				// next command, in clear text) looking for the close_notify, and throws it away
+				ssl.setSoTimeout(0);
+			} catch (IOException e) {
+				// the socket is closed
+			}
+			try {
+				makeChannelSecure(null);
+			} catch (Exception ex) {
+				logError("Can't end TLS on the control connection", ex);
+			}
+			try {
+				getConnection().getSocket().setSoTimeout(timeout);
+			} catch (IOException e) {
+				// the socket is closed
+			}
+			return;
+		}
+		try {
+			makeChannelSecure(null);
+		} catch (Exception ex) {
+			logError("Can't end TLS on the control connection", ex);
+		}
+	}
+
+	/**
+	 * CCC (RFC 2228, RFC 4217): the control connection goes back to clear text after the reply was sent;
+	 * PBSZ and PROT stay, so data connections are protected as before.
+	 * @since 1.1.0
+	 */
+	public void clearControlChannel() {
+		endControlTls();
 	}
 
 	/**
@@ -1877,6 +1938,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			this.channelSecure = false;
 		} else {
 			this.channelSecure = true;
+			this.tlsNegotiated = true;
 			// RFC 7151 section 4: a HOST sent before AUTH must match the name the client asked for in TLS
 			String host = virtualHost;
 			java.util.List<String> names = host == null ? java.util.Collections.<String>emptyList() : getTlsServerNames();
@@ -2017,6 +2079,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	public void reset() {
 		setPbsz(-1);
 		setProtLevel(null);
+		tlsNegotiated = false;
 		try {
 			makeChannelSecure(null);
 		} catch (Exception ex) {

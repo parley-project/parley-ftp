@@ -97,8 +97,14 @@ CLEAR COMMAND CHANNEL (CCC)
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
-		processor.reset();
-		processor.reply(REPLY_200_OK,"OK");
+		if( !processor.isChannelSecure() ) {
+			// nothing to clear: no AUTH TLS (with implicit TLS the connection is TLS from the start)
+			processor.reply(REPLY_533_COMMAND_PROTECTION_LEVEL_DENIED_FOR_POLICY_REASONS,"The control connection isn't protected with AUTH");
+			return;
+		}
+		processor.reply(REPLY_200_OK,"Command channel cleared");
+		// RFC 4217 section 12.3: TLS shut down both ways; PBSZ and PROT stay, data connections are as before
+		processor.clearControlChannel();
 	}
 
 }
