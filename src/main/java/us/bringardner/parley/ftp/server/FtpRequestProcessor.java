@@ -1587,7 +1587,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @param inPlace true to write into the target, with resuming
 	 */
 	public void receiveFile(final FileSource target, boolean append, final boolean inPlace) throws IOException {
-<<<<<<< HEAD
 		receiveFile(target, append, inPlace, null, null);
 	}
 
@@ -1598,7 +1597,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @since 1.1.0
 	 */
 	public void receiveFile(final FileSource target, boolean append, final boolean inPlace, String openMessage, final FtpServerStream.CompletionHandler after) throws IOException {
-=======
 		// the file's lock first: a busy file is refused before the data connection is opened
 		final FtpFileLock lock = lockFile(target);
 		if( lock == null ) {
@@ -1606,7 +1604,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 		boolean started = false;
 		try {
-			started = receiveFileLocked(target, append, inPlace, lock);
+			started = receiveFileLocked(target, append, inPlace, openMessage, after, lock);
 		} finally {
 			if( !started ) {
 				lock.close();
@@ -1615,8 +1613,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	}
 
 	/** @return true if the transfer was started (it lets go of the lock when it ends) */
-	private boolean receiveFileLocked(final FileSource target, boolean append, final boolean inPlace, final FtpFileLock lock) throws IOException {
->>>>>>> ftp-locks
+	private boolean receiveFileLocked(final FileSource target, boolean append, final boolean inPlace, String openMessage, final FtpServerStream.CompletionHandler after, final FtpFileLock lock) throws IOException {
 		Socket sock = getDataSocket();
 		if( sock == null ){
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data socket");
@@ -1677,11 +1674,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			return false;
 		}
 
-<<<<<<< HEAD
 		FtpServerStream.CompletionHandler both = after == null ? handler : new BothHandlers(handler, after);
-		transferStream(in, out, sock, true, both, openMessage);
-=======
-		transferStream(in, out, sock, true, releasing(handler, lock));
+		transferStream(in, out, sock, true, releasing(both, lock), openMessage);
 		return true;
 	}
 
@@ -1703,7 +1697,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				}
 			}
 		};
->>>>>>> ftp-locks
 	}
 
 	/** Reads at most limit bytes of a stream (a RANG retrieve); closing it closes the stream. */
