@@ -162,14 +162,10 @@ public class Stor  extends BaseCommand {
 	
 	/**
 	 * RANG then STOR (draft-bryan-ftp-range): the upload is written into the file from the range's start,
-	 * in place, and nothing outside the range changes. Allowed only where REST then STOR may write at an
-	 * offset (FtpServer.setStoreAtOffset).
+	 * in place, and nothing outside the range changes. Unlike REST then STOR, the client says exactly
+	 * which octets it writes, so this doesn't need FtpServer.setStoreAtOffset.
 	 */
 	private void storeRange(FtpRequestProcessor processor, FileSource target, Rang.Range range) throws IOException {
-		if( !processor.isStoreAtOffset() ) {
-			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM," RANG with STOR is not enabled on this server; nothing was stored");
-			return;
-		}
 		if( processor.isLink(target) ) {
 			// written in place, the file it leads to would change
 			processor.reply(REPLY_450_FILE_ACTION_FAILED," RANG with STOR is not accepted on a link");

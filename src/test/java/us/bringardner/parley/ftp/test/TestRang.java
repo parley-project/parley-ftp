@@ -1,6 +1,5 @@
 package us.bringardner.parley.ftp.test;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +27,7 @@ import us.bringardner.parley.net.server.IServer;
 
 /**
  * RANG (draft-bryan-ftp-range-08): advertised in FEAT as "RANG STREAM"; RETR sends the inclusive
- * octet range; STOR writes it in place (only with setStoreAtOffset on) and changes nothing outside it.
+ * octet range; STOR writes it in place, with or without setStoreAtOffset, and changes nothing outside it.
  */
 public class TestRang {
 
@@ -262,19 +261,24 @@ public class TestRang {
 	}
 
 	@Test
-	public void storeIsRefusedWhenStoreAtOffsetIsOff() throws Exception {
+	public void storeWorksWhenStoreAtOffsetIsOff() throws Exception {
 		File f = file(offRoot, "o.txt", "0123456789");
 		FtpClient c = client(OFF_PORT);
 		try {
 			rang(c, "3 5");
-			assertThrows(IOException.class, () -> stor(c, "o.txt", "abc"));
-			// retrieve still works
+			stor(c, "o.txt", "abc");
 			rang(c, "3 5");
-			assertEquals("345", retr(c, "o.txt"));
+			assertEquals("abc", retr(c, "o.txt"));
+			// REST then STOR is still refused there
+			assertThrows(IOException.class, () -> {
+				try (OutputStream out = c.getOutputStream("o.txt", false, 3, 0)) {
+					out.write('z');
+				}
+			});
 		} finally {
 			c.close();
 		}
-		assertArrayEquals("0123456789".getBytes(StandardCharsets.US_ASCII), Files.readAllBytes(f.toPath()));
+		assertEquals("012abc6789", read(f));
 	}
 
 	@Test
