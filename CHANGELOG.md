@@ -11,6 +11,15 @@ removed in 2.0.0.
 - `Mlst.SEPERATOR`: use `Mlst.SEPARATOR`.
 - `FtpServerStream.getBytesTransfered()`: use `getBytesTransferred()`.
 
+### Added
+
+- `FtpServer.setStoreAtOffset(boolean)` / `JFtp.storeAtOffset` (off by default): `REST n` then `STOR` writes
+  in place from `n` and leaves the rest of the file as it was, so a client can write a block in the middle
+  of a file. See the README, "Writing at an offset".
+- `FtpClient.getOutputStream(path, ascii, startingPos, bufferSize)` and a `ClientFtpOutputStream`
+  constructor with a starting position: `REST` then `STOR`. If the server refuses the `REST` nothing is
+  stored (a `STOR` without it would replace the file).
+
 ### Changed
 
 - The 226 and 426 replies that report a byte count say "transferred" (were "transfered").

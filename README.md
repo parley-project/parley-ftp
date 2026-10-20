@@ -44,6 +44,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 | `JFtp.symlinkPolicy` | `strict` | How symbolic links inside a user's root are treated: `strict`, `allowedTargets` or `follow` (see below). `setSymlinkPolicy()` |
 | `JFtp.allowedLinkTargets` | none | Comma-separated directories that links may lead into when the policy is `allowedTargets`. `setAllowedLinkTargets()` |
 | `JFtp.uploadMode` | `atomic` | How `STOR` puts an upload in place: `atomic` or `inPlace` (see [Uploads and resuming](#uploads-and-resuming)). `setUploadMode()` |
+| `JFtp.storeAtOffset` | false | `REST n` then `STOR` writes in place from `n` (random access); see [Writing at an offset](#writing-at-an-offset). `setStoreAtOffset()` |
 | `JFtp.loginFailureDelay` | 1000 ms | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
 | `JavaFtpServer.linger` | off | SO_LINGER (seconds) for data connections |
 
@@ -90,6 +91,20 @@ length, the marker matched, and the new data was appended to the old file, which
   arrived.
 - A file changed after the break (so its length is no longer where the upload stopped) is not resumed.
 
+### Writing at an offset
+
+With `JFtp.storeAtOffset` / `setStoreAtOffset(true)` (off by default), `REST n` then `STOR` writes the
+upload into the file from `n`, in place, and leaves the rest of the file as it was (ProFTPD calls this
+`AllowStoreRestart`; vsftpd does it always). A client can then write a block in the middle of a file, which
+is how parley-files-ftp gives read-write random access (`FtpClient.getOutputStream(path, ascii, startingPos,
+bufferSize)` sends the `REST` and `STOR`).
+
+- `n` may be anything from 1 to the file's length; past the end it is refused (`554`). `n` equal to the
+  length adds to the file, **even one that wasn't cut off**: the check described above is off with it.
+- The write isn't atomic, whatever `JFtp.uploadMode` is: a transfer that breaks leaves what arrived.
+- `REST 0` is no restart: `STOR` replaces the file, as always.
+- On a link it is refused (`450`), as before.
+
 ## Links
 
 An administrator can make a file or a directory appear in a user's root without copying it, by making a
@@ -123,7 +138,7 @@ What a client does to a link never changes the file it leads to.
 | `DELE`, `RMD`, `RNFR` + `RNTO` | Acts on the **link**. The linked file or directory is untouched. |
 | `STOR` | The link is **replaced by a regular file** that holds the upload. The original is untouched. |
 | `APPE`, `SITE CHMOD`, `SITE modDate` | The link is first replaced by a regular **copy** of the file (same content, permissions and time), and the command applies to that copy. The original is untouched. |
-| `REST` then `STOR` | Refused (`450`): a link isn't an unfinished upload (see [Uploads and resuming](#uploads-and-resuming)). Nothing changes. |
+| `REST` then `STOR` | Refused (`450`): a link isn't an unfinished upload (see [Uploads and resuming](#uploads-and-resuming)), and isn't written at an offset either. Nothing changes. |
 | `STOR`, `MKD`, `DELE` **inside** a linked directory | Happens in the directory it leads to. The link is the way in, and a client with write permission changes what is behind it, as it would in any directory it can write to. |
 | `SITE CHMOD`, `SITE modDate` on a linked **directory** | Refused (`450 Permission denied.`). A directory isn't copied. |
 

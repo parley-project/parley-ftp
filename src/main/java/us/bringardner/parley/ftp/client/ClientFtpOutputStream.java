@@ -44,6 +44,8 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     private ClientDataTransferProcess dtp ;
     private boolean ascii;
     private boolean append = false;
+    /** Where STOR starts writing (sent as REST first); 0 for a plain STOR or APPE. */
+    private long startAt = 0;
     /** What the buffer was made with: the size asked for, or the client's, and never under 8 KB. */
     private int effectiveBufferSize;
     private boolean closed = false;
@@ -57,6 +59,30 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
      * {@link FtpClient#getTransferBufferSize()} (it is never less than 8 KB)
      */
     public ClientFtpOutputStream(String path, FtpClient client, boolean ascii, boolean append, int bufferSize) throws IOException {
+        this(path, client, ascii, append, 0, bufferSize);
+    }
+
+    /**
+     * A STOR that starts at a position: REST startAt is sent just before STOR, so the server
+     * writes the data into the file from there (RFC 3659 section 5.5). What the server does with
+     * the rest of the file is up to the server; one that writes in place leaves it as it was.
+     * If the server refuses the REST, nothing is stored and this throws: a STOR without it would
+     * replace the whole file.
+     *
+     * @param startAt where the data goes in the file; 0 for a plain STOR (or APPE when append is true)
+     * @param bufferSize the size of this stream's buffer, or 0 for the client's
+     * {@link FtpClient#getTransferBufferSize()} (it is never less than 8 KB)
+     * @throws IllegalArgumentException if startAt is negative, or not 0 when append is true
+     * @since 1.1.0
+     */
+    public ClientFtpOutputStream(String path, FtpClient client, boolean ascii, boolean append, long startAt, int bufferSize) throws IOException {
+        if( startAt < 0 ) {
+            throw new IllegalArgumentException("Negative starting position "+startAt);
+        }
+        if( append && startAt != 0 ) {
+            throw new IllegalArgumentException("APPE has no starting position");
+        }
+        this.startAt = startAt;
         this.path = path;
         this.client = client;
         this.ascii = ascii;
@@ -78,6 +104,13 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
         ClientFtpResponse res = null;
         try {
             dtp.connectBeforeCommand();
+            if( startAt > 0 ) {
+                // straight before STOR, after PASV/PORT, so no other command comes between them
+                ClientFtpResponse rest = client.executeCommand(REST, ""+startAt);
+                if( !rest.isPositiveIntermediate() ) {
+                    throw new IOException("The server won't start a STOR of "+path+" at "+startAt+": REST "+startAt+" = "+rest);
+                }
+            }
             res = client.executeCommand(cmd, path);
         } catch (IOException e) {
             dtp.close();

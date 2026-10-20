@@ -1749,6 +1749,40 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		return getOutputStream(path,ascii, false);
 	}
 
+	/**
+	 * Open an output stream that writes into a remote file from a position: REST startingPos, then
+	 * STOR. A server that writes in place leaves the rest of the file as it was, so this writes a
+	 * block in the middle of a file. Not every server does: many accept REST before STOR only to
+	 * resume an upload at the end of the file, and parley's FtpServer only when
+	 * {@code FtpServer.setStoreAtOffset(true)} (otherwise only to resume one it knows was cut off).
+	 * If the server refuses the REST this throws, and nothing is stored.
+	 *
+	 * @param startingPos where the data goes; 0 is a plain STOR, which replaces the file
+	 * @param bufferSize the size of the stream's buffer in bytes (at least 8 KB is used), or 0 for
+	 * {@link #getTransferBufferSize()}
+	 * @since 1.1.0
+	 */
+	public OutputStream getOutputStream(String path, boolean ascii, long startingPos, int bufferSize) throws IOException {
+		commandLock.lock();
+		try {
+			checkStreamInProcess(path);
+
+			ClientFtpOutputStream ret;
+			try {
+				ret = new ClientFtpOutputStream(path,this,ascii, false, startingPos, bufferSize);
+			} catch (Tls12Needed e) {
+				// nothing was written yet
+				fallBackToTls12(e);
+				ret = new ClientFtpOutputStream(path,this,ascii, false, startingPos, bufferSize);
+			}
+			streamsInProcess.put(path, ret);
+
+			return ret;
+		} finally {
+			commandLock.unlock();
+		}
+	}
+
 
 	public boolean rename(String from, String to ) throws IOException {
 		checkStreamInProcess(from);
