@@ -47,6 +47,10 @@ public class ClientFtpInputStream extends InputStream implements FTP {
     private ClientDataTransferProcess dtp ;
     private boolean ascii;
     private long startAt;
+    /** The last octet wanted (inclusive, sent with RANG), or -1 for to the end of the file. */
+    private long endAt = -1;
+    /** Octets left to hand out when the server couldn't do RANG and this stops at endAt itself; -1 for no limit. */
+    private long remaining = -1;
     /** What the buffer was made with: the size asked for, or the client's, and never under 8 KB. */
     private int effectiveBufferSize;
     /** The final reply, when it was read before the stream was handed out */
@@ -78,6 +82,33 @@ public class ClientFtpInputStream extends InputStream implements FTP {
 
     }
 
+    /**
+     * A download of the octets from startingPos to endingPos, inclusive. A server that lists RANG in
+     * FEAT (draft-bryan-ftp-range) is sent RANG startingPos endingPos and sends just that range.
+     * Otherwise, or if it refuses the RANG, this starts at startingPos as with REST and stops after
+     * endingPos itself (the rest of the transfer is abandoned when the stream is closed).
+     * An endingPos past the end of the file reads to the end of the file.
+     *
+     * @param startingPos the first octet wanted
+     * @param endingPos the last octet wanted (inclusive)
+     * @param bufferSize the size of this stream's buffer, or 0 for the client's
+     * {@link FtpClient#getTransferBufferSize()} (it is never less than 8 KB)
+     * @throws IllegalArgumentException if startingPos is negative or endingPos is before it
+     * @since 1.1.0
+     */
+    public ClientFtpInputStream(String path, FtpClient client, boolean ascii, long startingPos, long endingPos, int bufferSize) throws IOException {
+        if( startingPos < 0 || endingPos < startingPos ) {
+            throw new IllegalArgumentException("Invalid range "+startingPos+"-"+endingPos);
+        }
+        this.path = path;
+        this.ascii = ascii;
+        this.client = client;
+        this.startAt = startingPos;
+        this.endAt = endingPos;
+        this.effectiveBufferSize = Math.max(8192, bufferSize > 0 ? bufferSize : client.getTransferBufferSize());
+        startDownload();
+    }
+
     
     private void startDownload() throws IOException {
         if( ascii ) {
@@ -86,8 +117,18 @@ public class ClientFtpInputStream extends InputStream implements FTP {
             client.setImageType();
         }
         boolean canRestore = false;
-        
-        if( startAt > 0l) {
+        boolean ranged = false;
+
+        if( endAt >= 0 && client.getFeatResponse().containsKey(RANG) ) {
+            ClientFtpResponse res = client.executeCommand(RANG, startAt+" "+endAt);
+            if( res.isPositiveIntermediate() ) {
+                ranged = true;
+            } else {
+                logError(" Server said it would support RANG but did not.  ResponseCode="+res._getResponseCode());
+            }
+        }
+
+        if( startAt > 0l && !ranged) {
             canRestore = client.getFeatResponse().containsKey(REST);
             if(canRestore) {
                 //  WE can do a restore
@@ -146,7 +187,13 @@ public class ClientFtpInputStream extends InputStream implements FTP {
             }
         }
         
-        if( startAt > 0l && !canRestore) {
+        if( endAt >= 0 && !ranged ) {
+            // the server sends to the end of the file: stop at endAt here
+            long len = endAt - startAt;
+            remaining = len == Long.MAX_VALUE ? Long.MAX_VALUE : len + 1;
+        }
+
+        if( startAt > 0l && !canRestore && !ranged) {
             //  Server could not do it so ignore the startAt data
             long skipped = in.skip(startAt);
             if( skipped != startAt ) {
@@ -183,14 +230,7 @@ public class ClientFtpInputStream extends InputStream implements FTP {
     }
 
     public int read(byte[] arg0) throws IOException {
-        int ret = -1;
-        if( !eof ) {
-            if( (ret = in.read(arg0)) == -1) {
-                eof = true;
-            }
-        }
-        
-        return ret;
+        return read(arg0, 0, arg0.length);
     }
 
     public long skip(long arg0) throws IOException {
@@ -199,9 +239,15 @@ public class ClientFtpInputStream extends InputStream implements FTP {
 
     public int read() throws IOException {
         int ret = -1;
+        if( remaining == 0 ) {
+            // the end of the range: closing abandons the rest of the transfer
+            return -1;
+        }
         if( !eof ) {
             if((ret=in.read()) == -1 ) {
                 eof = true; 
+            } else if( remaining > 0 ) {
+                remaining--;
             }
         }
         return ret;
@@ -209,9 +255,18 @@ public class ClientFtpInputStream extends InputStream implements FTP {
 
 
     public int read(byte[] b, int off, int len) throws IOException {
+        if( remaining == 0 ) {
+            // the end of the range: closing abandons the rest of the transfer
+            return len == 0 ? 0 : -1;
+        }
+        if( remaining > 0 ) {
+            len = (int)Math.min(len, remaining);
+        }
         int ret = in.read(b, off, len);
         if( ret == -1 ) {
             eof = true;
+        } else if( remaining > 0 ) {
+            remaining -= ret;
         }
         return ret;
     }

@@ -20,7 +20,12 @@ removed in 2.0.0.
   constructor with a starting position: `REST` then `STOR`. If the server refuses the `REST` nothing is
   stored (a `STOR` without it would replace the file).
 - `RANG start end` (draft-bryan-ftp-range-08), listed in `FEAT` as `RANG STREAM`: `RETR` sends that octet
-  range, and `STOR` writes it in place (it doesn't need `JFtp.storeAtOffset`). See the README, "Octet ranges (RANG)".
+  range, and `STOR` writes it in place (it doesn't need `JFtp.storeAtOffset`).
+- `FtpClient.getInputStream(path, ascii, startingPos, endingPos, bufferSize)` and
+  `getOutputStream(path, ascii, startingPos, endingPos, bufferSize)` (and `ClientFtpInputStream` /
+  `ClientFtpOutputStream` constructors with a range): `RANG` then `RETR` or `STOR`. A download from a server
+  without `RANG` starts at the position as with `REST` and stops at the end of the range itself; an upload
+  stores nothing if the `RANG` is refused. See the README, "Octet ranges (RANG)".
 
 ### Changed
 

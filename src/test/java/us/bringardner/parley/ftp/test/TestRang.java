@@ -297,4 +297,107 @@ public class TestRang {
 		}
 		assertEquals("0123", read(f));
 	}
+
+	// ---- the client ----
+
+	private static String read(InputStream in) throws IOException {
+		ByteArrayOutputStream buf = new ByteArrayOutputStream();
+		try (InputStream i = in) {
+			i.transferTo(buf);
+		}
+		return new String(buf.toByteArray(), StandardCharsets.US_ASCII);
+	}
+
+	@Test
+	public void clientRetrievesARangeWithRang() throws Exception {
+		file(onRoot, "cr.txt", "0123456789");
+		FtpClient c = client(ON_PORT);
+		try {
+			assertEquals("2345", read(c.getInputStream("cr.txt", false, 2, 5, 0)));
+			assertTrue(c.getDialog().contains("Write:RANG 2 5"), c.getDialog());
+			assertEquals("0", read(c.getInputStream("cr.txt", false, 0, 0, 0)));
+			assertEquals("789", read(c.getInputStream("cr.txt", false, 7, 100, 0)));
+			assertEquals("", read(c.getInputStream("cr.txt", false, 20, 30, 0)));
+			// the connection is still in step
+			assertEquals("0123456789", retr(c, "cr.txt"));
+		} finally {
+			c.close();
+		}
+	}
+
+	@Test
+	public void clientStopsAtTheEndItselfWithoutRang() throws Exception {
+		try (FakeFtpServer fake = new FakeFtpServer()) {
+			fake.data = "0123456789".getBytes(StandardCharsets.US_ASCII);
+			FtpClient c = new FtpClient("127.0.0.1", fake.port());
+			c.setRequestSecure(false);
+			c.getLogger().setLevel(Level.ERROR);
+			assertTrue(c.connect("anonymous", "x", null));
+			try {
+				assertEquals("2345", read(c.getInputStream("f", false, 2, 5, 0)));
+				assertEquals("01", read(c.getInputStream("f", false, 0, 1, 0)));
+				for (String cmd : fake.commands(1)) {
+					assertTrue(!cmd.startsWith("RANG"), "RANG sent to a server without it: " + fake.commands(1));
+				}
+			} finally {
+				c.close();
+			}
+		}
+	}
+
+	@Test
+	public void clientStoresARange() throws Exception {
+		File f = file(offRoot, "cs.txt", "0123456789");
+		// storeAtOffset is off there: RANG doesn't need it
+		FtpClient c = client(OFF_PORT);
+		try {
+			try (OutputStream out = c.getOutputStream("cs.txt", false, 3, 5, 0)) {
+				out.write("abc".getBytes(StandardCharsets.US_ASCII));
+			}
+			assertTrue(c.getDialog().contains("Write:RANG 3 5"), c.getDialog());
+			assertEquals("012abc6789", read(f));
+			// from 0: in place, not truncated
+			try (OutputStream out = c.getOutputStream("cs.txt", false, 0, 1, 0)) {
+				out.write("XY".getBytes(StandardCharsets.US_ASCII));
+			}
+			assertEquals("XY2abc6789", read(f));
+		} finally {
+			c.close();
+		}
+	}
+
+	@Test
+	public void clientWontWriteMoreThanTheRange() throws Exception {
+		File f = file(onRoot, "cm.txt", "0123456789");
+		FtpClient c = client(ON_PORT);
+		try {
+			OutputStream out = c.getOutputStream("cm.txt", false, 2, 3, 0);
+			out.write('a');
+			assertThrows(IOException.class, () -> out.write("bc".getBytes(StandardCharsets.US_ASCII)));
+			out.write('b');
+			assertThrows(IOException.class, () -> out.write('c'));
+			out.close();
+		} finally {
+			c.close();
+		}
+		assertEquals("01ab456789", read(f));
+	}
+
+	@Test
+	public void clientStoresNothingWhenRangIsRefused() throws Exception {
+		File f = file(onRoot, "cp.txt", "abc");
+		FtpClient c = client(ON_PORT);
+		try {
+			// a start past the end gets 554 on STOR: nothing stored
+			assertThrows(IOException.class, () -> {
+				try (OutputStream out = c.getOutputStream("cp.txt", false, 10, 12, 0)) {
+					out.write('z');
+				}
+			});
+			assertThrows(IllegalArgumentException.class, () -> c.getOutputStream("cp.txt", false, 5, 2, 0));
+		} finally {
+			c.close();
+		}
+		assertEquals("abc", read(f));
+	}
 }

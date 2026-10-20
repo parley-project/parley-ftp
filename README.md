@@ -209,6 +209,12 @@ points. This server doesn't say, for the reasons above.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
 - **Streams** returned by `getInputStream`/`getOutputStream` are buffered.
+- **Ranges (RANG):** `getInputStream(path, ascii, start, end, bufferSize)` reads the octets from `start` to `end`
+  (inclusive). It sends `RANG start end` when the server lists `RANG` in `FEAT`; with any other server it starts
+  at `start` as with `REST` and the stream stops after `end`. `getOutputStream(path, ascii, start, end,
+  bufferSize)` sends `RANG start end` straight before `STOR`, so the server writes in place and changes nothing
+  outside the range; if the server refuses the `RANG` nothing is stored, and writing more than the range holds
+  throws. See [Octet ranges (RANG)](#octet-ranges-rang).
 - **SO_LINGER** is off by default (`setCmdLinger`, `setTransferLinger`).
 - **TLS:** after logging in over TLS the client sends `PBSZ 0` / `PROT P`; if the server refuses, data connections are clear (`isDataChannelSecure()`). Every new connection negotiates AUTH again.
 - **Reply timeouts:** if a transfer's final reply times out, the control connection is dropped and the next command reconnects.
