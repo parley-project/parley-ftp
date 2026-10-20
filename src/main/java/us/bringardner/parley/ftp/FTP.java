@@ -116,6 +116,9 @@ public interface FTP {
 	public static final String REST = "REST";
 	/** Octet range for the next transfer (draft-bryan-ftp-range, an expired draft) */
 	public static final String RANG = "RANG";
+	public static final String STAT = "STAT";
+	public static final String REIN = "REIN";
+	public static final String ALLO = "ALLO";
 	public static final String RNFR = "RNFR";
 	public static final String RNTO = "RNTO";
 	public static final String RETR = "RETR";
@@ -156,6 +159,7 @@ public interface FTP {
 	public static final int REPLY_500_SYNTAX_ERROR = 500; //Syntax error, command unrecognized.	  This may include errors such as command line too long.
 	public static final int REPLY_501_SYNTAXT_ERROR_IN_PARAM=501; // Syntax error in parameters or arguments.
 	public static final int REPLY_502_NOT_IMPLEMENTED = 502; // Command not implemented.
+	public static final int REPLY_202_NOT_IMPLEMENTED = 202; // Command not implemented, superfluous at this site.
 	public static final int REPLY_503_BAD_SEQ_OF_COMMANDS = 503;// Bad sequence of commands.
 	public static final int REPLY_504_NOT_IMP_FOR_PARAM = 504;// Command not implemented for that parameter.
 

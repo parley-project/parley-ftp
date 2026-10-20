@@ -26,6 +26,9 @@ import java.util.Map;
 import us.bringardner.parley.net.server.AbstractCommandFactory;
 import us.bringardner.parley.net.server.ICommand;
 import us.bringardner.parley.ftp.server.commands.Abor;
+import us.bringardner.parley.ftp.server.commands.Allo;
+import us.bringardner.parley.ftp.server.commands.Rein;
+import us.bringardner.parley.ftp.server.commands.Stat;
 import us.bringardner.parley.ftp.server.commands.Acct;
 import us.bringardner.parley.ftp.server.commands.Appe;
 import us.bringardner.parley.ftp.server.commands.AuthError;
@@ -118,6 +121,10 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		addCommand(new Type());
 		addCommand(new User());
 		addCommand(new Acct());
+		// RFC 959
+		addCommand(new Allo());
+		addCommand(new Rein());
+		addCommand(new Stat());
 		
 		
 		Feat feat = new Feat();

@@ -21,6 +21,10 @@ removed in 2.0.0.
   stored (a `STOR` without it would replace the file).
 - `RANG start end` (draft-bryan-ftp-range-08), listed in `FEAT` as `RANG STREAM`: `RETR` sends that octet
   range, and `STOR` writes it in place (it doesn't need `JFtp.storeAtOffset`).
+- `STAT`, `REIN` and `ALLO`, the rest of RFC 959's required commands. `STAT` gives the session's status, or a
+  transfer's progress, and `STAT path` lists on the control connection; `REIN` logs out and resets the session
+  (after AUTH TLS the control connection goes back to clear text, RFC 4217 section 13); `ALLO` replies `202`.
+  See the README, "Behaviour notes".
 - `FtpClient.getInputStream(path, ascii, startingPos, endingPos, bufferSize)` and
   `getOutputStream(path, ascii, startingPos, endingPos, bufferSize)` (and `ClientFtpInputStream` /
   `ClientFtpOutputStream` constructors with a range): `RANG` then `RETR` or `STOR`. A download from a server

@@ -58,6 +58,15 @@ Each setting can be passed as a system property or set with the matching `FtpSer
   - ABOR gets `426` then `226`.
   - A stalled or failed data connection gets `426`.
   - A local file system error gets `451`.
+- **STAT, REIN and ALLO (RFC 959):**
+  - `STAT` gives the session's status (`211`: login, TYPE, data connection, TLS, current directory); during a
+    transfer, the bytes transferred so far (`213`). `STAT path` sends what `LIST` would, on the control connection
+    (`212` for a directory, `213` for a file); it needs a login.
+  - `REIN` lets a transfer in progress finish, then logs out and resets the session (TYPE, data connection, `REST`,
+    `RANG`, the user's root and directory) and replies `220`; `USER` comes next. After `AUTH TLS` the reply is sent
+    protected and the control connection then goes back to clear text (RFC 4217 section 13); with implicit TLS it stays
+    TLS. Failed logins still count.
+  - `ALLO` is accepted and does nothing (`202`): space is allocated as the data arrives.
 - **Logging** defaults to INFO.
 - **TLS (RFC 4217):**
   - **Explicit TLS:** `AUTH TLS` on the normal port. Data connections are clear until the client sends `PBSZ 0` and `PROT P`.
