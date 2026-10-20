@@ -28,6 +28,9 @@ removed in 2.0.0.
 - `STOU` (store under a unique name, `150 FILE: name`), the RFC 775 forms `XCWD`, `XMKD`, `XPWD`, `XRMD` and
   `XCUP`, `SMNT` (`502`), and `LPRT`/`LPSV` (RFC 1639). Client: `FtpClient.storeUnique()`
   (`ClientFtpOutputStream.getStoredName()`), and `LPSV`/`LPRT` when a server refuses `PASV` or `EPRT`.
+- `MFMT`, `MFCT` and `MFF` (draft-somers-ftp-mfxx): modification and creation times, `UNIX.mode`, and (ADMIN only)
+  `UNIX.owner`/`UNIX.group`. Client: `FtpClient.setModificationTime()`, `setCreationTime()`, `setFacts()`;
+  `FtpClientFile.setLastModified()` uses `MFMT` when the server has it, else the `SITE` command as before.
 - File hashes: `HASH` (draft-ietf-ftpext2-hash) with `OPTS HASH` and `RANG`, and `XCRC`, `XMD5`, `XSHA1`,
   `XSHA256`, `XSHA512`; SHA-256, SHA-512, SHA-1, MD5 and CRC32. Client: `FtpClient.hash()`.
 - `LANG` (RFC 2640), English only, listed in `FEAT` as `LANG EN*`. Client: `FtpClient.setLanguage()` and

@@ -1862,6 +1862,81 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		}
 	}
 
+	private static final java.time.format.DateTimeFormatter TIME_VAL =
+			java.time.format.DateTimeFormatter.ofPattern("uuuuMMddHHmmss").withZone(java.time.ZoneOffset.UTC);
+
+	/** @return the time as an RFC 3659 time-val (UTC, whole seconds) */
+	public static String timeVal(long time) {
+		return TIME_VAL.format(java.time.Instant.ofEpochMilli(time));
+	}
+
+	/**
+	 * Set a remote file's modification time: MFMT (draft-somers-ftp-mfxx) when the server lists it in
+	 * FEAT, else MFF Modify= when it lists that. Whole seconds, UTC.
+	 *
+	 * @param time milliseconds since the epoch
+	 * @return true if the server set it; false if it has neither, or refused
+	 * @since 1.1.0
+	 */
+	public boolean setModificationTime(String path, long time) throws IOException {
+		return setTime(path, time, MFMT, "Modify");
+	}
+
+	/**
+	 * Set a remote file's creation time: MFCT, else MFF Create= (draft-somers-ftp-mfxx). Not every file
+	 * system keeps one that can be set.
+	 *
+	 * @return true if the server set it
+	 * @since 1.1.0
+	 */
+	public boolean setCreationTime(String path, long time) throws IOException {
+		return setTime(path, time, MFCT, "Create");
+	}
+
+	private boolean setTime(String path, long time, String command, String fact) throws IOException {
+		Map<String, String> feat = getFeatResponse();
+		if( feat.containsKey(command) ) {
+			return executeCommand(command, timeVal(time), path)._getResponseCode() == REPLY_213_FILE_STATUS;
+		}
+		String mff = feat.get(MFF);
+		if( mff != null && mff.toLowerCase(java.util.Locale.ROOT).contains(fact.toLowerCase(java.util.Locale.ROOT)) ) {
+			return !setFacts(path, java.util.Collections.singletonMap(fact, timeVal(time))).isEmpty();
+		}
+		return false;
+	}
+
+	/**
+	 * MFF (draft-somers-ftp-mfxx): change facts of a remote file, e.g. Modify, Create, UNIX.mode (octal),
+	 * UNIX.owner, UNIX.group; FEAT's MFF line lists what the server can change.
+	 *
+	 * @param facts fact name to value, sent in this order
+	 * @return the facts as the server says they are now (which may differ from what was asked); empty if
+	 * the server refused (not every fact may have been left as it was) or has no MFF
+	 * @since 1.1.0
+	 */
+	public Map<String, String> setFacts(String path, Map<String, String> facts) throws IOException {
+		Map<String, String> ret = new java.util.LinkedHashMap<String, String>();
+		if( facts.isEmpty() || !getFeatResponse().containsKey(MFF) ) {
+			return ret;
+		}
+		StringBuilder arg = new StringBuilder();
+		for(Map.Entry<String, String> e : facts.entrySet()) {
+			arg.append(e.getKey()).append('=').append(e.getValue()).append(';');
+		}
+		ClientFtpResponse res = executeCommand(MFF, arg.toString(), path);
+		if( res._getResponseCode() == REPLY_213_FILE_STATUS ) {
+			String text = res.getResponseText().trim();
+			int sp = text.indexOf(' ');
+			for(String f : (sp < 0 ? text : text.substring(0, sp)).split(";")) {
+				int eq = f.indexOf('=');
+				if( eq > 0 ) {
+					ret.put(f.substring(0, eq), f.substring(eq+1));
+				}
+			}
+		}
+		return ret;
+	}
+
 	/** The X checksum command for each HASH algorithm name */
 	private static final String[][] X_COMMANDS = {
 			{"SHA-256", XSHA256}, {"SHA-512", XSHA512}, {"SHA-1", XSHA1}, {"MD5", XMD5}, {"CRC32", XCRC}};

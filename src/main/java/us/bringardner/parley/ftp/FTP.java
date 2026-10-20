@@ -126,6 +126,10 @@ public interface FTP {
 	public static final String LANG = "LANG";
 	/** File hashes (draft-ietf-ftpext2-hash) and the X checksum commands other servers have */
 	public static final String HASH = "HASH";
+	/** Change a file's times and facts (draft-somers-ftp-mfxx) */
+	public static final String MFMT = "MFMT";
+	public static final String MFCT = "MFCT";
+	public static final String MFF = "MFF";
 	public static final String XCRC = "XCRC";
 	public static final String XMD5 = "XMD5";
 	public static final String XSHA1 = "XSHA1";

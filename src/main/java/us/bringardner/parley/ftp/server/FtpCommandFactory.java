@@ -46,6 +46,7 @@ import us.bringardner.parley.ftp.server.commands.Help;
 import us.bringardner.parley.ftp.server.commands.Host;
 import us.bringardner.parley.ftp.server.commands.Digests;
 import us.bringardner.parley.ftp.server.commands.Hash;
+import us.bringardner.parley.ftp.server.commands.Mfxx;
 import us.bringardner.parley.ftp.server.commands.XHash;
 import us.bringardner.parley.ftp.server.commands.Lang;
 import us.bringardner.parley.ftp.server.commands.List;
@@ -170,6 +171,10 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		feat.addSupportedCommand(new Lang());
 		// draft-ietf-ftpext2-hash, and the X checksums other servers and clients use
 		feat.addSupportedCommand(new Hash());
+		// draft-somers-ftp-mfxx: change times and facts
+		feat.addSupportedCommand(new Mfxx(us.bringardner.parley.ftp.FTP.MFMT));
+		feat.addSupportedCommand(new Mfxx(us.bringardner.parley.ftp.FTP.MFCT));
+		feat.addSupportedCommand(new Mfxx(us.bringardner.parley.ftp.FTP.MFF));
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XCRC, Digests.CRC32));
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XMD5, Digests.MD5));
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XSHA1, Digests.SHA_1));
