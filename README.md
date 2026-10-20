@@ -86,6 +86,12 @@ Each setting can be passed as a system property or set with the matching `FtpSer
     line every 5 seconds. `550` no such file, `553` a directory, `450` while a transfer is in progress.
   - `XCRC`, `XMD5`, `XSHA1`, `XSHA256` and `XSHA512 path [start [end]]` (as ProFTPD, Serv-U, FileZilla and WinSCP
     have them; `end` not included) reply `250 <hex>`. The path may be in double quotes.
+- **Changing times and facts (draft-somers-ftp-mfxx, each in `FEAT`):** `MFMT time path` and `MFCT time path` set the
+  modification and creation times (RFC 3659 time-val, UTC); `MFF fact=value;...; path` sets `Modify`, `Create`,
+  `UNIX.mode` (octal), `UNIX.owner` and `UNIX.group`. Replies (`213 Modify=...; path`) show the values as they are after
+  the change. Owner and group need the ADMIN permission, the rest WRITE. An unknown fact gets `504` and nothing changes;
+  an invalid time (February 30 included) `501`; no such file `550`; a fact the file system won't set `450` (MFF isn't
+  atomic). A link gets a copy in its place, as with `SITE CHMOD`.
 - **Virtual hosts (`HOST`, RFC 7151, in `FEAT`):** a client sends `HOST name` before logging in and gets that host's
   root (`addVirtualHost(name, root)` or `JFtp.virtualHosts`; each root can be in its own file system). Users and
   their permissions are the server's, whatever the host.
@@ -247,6 +253,8 @@ points. This server doesn't say, for the reasons above.
 - **Active mode** (`setActive(true)`): the client listens on the control connection's local address and sends `PORT` (IPv4) or `EPRT` (IPv6). With a protected data channel the client is the TLS client, as RFC 4217 requires.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
+- **Times and facts:** `setModificationTime(path, time)` and `setCreationTime(path, time)` use `MFMT`/`MFCT`, else
+  `MFF`; `setFacts(path, facts)` uses `MFF`. `FtpClientFile.setLastModified()` uses `MFMT` when the server has it.
 - **Hashes:** `hash(path[, algorithm[, start, end]])` returns the server's hash of a file or part of one, using
   `HASH` (with `OPTS HASH` and `RANG`) when the server lists it in `FEAT`, else the X commands.
 - **LANG:** `setLanguage(tag)` asks a server that lists `LANG` in `FEAT` for that language, now and after a reconnect;

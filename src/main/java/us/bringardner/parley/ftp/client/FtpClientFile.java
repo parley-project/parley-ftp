@@ -414,9 +414,9 @@ public class FtpClientFile extends BaseObject {
 	}
 
 	/**
-	 * This is not supported by standard Ftp.
-	 * However, us.bringardner.parley.ftp.server.Server supports a 'SITE' command
-	 * that allows us to do it.
+	 * Sets the modification time with MFMT (draft-somers-ftp-mfxx) when the server lists it in FEAT
+	 * ({@link FtpClient#setModificationTime(String, long)}); otherwise with the SITE command parley's
+	 * FtpServer has.
 	 *
 	 * @param lastModifiedTime
 	 * @return true if the server accepted it
@@ -424,6 +424,13 @@ public class FtpClientFile extends BaseObject {
 	 */
 	public boolean setLastModified(long lastModifiedTime) {
 		try {
+			if( client().getFeatResponse().containsKey(FTP.MFMT) ) {
+				if( client().setModificationTime(getAbsolutePath(), lastModifiedTime) ) {
+					this.lastModified = lastModifiedTime;
+					return true;
+				}
+				return false;
+			}
 			ClientFtpResponse res = client().executeCommand(FTP.SITE,"modDate "+lastModifiedTime+" "+getAbsolutePath());
 			if( res._getResponseCode() == FTP.REPLY_213_FILE_STATUS) {
 				this.lastModified = lastModifiedTime;
