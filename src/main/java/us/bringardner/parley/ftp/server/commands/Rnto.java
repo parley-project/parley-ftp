@@ -82,10 +82,32 @@ public class Rnto extends BaseCommand {
 			return;
 		}
 		
-		if( target.renameTo(newFile) ) {	
-			processor.reply(REPLY_250_FILE_ACTION_OK,"Requested file action okay, completed");
-		} else {
-			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Requested action not taken.");
+		// neither file while another session (or server) uploads it
+		us.bringardner.parley.ftp.server.FtpFileLock from = null;
+		us.bringardner.parley.ftp.server.FtpFileLock into = null;
+		try {
+			if( !target.isDirectory() ) {
+				from = processor.lockFile(target);
+				if( from == null ) {
+					return; // busy: told
+				}
+			}
+			into = processor.lockFile(newFile);
+			if( into == null ) {
+				return;
+			}
+			if( target.renameTo(newFile) ) {
+				processor.reply(REPLY_250_FILE_ACTION_OK,"Requested file action okay, completed");
+			} else {
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Requested action not taken.");
+			}
+		} finally {
+			if( into != null ) {
+				into.close();
+			}
+			if( from != null ) {
+				from.close();
+			}
 		}
 
 

@@ -93,8 +93,9 @@ public class TestUploadResume {
 		clear(inPlaceRoot);
 	}
 
+	/** What is in a directory, without the store's lock directory (the server keeps its locks there). */
 	private static String names(File dir) {
-		String[] n = dir.list();
+		String[] n = dir.list((d, name) -> !name.equals(us.bringardner.parley.net.lock.Locks.DIRECTORY));
 		Arrays.sort(n);
 		return Arrays.toString(n);
 	}
