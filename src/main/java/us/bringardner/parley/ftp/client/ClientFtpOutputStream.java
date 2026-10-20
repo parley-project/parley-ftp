@@ -46,6 +46,9 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     private boolean append = false;
     /** Where STOR starts writing (sent as REST first); 0 for a plain STOR or APPE. */
     private long startAt = 0;
+    /** STOU: the name to start from (may be null) and the name the server stored under */
+    private boolean unique = false;
+    private String storedName;
     /** The last octet of a RANG store (inclusive), or -1 when there is no range. */
     private long endAt = -1;
     /** Octets the range still holds; -1 for no limit. */
@@ -124,6 +127,52 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
         startUpload();
     }
 
+    /**
+     * STORE UNIQUE (STOU): the server stores the data under a name it chooses, in the current directory,
+     * and says which in its 150 reply ({@link #getStoredName()}).
+     *
+     * @param baseName a name for the server to start from, or null (some servers ignore it)
+     * @since 1.1.0
+     */
+    public ClientFtpOutputStream(String baseName, FtpClient client, boolean ascii, int bufferSize, boolean unique) throws IOException {
+        if( !unique ) {
+            throw new IllegalArgumentException("Use another constructor for STOR");
+        }
+        this.unique = true;
+        this.path = baseName;
+        this.client = client;
+        this.ascii = ascii;
+        this.effectiveBufferSize = Math.max(8192, bufferSize > 0 ? bufferSize : client.getTransferBufferSize());
+        startUpload();
+    }
+
+    /**
+     * @return for STOU, the name the server stored the data under (from {@code 150 FILE: name}, RFC 1123),
+     * or null if its reply didn't say; null for other uploads
+     * @since 1.1.0
+     */
+    public String getStoredName() {
+        return storedName;
+    }
+
+    /** The key a STOU stream is kept under while it is open */
+    static String uniqueKey(String baseName) {
+        return STOU+":"+(baseName == null ? "" : baseName);
+    }
+
+    /** @return the name in a STOU reply: "FILE: name" (RFC 1123), else null */
+    static String storedNameIn(String text) {
+        if( text == null ) {
+            return null;
+        }
+        int idx = text.toUpperCase(java.util.Locale.ROOT).indexOf("FILE:");
+        if( idx < 0 ) {
+            return null;
+        }
+        String ret = text.substring(idx+5).trim();
+        return ret.isEmpty() ? null : ret;
+    }
+
     private void startUpload() throws IOException {
         if( ascii ) {
             client.setAsciiType();
@@ -133,7 +182,7 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
         
         dtp = client.getDataTransferProcess();
 
-        String cmd = append ? APPE : STOR;
+        String cmd = unique ? STOU : append ? APPE : STOR;
         ClientFtpResponse res = null;
         try {
             dtp.connectBeforeCommand();
@@ -150,7 +199,11 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
                     throw new IOException("The server won't start a STOR of "+path+" at "+startAt+": REST "+startAt+" = "+rest);
                 }
             }
-            res = client.executeCommand(cmd, path);
+            if( unique ) {
+                res = path == null || path.isEmpty() ? client.executeCommand(STOU) : client.executeCommand(STOU, path);
+            } else {
+                res = client.executeCommand(cmd, path);
+            }
         } catch (IOException e) {
             dtp.close();
             throw e;
@@ -158,6 +211,9 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
         if( !res.isPositivePreliminay()) {
             dtp.close();
             throw new IOException ("Error invalid respones to "+cmd+" = "+res);
+        }
+        if( unique ) {
+            storedName = storedNameIn(res.getResponseText());
         }
         // Active mode accepts the server's connection here, after the 1xx reply. TLS is
         // started now so a refused session can still be retried (BJL-28).
@@ -197,7 +253,7 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     			completeUpload();
     		} finally {
     			// Always release the path, even if the upload failed
-    			client.streamHasClosed(path,this);
+    			client.streamHasClosed(unique ? uniqueKey(path) : path,this);
     		}
     	}
     }

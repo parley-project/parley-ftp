@@ -154,7 +154,7 @@ public class TestSiteReplies {
 	public void struGetsOneReply() throws Exception {
 		try (Control c = new Control("plain", "1234")) {
 			assertEquals(200, code(c.sendOne("STRU F")));
-			assertEquals(501, code(c.sendOne("STRU R")));
+			assertEquals(504, code(c.sendOne("STRU R")), "RFC 959: not implemented for that parameter");
 			assertEquals(501, code(c.sendOne("STRU")));
 			assertEquals(215, code(c.sendOne("SYST")));
 		}

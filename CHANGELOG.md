@@ -25,6 +25,9 @@ removed in 2.0.0.
   transfer's progress, and `STAT path` lists on the control connection; `REIN` logs out and resets the session
   (after AUTH TLS the control connection goes back to clear text, RFC 4217 section 13); `ALLO` replies `202`.
   See the README, "Behaviour notes".
+- `STOU` (store under a unique name, `150 FILE: name`), the RFC 775 forms `XCWD`, `XMKD`, `XPWD`, `XRMD` and
+  `XCUP`, `SMNT` (`502`), and `LPRT`/`LPSV` (RFC 1639). Client: `FtpClient.storeUnique()`
+  (`ClientFtpOutputStream.getStoredName()`), and `LPSV`/`LPRT` when a server refuses `PASV` or `EPRT`.
 - Virtual hosts: `HOST` (RFC 7151), listed in `FEAT`. `FtpServer.addVirtualHost(name, root)` /
   `JFtp.virtualHosts` give each host its own root; the name must match TLS's (SNI); `REIN` forgets it. The client
   sends `HOST` before `AUTH` and `USER` (`FtpClient.setVirtualHost(name)`, else the name it connects to;
@@ -37,6 +40,8 @@ removed in 2.0.0.
 
 ### Changed
 
+- `TYPE`, `MODE` and `STRU` with a value that isn't implemented get `504` (RFC 959), not `501`; `501` is for bad
+  syntax. `TYPE A N`, `TYPE L 8` and `TYPE U` are accepted.
 - The 226 and 426 replies that report a byte count say "transferred" (were "transfered").
 
 ### Fixed

@@ -42,6 +42,35 @@ public final class ClientPassiveDataConnection extends ClientDataTransferProcess
     private static final java.util.regex.Pattern EPSV_REPLY =
             java.util.regex.Pattern.compile("\\((.)\\1\\1(\\d+)\\1\\)");
 
+    /**
+     * @return the address in an LPSV reply ({@code (af,hal,h1,...,hn,pal,p1,p2)}, RFC 1639), or null
+     * @since 1.1.0
+     */
+    public static java.net.InetSocketAddress parseLong(String text) {
+        int open = text.indexOf('(');
+        int close = text.indexOf(')', open+1);
+        if( open < 0 || close < 0 ) {
+            return null;
+        }
+        String[] parts = text.substring(open+1, close).split(",");
+        try {
+            int af = Integer.parseInt(parts[0].trim());
+            int hal = Integer.parseInt(parts[1].trim());
+            if( !((af == 4 && hal == 4) || (af == 6 && hal == 16)) || parts.length != 2+hal+3
+                    || Integer.parseInt(parts[2+hal].trim()) != 2 ) {
+                return null;
+            }
+            byte[] b = new byte[hal];
+            for(int i=0; i < hal; i++ ) {
+                b[i] = (byte) Integer.parseInt(parts[2+i].trim());
+            }
+            int port = Integer.parseInt(parts[2+hal+1].trim())*256 + Integer.parseInt(parts[2+hal+2].trim());
+            return new java.net.InetSocketAddress(java.net.InetAddress.getByAddress(b), port);
+        } catch (RuntimeException | java.net.UnknownHostException e) {
+            return null;
+        }
+    }
+
     public ClientPassiveDataConnection(FtpClient client) throws IOException {    	
         super(client);
         getLogger().setLevel(client.getLogger().getLevel());
@@ -70,6 +99,16 @@ public final class ClientPassiveDataConnection extends ClientDataTransferProcess
         }
 
         ClientFtpResponse res = client.executeCommand(PASV);
+        if( !res.isPositiveComplet() && res._getResponseCode() >= 500 ) {
+            // RFC 1639 (historic): a server without EPSV whose PASV can't give an IPv6 address
+            ClientFtpResponse lpsv = client.executeCommand(LPSV);
+            java.net.InetSocketAddress addr = lpsv._getResponseCode() == 228 ? parseLong(lpsv.getResponseText()) : null;
+            if( addr != null ) {
+                setHost(client.isUsePasvAddress() ? addr.getAddress().getHostAddress() : client.getHost());
+                setPort(addr.getPort());
+                return;
+            }
+        }
         if( !res.isPositiveComplet()) {
             throw new IOException("Invalid response from "+PASV+" command = "+res._getResponseCode());
         }

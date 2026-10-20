@@ -73,6 +73,15 @@ public final class ClientActiveDataConnection extends ClientDataTransferProcess 
             } else {
                 // RFC 2428 for IPv6
                 res = client.executeCommand(EPRT, "|2|"+host+"|"+getPort()+"|");
+                if( !res.isPositiveComplet() && res._getResponseCode() >= 500 ) {
+                    // RFC 1639 (historic) for a server without EPRT
+                    StringBuilder lprt = new StringBuilder("6,16");
+                    for(byte b : local.getAddress()) {
+                        lprt.append(',').append(b & 0xff);
+                    }
+                    lprt.append(",2,").append(getPort() / 256).append(',').append(getPort() % 256);
+                    res = client.executeCommand(LPRT, lprt.toString());
+                }
             }
             if( !res.isPositiveComplet()) {
                 throw new IOException("Invalid response from "+PORT+"/"+EPRT+" command = "+res);

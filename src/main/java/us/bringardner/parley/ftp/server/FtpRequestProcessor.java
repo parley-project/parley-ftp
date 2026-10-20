@@ -1122,8 +1122,20 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @param handler optional callback run after the copy completes (may be null)
 	 */
 	public void transferStream(InputStream in, OutputStream out, Socket sock, boolean upload, FtpServerStream.CompletionHandler handler) throws IOException{
+		transferStream(in, out, sock, upload, handler, null);
+	}
+
+	/**
+	 * @param openMessage the text of the 150 reply, or null for the usual one
+	 * @since 1.1.0
+	 */
+	public void transferStream(InputStream in, OutputStream out, Socket sock, boolean upload, FtpServerStream.CompletionHandler handler, String openMessage) throws IOException{
 		FtpServerStream s = new FtpServerStream(this, in, out, sock, upload, handler);
-		transferInProcess.start(s);
+		if( openMessage == null ) {
+			transferInProcess.start(s);
+		} else {
+			transferInProcess.start(s, openMessage);
+		}
 	}
 
 	void setLinger(Socket sock) throws SocketException {
@@ -1333,6 +1345,16 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @param inPlace true to write into the target, with resuming
 	 */
 	public void receiveFile(final FileSource target, boolean append, final boolean inPlace) throws IOException {
+		receiveFile(target, append, inPlace, null, null);
+	}
+
+	/**
+	 * As {@link #receiveFile(FileSource, boolean, boolean)}, with the text of the 150 reply (null for the
+	 * usual one) and something to do when the transfer is over (null for nothing), after the upload is
+	 * in place or thrown away.
+	 * @since 1.1.0
+	 */
+	public void receiveFile(final FileSource target, boolean append, final boolean inPlace, String openMessage, final FtpServerStream.CompletionHandler after) throws IOException {
 		Socket sock = getDataSocket();
 		if( sock == null ){
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data socket");
@@ -1386,7 +1408,20 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			return;
 		}
 
-		transferStream(in, out, sock, true, handler);
+		final FtpServerStream.CompletionHandler first = handler;
+		FtpServerStream.CompletionHandler both = after == null ? first : new FtpServerStream.CompletionHandler() {
+			@Override
+			public void transferComplete(boolean success) throws IOException {
+				try {
+					if( first != null ) {
+						first.transferComplete(success);
+					}
+				} finally {
+					after.transferComplete(success);
+				}
+			}
+		};
+		transferStream(in, out, sock, true, both, openMessage);
 	}
 
 	/** Reads at most limit bytes of a stream (a RANG retrieve); closing it closes the stream. */

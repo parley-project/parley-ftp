@@ -121,6 +121,17 @@ public interface FTP {
 	public static final String ALLO = "ALLO";
 	/** Virtual host (RFC 7151) */
 	public static final String HOST = "HOST";
+	public static final String STOU = "STOU";
+	public static final String SMNT = "SMNT";
+	/** RFC 775 forms of CWD, MKD, PWD, RMD and CDUP, still sent by some clients */
+	public static final String XCWD = "XCWD";
+	public static final String XMKD = "XMKD";
+	public static final String XPWD = "XPWD";
+	public static final String XRMD = "XRMD";
+	public static final String XCUP = "XCUP";
+	/** RFC 1639 long address forms of PORT and PASV */
+	public static final String LPRT = "LPRT";
+	public static final String LPSV = "LPSV";
 	public static final String RNFR = "RNFR";
 	public static final String RNTO = "RNTO";
 	public static final String RETR = "RETR";
@@ -202,6 +213,7 @@ public interface FTP {
 	public static final int REPLY_226_CLOSING_DATA_CON = 226; // Closing data connection.        Requested file action successful (for example, file        transfer or file abort).
 	public static final int REPLY_426_CON_CLOSED =  426;// Connection closed; transfer aborted.
 	public static final int REPLY_227_ENTERING_PASSIVE_MODE = 227; // Entering Passive Mode (h1,h2,h3,h4,p1,p2).
+	public static final int REPLY_228_ENTERING_LONG_PASSIVE_MODE = 228; // Entering Long Passive Mode (RFC 1639).
 	public static final int REPLY_229_ENTERING_EXTENDED_PASSIVE_MODE = 229; // Entering Extended Passive Mode (|||port|). RFC 2428
 	public static final int REPLY_522_NETWORK_PROTOCOL_NOT_SUPPORTED = 522; // Network protocol not supported. RFC 2428
 
