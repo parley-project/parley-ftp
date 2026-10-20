@@ -78,7 +78,7 @@ public class Stat extends NoAuthReqBaseCommand {
 		boolean dir = f.isDirectory();
 		FileSource[] list;
 		if( dir ) {
-			list = f.listFiles();
+			list = processor.listVisible(f);
 			if( list == null ) {
 				list = new FileSource[0];
 			}

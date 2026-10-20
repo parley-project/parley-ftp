@@ -87,7 +87,7 @@ public class Nlst extends BaseCommand {
 			return;
 		} 
 		
-		FileSource [] list = dir.listFiles();
+		FileSource [] list = processor.listVisible(dir);
 		
 		Socket sock = processor.getDataSocket();
 		
