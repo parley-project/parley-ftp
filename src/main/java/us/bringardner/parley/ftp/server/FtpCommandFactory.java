@@ -27,6 +27,11 @@ import us.bringardner.parley.net.server.AbstractCommandFactory;
 import us.bringardner.parley.net.server.ICommand;
 import us.bringardner.parley.ftp.server.commands.Abor;
 import us.bringardner.parley.ftp.server.commands.Allo;
+import us.bringardner.parley.ftp.server.commands.BaseCommand;
+import us.bringardner.parley.ftp.server.commands.NotImplemented;
+import us.bringardner.parley.ftp.server.commands.Stou;
+import us.bringardner.parley.ftp.server.commands.rfc1639.Lprt;
+import us.bringardner.parley.ftp.server.commands.rfc1639.Lpsv;
 import us.bringardner.parley.ftp.server.commands.Rein;
 import us.bringardner.parley.ftp.server.commands.Stat;
 import us.bringardner.parley.ftp.server.commands.Acct;
@@ -126,6 +131,17 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		addCommand(new Allo());
 		addCommand(new Rein());
 		addCommand(new Stat());
+		addCommand(new Stou());
+		addCommand(new NotImplemented(us.bringardner.parley.ftp.FTP.SMNT, "there is nothing to mount"));
+		// RFC 775 forms, still sent by some clients (RFC 1123 section 4.1.3.1)
+		addCommand(alias(new Cwd(), us.bringardner.parley.ftp.FTP.XCWD));
+		addCommand(alias(new Mkd(), us.bringardner.parley.ftp.FTP.XMKD));
+		addCommand(alias(new Pwd(), us.bringardner.parley.ftp.FTP.XPWD));
+		addCommand(alias(new Rmd(), us.bringardner.parley.ftp.FTP.XRMD));
+		addCommand(alias(new Cdup(), us.bringardner.parley.ftp.FTP.XCUP));
+		// RFC 1639 (historic): long address forms of PORT and PASV
+		addCommand(new Lprt());
+		addCommand(new Lpsv());
 		
 		
 		Feat feat = new Feat();
@@ -167,6 +183,12 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 	
 	public FtpCommandFactory() {
 		super(commands);
+	}
+
+	/** The command under another name */
+	private static BaseCommand alias(BaseCommand cmd, String name) {
+		cmd.setName(name);
+		return cmd;
 	}
 
 	public static void addCommand(ICommand cmd){

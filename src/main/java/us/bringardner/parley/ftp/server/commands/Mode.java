@@ -90,7 +90,8 @@ public class Mode extends BaseCommand {
 		if( ok ){
 			processor.reply(REPLY_200_OK,"mode " + args[1]);
 		} else {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"mode " + args[1] + " not implemented.");
+			// RFC 959: 504 for a mode that isn't implemented (B, C)
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"mode " + args[1] + " not implemented.");
 		}
 
 	}

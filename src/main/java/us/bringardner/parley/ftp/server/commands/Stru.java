@@ -80,7 +80,8 @@ public class Stru  extends BaseCommand {
 		if(args[1].equalsIgnoreCase("F")) {
 			processor.reply(REPLY_200_OK,"OK");
 		} else {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, " not implemented.");
+			// RFC 959: 504 for a parameter that isn't implemented (record and page structure)
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM, "STRU "+args[1]+" not implemented; only F (file)");
 		}
 	}
 

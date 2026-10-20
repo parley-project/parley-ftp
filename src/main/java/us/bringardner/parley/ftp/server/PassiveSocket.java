@@ -259,6 +259,14 @@ public  class PassiveSocket {
 	}
 
 	/**
+	 * @return the address told to the client
+	 * @since 1.1.0
+	 */
+	public InetAddress getAdvertisedAddress() {
+		return advertisedAddress;
+	}
+
+	/**
 	 * @return true if the advertised address can be expressed in a PASV (IPv4) reply.
 	 */
 	public boolean isIpv4() {

@@ -1858,6 +1858,35 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		}
 	}
 
+	/**
+	 * STORE UNIQUE (STOU, RFC 959): open an output stream whose data the server stores under a name it
+	 * chooses in the current directory; {@link ClientFtpOutputStream#getStoredName()} says which (when the
+	 * server's 150 reply does, as RFC 1123 asks).
+	 *
+	 * @param baseName a name for the server to start from, or null (not every server uses it)
+	 * @param bufferSize the size of the stream's buffer in bytes (at least 8 KB is used), or 0 for
+	 * {@link #getTransferBufferSize()}
+	 * @since 1.1.0
+	 */
+	public ClientFtpOutputStream storeUnique(String baseName, boolean ascii, int bufferSize) throws IOException {
+		commandLock.lock();
+		try {
+			String key = ClientFtpOutputStream.uniqueKey(baseName);
+			checkStreamInProcess(key);
+			ClientFtpOutputStream ret;
+			try {
+				ret = new ClientFtpOutputStream(baseName, this, ascii, bufferSize, true);
+			} catch (Tls12Needed e) {
+				fallBackToTls12(e);
+				ret = new ClientFtpOutputStream(baseName, this, ascii, bufferSize, true);
+			}
+			streamsInProcess.put(key, ret);
+			return ret;
+		} finally {
+			commandLock.unlock();
+		}
+	}
+
 	public boolean rename(String from, String to ) throws IOException {
 		checkStreamInProcess(from);
 		checkStreamInProcess(to);

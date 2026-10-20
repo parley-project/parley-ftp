@@ -68,6 +68,15 @@ Each setting can be passed as a system property or set with the matching `FtpSer
     protected and the control connection then goes back to clear text (RFC 4217 section 13); with implicit TLS it stays
     TLS. Failed logins still count.
   - `ALLO` is accepted and does nothing (`202`): space is allocated as the data arrives.
+- **The rest of RFC 959:**
+  - `STOU` stores the upload under a name not yet used in the current directory and says which in its reply
+    (`150 FILE: name`, RFC 1123). With an argument it starts from that name (`name`, `name.1`, ...), otherwise
+    `ftp-<time>`. The name is made before the transfer and removed again if the upload fails.
+  - `XCWD`, `XMKD`, `XPWD`, `XRMD` and `XCUP` (RFC 775) are the same as `CWD`, `MKD`, `PWD`, `RMD` and `CDUP`.
+  - `TYPE A [N]`, `I`, `L 8` (the same as `I`) and `U` (UTF-8 text, draft-klensin-ftp-typeu; sent as stored, like
+    `A`) are accepted; `TYPE E`, other `L` sizes, `A T` and `A C`, `MODE B`/`C` and `STRU R`/`P` get `504` (not
+    implemented for that parameter). `SMNT` gets `502`.
+  - `LPRT` and `LPSV` (RFC 1639, historic) are the long address forms of `PORT` and `PASV`, IPv4 or IPv6.
 - **Virtual hosts (`HOST`, RFC 7151, in `FEAT`):** a client sends `HOST name` before logging in and gets that host's
   root (`addVirtualHost(name, root)` or `JFtp.virtualHosts`; each root can be in its own file system). Users and
   their permissions are the server's, whatever the host.
@@ -229,6 +238,9 @@ points. This server doesn't say, for the reasons above.
 - **Active mode** (`setActive(true)`): the client listens on the control connection's local address and sends `PORT` (IPv4) or `EPRT` (IPv6). With a protected data channel the client is the TLS client, as RFC 4217 requires.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
+- **STOU:** `storeUnique(baseName, ascii, bufferSize)` returns a stream whose `getStoredName()` is the name the server
+  chose.
+- **LPSV / LPRT** are tried when a server refuses `PASV` (after `EPSV`) or `EPRT`.
 - **HOST (RFC 7151):** the client sends `HOST` before `AUTH` and `USER`: the name it connects to, or
   `setVirtualHost(name)`. A virtual host is also the name used for TLS (SNI and the certificate check). A server that
   refuses the name it connects to, or doesn't know `HOST`, is logged in to as usual; one that refuses a virtual

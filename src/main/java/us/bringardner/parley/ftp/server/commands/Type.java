@@ -84,31 +84,43 @@ public class Type extends NoAuthReqBaseCommand {
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
-		String commandLine = context.getCommandLine();
-		String [] args = commandLine.split(" ");
-		if( args.length != 2 || args[1].length() == 0) {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Not enough parameters");
+		String commandLine = context.getCommandLine().trim();
+		String [] args = commandLine.split(" +");
+		if( args.length < 2 || args.length > 3 || args[1].length() != 1 ) {
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Syntax: TYPE A [N] | I | L 8 | U");
 			return;
 		}
-		
-		boolean ok = false;
-		switch(args[1].toLowerCase(java.util.Locale.ROOT).charAt(0)){
-			case 'i': processor.setRepresentationType(FtpRequestProcessor.TYPE_IMAGE);
-					ok = true;
-					break;
-			case 'a': processor.setRepresentationType(FtpRequestProcessor.TYPE_ASCII);
-					ok = true;
-					break;
+		String second = args.length == 3 ? args[2].toUpperCase(java.util.Locale.ROOT) : null;
+		int type = -1;
+		switch(args[1].toUpperCase(java.util.Locale.ROOT).charAt(0)){
+			case 'I':
+				type = second == null ? FtpRequestProcessor.TYPE_IMAGE : -1;
+				break;
+			case 'A':
+				// RFC 959: the format is N (non-print, the default); T (Telnet) and C (ASA) aren't implemented
+				type = second == null || second.equals("N") ? FtpRequestProcessor.TYPE_ASCII : -1;
+				break;
+			case 'L':
+				// RFC 959: local byte size 8 is the same as image on these 8-bit systems
+				type = "8".equals(second) ? FtpRequestProcessor.TYPE_IMAGE : -1;
+				break;
+			case 'U':
+				// draft-klensin-ftp-typeu: UTF-8 text with CRLF line ends. Text is sent as stored, so it
+				// is the same as A here
+				type = second == null ? FtpRequestProcessor.TYPE_ASCII : -1;
+				break;
+			case 'E':
 			default:
-					// unsupported type, ok stays false
-					break;
+				break;
 		}
-		if( ok ){
-			processor.reply(REPLY_200_OK,"type " + args[1]);
+		if( type >= 0 ){
+			processor.setRepresentationType(type);
+			processor.reply(REPLY_200_OK,"type " + commandLine.substring(5).trim());
 		} else {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"type " + args[1] + " not implemented.");
+			// RFC 959: 504 for a type that isn't implemented (E, L other than 8, A T, A C)
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"type " + commandLine.substring(5).trim() + " not implemented.");
 		}
-
 	}
+
 
 }
