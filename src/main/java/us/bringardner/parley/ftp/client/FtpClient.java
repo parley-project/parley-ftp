@@ -1405,11 +1405,12 @@ public class FtpClient extends SecureBaseObject implements FTP {
 					throw new IOException("NLST "+(path == null ? "" : path)+": "+res);
 				}
 				if( startDataTls(dtp) == null ) {
-					CRLFLineReader in = new CRLFLineReader(isModeZActive() ? inflate(dtp.getInput()) : dtp.getInput());
-					String line;
-					while( (line = in.readLine()) != null ) {
-						if( !line.trim().isEmpty() ) {
-							ret.add(line);
+					try (CRLFLineReader in = new CRLFLineReader(isModeZActive() ? inflate(dtp.getInput()) : dtp.getInput())) {
+						String line;
+						while( (line = in.readLine()) != null ) {
+							if( !line.trim().isEmpty() ) {
+								ret.add(line);
+							}
 						}
 					}
 					dtp.close();
@@ -2244,13 +2245,13 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	 * THMB (draft-peterson-streamlined-ftp-command-extensions): a thumbnail of a remote image, made by the
 	 * server, no larger than width x height.
 	 * @param format an image format the server lists for THMB in FEAT, e.g. PNG or JPEG
-	 * @return the image's bytes, or null if the server has no THMB
+	 * @return the image's bytes; empty if the server has no THMB
 	 * @throws IOException if the server can't make it (not an image, a format it doesn't write)
 	 * @since 1.1.0
 	 */
 	public byte[] getThumbnail(String path, String format, int width, int height) throws IOException {
 		if( !getFeatResponse().containsKey(THMB) ) {
-			return null;
+			return new byte[0];
 		}
 		String key = THMB+":"+path;
 		InputStream in;
@@ -2722,18 +2723,25 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		return new ZOutputStream(out);
 	}
 
+	/** Inflates (MODE Z), and ends its Inflater when closed */
+	private static final class ZInputStream extends java.util.zip.InflaterInputStream {
+		ZInputStream(InputStream in) {
+			super(in, new java.util.zip.Inflater(), 64*1024);
+		}
+
+		@Override
+		public void close() throws IOException {
+			try {
+				super.close();
+			} finally {
+				inf.end();
+			}
+		}
+	}
+
 	/** @return in, inflated (MODE Z) */
 	InputStream inflate(InputStream in) {
-		return new java.util.zip.InflaterInputStream(in, new java.util.zip.Inflater(), 64*1024) {
-			@Override
-			public void close() throws IOException {
-				try {
-					super.close();
-				} finally {
-					inf.end();
-				}
-			}
-		};
+		return new ZInputStream(in);
 	}
 
 	/** What is sent once logged in: CLNT, LANG and MODE Z, as set */

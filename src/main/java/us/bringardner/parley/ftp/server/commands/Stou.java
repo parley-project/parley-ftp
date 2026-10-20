@@ -89,20 +89,33 @@ public class Stou extends BaseCommand {
 
 		final FileSource made = target;
 		final AtomicBoolean over = new AtomicBoolean();
-		FtpServerStream.CompletionHandler cleanUp = new FtpServerStream.CompletionHandler() {
-			@Override
-			public void transferComplete(boolean success) throws IOException {
-				over.set(true);
-				if( !success ) {
-					removeEmpty(processor, made);
-				}
-			}
-		};
+		FtpServerStream.CompletionHandler cleanUp = new CleanUp(processor, made, over);
 		processor.receiveFile(made, false, processor.getUploadMode() == us.bringardner.parley.ftp.server.FtpServer.UploadMode.IN_PLACE,
 				"FILE: "+made.getName(), cleanUp);
 		if( !over.get() && !processor.transferInProcess.isTransferInProgress() ) {
 			// no transfer was started (no data connection): the name isn't needed
 			removeEmpty(processor, made);
+		}
+	}
+
+	/** After the transfer: the name made for it is removed if the upload failed */
+	private static final class CleanUp implements FtpServerStream.CompletionHandler {
+		private final FtpRequestProcessor processor;
+		private final FileSource made;
+		private final AtomicBoolean over;
+
+		CleanUp(FtpRequestProcessor processor, FileSource made, AtomicBoolean over) {
+			this.processor = processor;
+			this.made = made;
+			this.over = over;
+		}
+
+		@Override
+		public void transferComplete(boolean success) throws IOException {
+			over.set(true);
+			if( !success ) {
+				removeEmpty(processor, made);
+			}
 		}
 	}
 
