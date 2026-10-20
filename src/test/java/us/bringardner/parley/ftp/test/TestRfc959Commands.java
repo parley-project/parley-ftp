@@ -315,13 +315,33 @@ public class TestRfc959Commands {
 			c.login();
 			assertTrue(String.join("\n", c.sendOne("STAT")).contains("Control connection: TLS"));
 
-			// the reply comes protected, then the server ends TLS (close_notify)
+			// the reply comes protected, then the server ends TLS (close_notify), and this side does too
+			// (RFC 4217 section 12.3)
 			assertEquals(220, code(c.send("REIN")));
 			assertNull(c.in.readLine(), "TLS ended");
+			tls.shutdownOutput();
 
 			c.attach(c.plain);
 			c.login();
 			assertTrue(String.join("\n", c.sendOne("STAT")).contains("Control connection: clear"));
+		}
+	}
+
+	/** A client that sends no close_notify of its own is understood once the server stops waiting for it */
+	@Test
+	public void reinAfterAuthTlsWithoutTheClientsCloseNotify() throws Exception {
+		try (Control c = new Control()) {
+			assertEquals(234, code(c.send("AUTH TLS")));
+			SSLSocket tls = (SSLSocket) trustAll.getSocketFactory().createSocket(c.plain, "localhost", PORT, false);
+			tls.setUseClientMode(true);
+			tls.startHandshake();
+			c.attach(tls);
+			c.login();
+			assertEquals(220, code(c.send("REIN")));
+			assertNull(c.in.readLine(), "TLS ended");
+			Thread.sleep(2500);
+			c.attach(c.plain);
+			c.login();
 		}
 	}
 }

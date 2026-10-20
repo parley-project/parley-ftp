@@ -101,6 +101,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
     on the data connection as `RETR` sends a file; formats are what Java writes (`BMP|GIF|JPEG|PNG`).
   - `CSID Name=...;Version=...;Vendor=...;`: the client says what it is (shown by `STAT`), the server replies the same
     of itself. Needs a login.
+- **CLNT name** (in `FEAT`; FileZilla, Serv-U and others have it, no RFC): the client says what it is; `STAT` shows it.
 - **SPSV (draft-rosenau-ftp-single-port, in `FEAT`):** passive mode through the control port only. The reply has a
   one-time identifier, `227 Entering single-port mode (id)`; the client opens a second connection to the control port,
   sends `SPDT id`, gets `200 DATA`, and that connection carries the next transfer. It is protected as the control port
@@ -124,6 +125,10 @@ Each setting can be passed as a system property or set with the matching `FtpSer
   - **Explicit TLS:** `AUTH TLS` on the normal port. Data connections are clear until the client sends `PBSZ 0` and `PROT P`.
   - **Implicit TLS:** `setSecure(true)`. Data connections use TLS unless the client sends `PROT C`.
   - **PROT levels:** only `C` and `P` are supported; `S` and `E` get `536`.
+  - **CCC** clears the control connection after `AUTH TLS` (`533` otherwise; implicit TLS can't be cleared); `PBSZ`
+    and `PROT` stay, so data connections are protected as before. After the reply to `CCC` (and to `REIN`), TLS is
+    shut down both ways as RFC 4217 section 12.3 shows: the server sends close_notify and reads the client's. A client
+    that sends none should wait 2 seconds before its next command, or that command is lost.
 - **Failed logins** wait `JFtp.loginFailureDelay` ms (default 1000) before the reply, and a connection is closed after 3 failures.
 
 ## Uploads and resuming
@@ -269,6 +274,14 @@ points. This server doesn't say, for the reasons above.
 - **Active mode** (`setActive(true)`): the client listens on the control connection's local address and sends `PORT` (IPv4) or `EPRT` (IPv6). With a protected data channel the client is the TLS client, as RFC 4217 requires.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
+- **More commands:** `status()` and `status(path)` (STAT; a listing on the control connection), `nameList(path)`
+  (NLST), `reinitialize()` (REIN, then logs in again on the same connection; after `AUTH TLS` TLS is ended and
+  negotiated again) and `clearCommandChannel()` (CCC: the control connection clear, data connections still protected;
+  TLS shut down both ways).
+- **ABOR:** closing a download before its end sends `ABOR`, so the server stops at once, and reads both replies.
+  `setAbortOnClose(false)` just closes the data connection.
+- **CLNT:** after logging in, a server that lists `CLNT` in `FEAT` is told `parley-ftp <version>`
+  (`setClientName()`); `setSendClientName(false)` doesn't.
 - **SPSV:** `setUseSinglePort(true)` uses `SPSV` and `SPDT` for passive data connections when the server lists `SPSV`
   in `FEAT` and accepts it; otherwise `EPSV`/`PASV`. Off by default.
 - **MODE Z:** `setCompression(true)` deflates data connections with a server that lists `MODE Z` in `FEAT` (now, and

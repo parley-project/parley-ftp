@@ -351,7 +351,7 @@ public class TestHost {
 		c.setSendHost(false);
 		try {
 			assertTrue(c.connect("anonymous", "x", null));
-			assertFalse(c.getDialog().contains("HOST"), c.getDialog());
+			assertFalse(c.getDialog().contains("Write:HOST"), c.getDialog());
 		} finally {
 			c.close();
 		}

@@ -138,6 +138,8 @@ public interface FTP {
 	public static final String CSID = "CSID";
 	/** Single-port passive mode (draft-rosenau-ftp-single-port) */
 	public static final String SPSV = "SPSV";
+	/** The client says what it is (FileZilla, Serv-U) */
+	public static final String CLNT = "CLNT";
 	public static final String SPDT = "SPDT";
 	public static final String XCRC = "XCRC";
 	public static final String XMD5 = "XMD5";

@@ -136,6 +136,58 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	private String host;
 	/** The name sent with HOST (RFC 7151) and used for TLS; null for the host connected to */
 	private volatile String virtualHost;
+	/** Send ABOR when a download is closed before its end */
+	private volatile boolean abortOnClose = true;
+	/** Send CLNT (the client's name) to servers that list it in FEAT */
+	private volatile boolean sendClientName = true;
+	/** What CLNT says */
+	private volatile String clientName = "parley-ftp "+clientVersion();
+
+	private static String clientVersion() {
+		Package p = FtpClient.class.getPackage();
+		String v = p == null ? null : p.getImplementationVersion();
+		return v == null ? "1.1.0" : v;
+	}
+
+	/** @return true (the default) if closing a download before its end sends ABOR */
+	public boolean isAbortOnClose() {
+		return abortOnClose;
+	}
+
+	/**
+	 * Closing a download before its end sends ABOR (RFC 959), so the server stops sending the rest at once,
+	 * and reads both replies (the transfer's and ABOR's). Off: the data connection is just closed, and the
+	 * server finds out when its next write fails. On by default.
+	 * @since 1.1.0
+	 */
+	public void setAbortOnClose(boolean abortOnClose) {
+		this.abortOnClose = abortOnClose;
+	}
+
+	/** @return true (the default) if CLNT is sent to servers that list it in FEAT */
+	public boolean isSendClientName() {
+		return sendClientName;
+	}
+
+	/**
+	 * CLNT (FileZilla, Serv-U and others; in no RFC): after logging in, tell a server that lists CLNT in FEAT
+	 * what this client is ({@link #getClientName()}). On by default.
+	 * @since 1.1.0
+	 */
+	public void setSendClientName(boolean sendClientName) {
+		this.sendClientName = sendClientName;
+	}
+
+	/** @return what CLNT says: "parley-ftp &lt;version&gt;" unless set */
+	public String getClientName() {
+		return clientName;
+	}
+
+	/** @param clientName what CLNT says */
+	public void setClientName(String clientName) {
+		this.clientName = clientName;
+	}
+
 	/** SPSV (draft-rosenau-ftp-single-port) for passive data connections when the server has it */
 	private volatile boolean useSinglePort = false;
 	/** MODE Z (draft-preston-ftpext-deflate) asked for */
@@ -1134,39 +1186,8 @@ public class FtpClient extends SecureBaseObject implements FTP {
 
 				// connecting a socket will trigger the server to send us a greeting line
 				ClientFtpResponse res = readResponse();
-				if( res.isPositiveComplet() && isSendHost() && !executeHost() ) {
-					res = null;
-				}
-				if( res != null && res.isPositiveComplet()) {
-					if( !isSecure() ) {
-						boolean ok = executeAuth();
-						if( isRequireSecure() && !ok) {
-							return false;
-						}
-					}
-
-					res = sendCommand(USER+" "+userId);
-
-					if( res.isPositiveIntermediate()) {
-						res = sendCommand(PASS+" "+passwd);
-						// 332 asks for an account (RFC 959). A server may also answer 530 and
-						// accept the account in a following ACCT, as the BJL server does
-						// (user@account logins), so a configured account is tried once either way.
-						int code = res._getResponseCode();
-						if( account != null && !account.isEmpty()
-								&& (code == REPLY_332_NEED_ACCOUNT || code == REPLY_530_USER_NOT_LOGGED_IN)) {
-							res = sendCommand(ACCT+" "+account);
-						}
-					}
-
-					if( res.isPositiveComplet()) {
-						connected = true;
-						if( isSecure() || isChannelSecure() ) {
-							negotiateDataProtection();
-						}
-						afterLogin();
-					}
-
+				if( res.isPositiveComplet() && !login() && isRequireSecure() && !isSecure() && !isChannelSecure() ) {
+					return false;
 				}
 
 				//  All done, if we're not connected we need to close socket
@@ -1185,6 +1206,209 @@ public class FtpClient extends SecureBaseObject implements FTP {
 		}
 	}
 
+	/**
+	 * After the greeting (or REIN's 220): HOST, AUTH, USER, PASS, ACCT, then what follows a login.
+	 * @return true if logged in (connected is set)
+	 */
+	private boolean login() throws IOException {
+		if( isSendHost() && !executeHost() ) {
+			return false;
+		}
+		if( !isSecure() ) {
+			boolean ok = executeAuth();
+			if( isRequireSecure() && !ok) {
+				return false;
+			}
+		}
+
+		ClientFtpResponse res = sendCommand(USER+" "+userId);
+
+		if( res.isPositiveIntermediate()) {
+			res = sendCommand(PASS+" "+password);
+			// 332 asks for an account (RFC 959). A server may also answer 530 and
+			// accept the account in a following ACCT, as the BJL server does
+			// (user@account logins), so a configured account is tried once either way.
+			int code = res._getResponseCode();
+			if( account != null && !account.isEmpty()
+					&& (code == REPLY_332_NEED_ACCOUNT || code == REPLY_530_USER_NOT_LOGGED_IN)) {
+				res = sendCommand(ACCT+" "+account);
+			}
+		}
+
+		if( res.isPositiveComplet()) {
+			connected = true;
+			if( isSecure() || isChannelSecure() ) {
+				negotiateDataProtection();
+			}
+			afterLogin();
+		}
+		return connected;
+	}
+
+	/**
+	 * REIN (RFC 959): the server ends the login and resets the session, then this client logs in again
+	 * with the same user (and HOST, AUTH TLS, PBSZ/PROT, LANG, MODE Z, CLNT as set), on the same control
+	 * connection. After AUTH TLS the server ends TLS first (RFC 4217 section 13), and it is negotiated
+	 * again.
+	 *
+	 * @return true if logged in again
+	 * @since 1.1.0
+	 */
+	public boolean reinitialize() throws IOException {
+		commandLock.lock();
+		try {
+			checkStreamInProcess("REIN");
+			ClientFtpResponse res = sendCommand(REIN);
+			if( res._getResponseCode() != REPLY_220_READY_NEW_USER ) {
+				logError("REIN: "+res);
+				return false;
+			}
+			if( isChannelSecure() && !isSecure() ) {
+				endControlTls();
+			}
+			connected = false;
+			dataChannelSecure = false;
+			mlstTested = false;
+			currentType = null;
+			currentDir = null;
+			modeZActive = false;
+			return login();
+		} finally {
+			commandLock.unlock();
+		}
+	}
+
+	/**
+	 * CCC (RFC 2228, RFC 4217): the control connection goes back to clear text (for a firewall or NAT
+	 * that must read it, e.g. to open data ports), with TLS shut down both ways; data connections stay
+	 * protected as PROT set them.
+	 * @return true if the server cleared it; false if it refused, or the control connection isn't
+	 * protected with AUTH TLS (implicit TLS can't be cleared)
+	 * @since 1.1.0
+	 */
+	public boolean clearCommandChannel() throws IOException {
+		commandLock.lock();
+		try {
+			if( !isChannelSecure() || isSecure() ) {
+				return false;
+			}
+			ClientFtpResponse res = sendCommand(CCC);
+			if( !res.isPositiveComplet() ) {
+				return false;
+			}
+			endControlTls();
+			return true;
+		} finally {
+			commandLock.unlock();
+		}
+	}
+
+	/** Ends TLS on the control connection, close_notify both ways (RFC 4217 section 12.3), then clear text */
+	private void endControlTls() {
+		SSLSocket ssl = sslSocket;
+		if( ssl == null ) {
+			return;
+		}
+		try {
+			ssl.shutdownOutput();
+		} catch (IOException | UnsupportedOperationException e) {
+			logDebug("Can't send close_notify", e);
+		}
+		try {
+			ssl.setSoTimeout(5000);
+			InputStream in = ssl.getInputStream();
+			while( in.read() >= 0 ) {
+				// nothing should come but the server's close_notify
+			}
+		} catch (IOException e) {
+			logDebug("No close_notify from the server", e);
+		}
+		sslSocket = null;
+		channelSecure = false;
+		input = null;
+		output = null;
+		try {
+			socket.setSoTimeout(getCmdTimeout());
+		} catch (IOException e) {
+			logDebug("Can't set the timeout", e);
+		}
+	}
+
+	/**
+	 * STAT (RFC 959): the server's status of this session (or of a transfer in progress).
+	 * @return the reply's text, its lines separated by '\n'
+	 * @since 1.1.0
+	 */
+	public String status() throws IOException {
+		return executeCommand(STAT).getResponseText();
+	}
+
+	/**
+	 * STAT path (RFC 959): what LIST would send for the path, on the control connection instead of a data
+	 * connection (no data connection is opened, which helps through some firewalls).
+	 * @return the listing's lines; empty if the server says nothing about it
+	 * @since 1.1.0
+	 */
+	public String[] status(String path) throws IOException {
+		ClientFtpResponse res = executeCommand(STAT, path);
+		java.util.List<String> ret = new ArrayList<String>();
+		int code = res._getResponseCode();
+		if( code == REPLY_211_SYSTEM_STATUS || code == REPLY_212_DIR_STATUS || code == REPLY_213_FILE_STATUS ) {
+			String[] lines = res.getResponseText().split("\n");
+			// the first and last lines are the server's own text
+			for(int i=1; i < lines.length-1; i++ ) {
+				if( !lines[i].trim().isEmpty() ) {
+					ret.add(lines[i].trim());
+				}
+			}
+		}
+		return ret.toArray(new String[ret.size()]);
+	}
+
+	/**
+	 * NLST (RFC 959): the names in a remote directory (or the current one), on a data connection.
+	 * @param path the directory, or null for the current one
+	 * @return the names as the server sends them; empty if there are none (450/550)
+	 * @since 1.1.0
+	 */
+	public String[] nameList(String path) throws IOException {
+		commandLock.lock();
+		try {
+			checkStreamInProcess(path == null ? "NLST" : path);
+			ClientDataTransferProcess dtp = getDataTransferProcess();
+			java.util.List<String> ret = new ArrayList<String>();
+			try {
+				dtp.connectBeforeCommand();
+				ClientFtpResponse res = path == null || path.isEmpty() ? executeCommand(NLST) : executeCommand(NLST, path);
+				if( !res.isPositivePreliminay() ) {
+					if( res._getResponseCode() == REPLY_450_FILE_ACTION_FAILED || res._getResponseCode() == REPLY_550_ACTION_NOT_TAKEN ) {
+						return new String[0];
+					}
+					throw new IOException("NLST "+(path == null ? "" : path)+": "+res);
+				}
+				if( startDataTls(dtp) == null ) {
+					CRLFLineReader in = new CRLFLineReader(isModeZActive() ? inflate(dtp.getInput()) : dtp.getInput());
+					String line;
+					while( (line = in.readLine()) != null ) {
+						if( !line.trim().isEmpty() ) {
+							ret.add(line);
+						}
+					}
+					dtp.close();
+					res = readResponse();
+					if( !res.isPositiveComplet() ) {
+						throw new IOException("NLST "+(path == null ? "" : path)+": "+res);
+					}
+				}
+			} finally {
+				dtp.close();
+			}
+			return ret.toArray(new String[ret.size()]);
+		} finally {
+			commandLock.unlock();
+		}
+	}
+
 	protected FtpClient getNewConnection() throws  IOException {
 		FtpClient ret = new FtpClient(getHost(),getPort());
 		ret.useSsl = useSsl;
@@ -1192,6 +1416,9 @@ public class FtpClient extends SecureBaseObject implements FTP {
 		ret.language = language;
 		ret.compression = compression;
 		ret.useSinglePort = useSinglePort;
+		ret.abortOnClose = abortOnClose;
+		ret.sendClientName = sendClientName;
+		ret.clientName = clientName;
 		ret.sendHost = sendHost;
 		ret.connect(userId,password,account);
 
@@ -2490,9 +2717,18 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		};
 	}
 
-	/** What is sent once logged in: LANG when a language was asked for */
+	/** What is sent once logged in: CLNT, LANG and MODE Z, as set */
 	private void afterLogin() {
 		modeZActive = false;
+		if( sendClientName && clientName != null && !clientName.trim().isEmpty() ) {
+			try {
+				if( getFeatResponse().containsKey(CLNT) ) {
+					executeCommand(CLNT, clientName.trim());
+				}
+			} catch (IOException e) {
+				logDebug("CLNT failed", e);
+			}
+		}
 		if( compression ) {
 			try {
 				sendMode();
