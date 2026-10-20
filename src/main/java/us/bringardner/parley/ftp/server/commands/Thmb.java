@@ -112,7 +112,7 @@ public class Thmb extends BaseCommand implements FeatCommand {
 			processor.logDebug("THMB "+path, e);
 			thumb = null;
 		}
-		if( thumb == null ) {
+		if( thumb == null || thumb.length == 0 ) {
 			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't make a thumbnail of "+path);
 			return;
 		}
@@ -132,14 +132,14 @@ public class Thmb extends BaseCommand implements FeatCommand {
 				"Opening BINARY mode data connection for thumbnail ("+thumb.length+" Bytes)");
 	}
 
-	/** @return the thumbnail, or null if the file isn't an image Java can read */
+	/** @return the thumbnail, or nothing if the file isn't an image Java can read */
 	static byte[] thumbnail(FileSource f, String format, int maxW, int maxH) throws IOException {
 		BufferedImage src;
 		try (InputStream in = f.getInputStream()) {
 			src = ImageIO.read(in);
 		}
 		if( src == null ) {
-			return null;
+			return new byte[0];
 		}
 		double scale = Math.min(1.0, Math.min(maxW / (double) src.getWidth(), maxH / (double) src.getHeight()));
 		int w = Math.max(1, (int) Math.round(src.getWidth() * scale));
@@ -160,7 +160,7 @@ public class Thmb extends BaseCommand implements FeatCommand {
 		}
 		ByteArrayOutputStream ret = new ByteArrayOutputStream();
 		if( !ImageIO.write(dst, format, ret) ) {
-			return null;
+			return new byte[0];
 		}
 		return ret.toByteArray();
 	}

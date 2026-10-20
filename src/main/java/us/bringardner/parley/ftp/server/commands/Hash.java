@@ -96,18 +96,29 @@ public class Hash extends BaseCommand implements FeatCommand {
 		String algorithm = current(processor);
 		String hex;
 		try {
-			hex = Digests.compute(f, algorithm, start, Math.max(0, end - start + 1), new Digests.KeepAlive() {
-				@Override
-				public void stillWorking() throws IOException {
-					processor.reply(REPLY_213_FILE_STATUS+"-Computing "+algorithm);
-				}
-			});
+			hex = Digests.compute(f, algorithm, start, Math.max(0, end - start + 1), new StillWorking(processor, algorithm));
 		} catch (IOException e) {
 			processor.logError("HASH "+path, e);
 			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't read "+path);
 			return;
 		}
 		processor.reply(REPLY_213_FILE_STATUS,algorithm+" "+start+"-"+Math.max(end, start)+" "+hex+" "+path);
+	}
+
+	/** A "213-" line, so the client knows a long hash is still being computed */
+	private static final class StillWorking implements Digests.KeepAlive {
+		private final FtpRequestProcessor processor;
+		private final String algorithm;
+
+		StillWorking(FtpRequestProcessor processor, String algorithm) {
+			this.processor = processor;
+			this.algorithm = algorithm;
+		}
+
+		@Override
+		public void stillWorking() throws IOException {
+			processor.reply(REPLY_213_FILE_STATUS+"-Computing "+algorithm);
+		}
 	}
 
 	@Override

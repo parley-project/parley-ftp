@@ -47,7 +47,7 @@ public class Lprt extends BaseCommand {
 	}
 
 	/** @return the address and port, or null if the argument isn't a valid one */
-	public static Object[] parse(String arg) {
+	public static java.net.InetSocketAddress parse(String arg) {
 		String[] parts = arg.trim().split(",");
 		try {
 			int[] n = new int[parts.length];
@@ -69,7 +69,7 @@ public class Lprt extends BaseCommand {
 				b[i] = (byte) n[2+i];
 			}
 			int port = n[2+hal+1]*256 + n[2+hal+2];
-			return new Object[] {InetAddress.getByAddress(b), port};
+			return new java.net.InetSocketAddress(InetAddress.getByAddress(b), port);
 		} catch (NumberFormatException | IOException e) {
 			return null;
 		}
@@ -79,13 +79,13 @@ public class Lprt extends BaseCommand {
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
 		String line = context.getCommandLine().trim();
 		int sp = line.indexOf(' ');
-		Object[] target = sp < 0 ? null : parse(line.substring(sp+1));
+		java.net.InetSocketAddress target = sp < 0 ? null : parse(line.substring(sp+1));
 		if( target == null ) {
 			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Syntax: LPRT af,hal,h1,...,hn,pal,p1,p2");
 			return;
 		}
-		InetAddress addr = (InetAddress) target[0];
-		int port = (Integer) target[1];
+		InetAddress addr = target.getAddress();
+		int port = target.getPort();
 		if( port < 1 ) {
 			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Invalid LPRT port");
 			return;

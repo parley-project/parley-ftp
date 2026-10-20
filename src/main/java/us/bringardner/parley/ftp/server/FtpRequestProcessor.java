@@ -669,7 +669,10 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			singlePort = null;
 			try {
 				dataSocket = sp.socket.get(activityTimeOut > 0 ? activityTimeOut : FtpServer.DEFAULT_DATA_TIMEOUT, java.util.concurrent.TimeUnit.MILLISECONDS);
-			} catch (Exception e) {
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				dataSocket = null;
+			} catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException | RuntimeException e) {
 				logDebug("No SPDT connection for "+sp.id, e);
 				dataSocket = null;
 			} finally {
@@ -1089,16 +1092,15 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			return socket.complete(s);
 		}
 
-		/** No longer wanted: an SPDT connection that came is closed, one that comes later is refused */
+		/** No longer wanted: an SPDT connection that comes later is refused (one that came is the taker's) */
 		void closeIfUnused() {
-			if( !socket.complete(null) ) {
-				// it came; whoever took it closes it, or this does if nobody did
-			}
+			socket.complete(null);
 		}
 
+		/** No longer wanted: an SPDT connection that came is closed, one that comes later is refused */
 		void cancel() {
 			if( !socket.complete(null) ) {
-				Socket s = socket.getNow(null);
+				Socket s = socket.join();
 				if( s != null ) {
 					IoUtils.closeQuietly(s);
 				}
@@ -1106,7 +1108,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 	}
 
-	private volatile SinglePort singlePort;
+	private transient volatile SinglePort singlePort;
 
 	/**
 	 * SPSV: a new identifier for the next data connection, registered with the server. Closes any other
@@ -1180,16 +1182,23 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 */
 	public InputStream dataInput(Socket sock) throws IOException {
 		InputStream in = sock.getInputStream();
-		return modeZ ? new java.util.zip.InflaterInputStream(in, new java.util.zip.Inflater(), 64*1024) {
-			@Override
-			public void close() throws IOException {
-				try {
-					super.close();
-				} finally {
-					inf.end();
-				}
+		return modeZ ? new ZInputStream(in) : in;
+	}
+
+	/** Inflates, and ends its Inflater when closed */
+	private static final class ZInputStream extends java.util.zip.InflaterInputStream {
+		ZInputStream(InputStream in) {
+			super(in, new java.util.zip.Inflater(), 64*1024);
+		}
+
+		@Override
+		public void close() throws IOException {
+			try {
+				super.close();
+			} finally {
+				inf.end();
 			}
-		} : in;
+		}
 	}
 
 	/** Ends a deflated stream (MODE Z) so what was written is all sent; nothing for a plain one */
@@ -1558,19 +1567,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			return;
 		}
 
-		final FtpServerStream.CompletionHandler first = handler;
-		FtpServerStream.CompletionHandler both = after == null ? first : new FtpServerStream.CompletionHandler() {
-			@Override
-			public void transferComplete(boolean success) throws IOException {
-				try {
-					if( first != null ) {
-						first.transferComplete(success);
-					}
-				} finally {
-					after.transferComplete(success);
-				}
-			}
-		};
+		FtpServerStream.CompletionHandler both = after == null ? handler : new BothHandlers(handler, after);
 		transferStream(in, out, sock, true, both, openMessage);
 	}
 
@@ -1663,6 +1660,28 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			}
 			if( fits < len ) {
 				throw tooMuch();
+			}
+		}
+	}
+
+	/** One completion handler, then another (even if the first throws) */
+	private static final class BothHandlers implements FtpServerStream.CompletionHandler {
+		private final FtpServerStream.CompletionHandler first;
+		private final FtpServerStream.CompletionHandler then;
+
+		BothHandlers(FtpServerStream.CompletionHandler first, FtpServerStream.CompletionHandler then) {
+			this.first = first;
+			this.then = then;
+		}
+
+		@Override
+		public void transferComplete(boolean success) throws IOException {
+			try {
+				if( first != null ) {
+					first.transferComplete(success);
+				}
+			} finally {
+				then.transferComplete(success);
 			}
 		}
 	}
