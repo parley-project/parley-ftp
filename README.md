@@ -120,9 +120,9 @@ clients may not have it. Both points count octets from the start of the file, an
   sends nothing.
 - `STOR` writes the upload into the file from the start, in place, and changes nothing outside the range: the
   file isn't truncated, and more data than the range holds fails the transfer (`451`) once the range is
-  written. A start past the end of the file is refused (`554`). It is writing at an offset, so it needs
-  `JFtp.storeAtOffset` (above); with it off, `STOR` is refused (`504`) and nothing changes. On a link it is
-  refused (`450`).
+  written. A start past the end of the file is refused (`554`). On a link it is refused (`450`).
+  Unlike `REST` then `STOR`, the range says exactly which octets are written, so this doesn't need
+  `JFtp.storeAtOffset`.
 - `APPE` refuses a range (`504`).
 
 ## Links

@@ -45,9 +45,9 @@ import us.bringardner.parley.net.server.IRequestContext;
  * file; a start at or past the end of the file sends nothing.</li>
  * <li>STOR writes the upload into the file from start, in place, and changes nothing outside the range:
  * the file is never truncated, and more data than the range holds fails the transfer after the range is
- * written. A start past the end of the file is refused (554). Like REST then STOR at an offset, this is
- * only allowed with {@link us.bringardner.parley.ftp.server.FtpServer#setStoreAtOffset(boolean)} on;
- * otherwise STOR is refused (504) and nothing changes.</li>
+ * written. A start past the end of the file is refused (554). The range says exactly what is written,
+ * so unlike REST then STOR this doesn't need
+ * {@link us.bringardner.parley.ftp.server.FtpServer#setStoreAtOffset(boolean)}.</li>
  * </ul>
  * RANG and REST replace each other: the last one sent before the transfer is the one used. The range is
  * used by the next RETR or STOR only; APPE refuses it.
