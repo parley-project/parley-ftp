@@ -50,6 +50,7 @@ import us.bringardner.parley.ftp.server.commands.Pasv;
 import us.bringardner.parley.ftp.server.commands.Port;
 import us.bringardner.parley.ftp.server.commands.Pwd;
 import us.bringardner.parley.ftp.server.commands.Quit;
+import us.bringardner.parley.ftp.server.commands.Rang;
 import us.bringardner.parley.ftp.server.commands.Rest;
 import us.bringardner.parley.ftp.server.commands.Retr;
 import us.bringardner.parley.ftp.server.commands.Rmd;
@@ -133,6 +134,8 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		feat.addSupportedCommand(new Mdtm());
 		// RFC 2640 UTF8 (OPTS UTF8 ON), and OPTS MLST (BJL-50)
 		feat.addSupportedCommand(new Opts());
+		// draft-bryan-ftp-range (RANG STREAM): an octet range for RETR and STOR
+		feat.addSupportedCommand(new Rang());
 		
 		
 		//  Security (RFC 2228)

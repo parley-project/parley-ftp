@@ -106,6 +106,25 @@ bufferSize)` sends the `REST` and `STOR`).
 - `REST 0` is no restart: `STOR` replaces the file, as always.
 - On a link it is refused (`450`), as before.
 
+### Octet ranges (RANG)
+
+The server supports `RANG start end` from [draft-bryan-ftp-range-08](https://datatracker.ietf.org/doc/html/draft-bryan-ftp-range-08),
+and lists it in `FEAT` as `RANG STREAM`. It is an expired Internet-Draft, not an RFC, so other servers and
+clients may not have it. Both points count octets from the start of the file, and the end is inclusive:
+`RANG 0 1` is the first two octets.
+
+- A good range gets `350` and is used by the next `RETR` or `STOR` only. `RANG 1 0` resets it (`350`); a start
+  after the end, or anything but two numbers, gets `501` and resets it too.
+- `RANG` and `REST` replace each other: the one sent last is the one the transfer uses.
+- `RETR` sends the range. An end past the end of the file sends to the end of the file; a start at or past it
+  sends nothing.
+- `STOR` writes the upload into the file from the start, in place, and changes nothing outside the range: the
+  file isn't truncated, and more data than the range holds fails the transfer (`451`) once the range is
+  written. A start past the end of the file is refused (`554`). It is writing at an offset, so it needs
+  `JFtp.storeAtOffset` (above); with it off, `STOR` is refused (`504`) and nothing changes. On a link it is
+  refused (`450`).
+- `APPE` refuses a range (`504`).
+
 ## Links
 
 An administrator can make a file or a directory appear in a user's root without copying it, by making a

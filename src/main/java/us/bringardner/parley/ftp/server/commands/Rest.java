@@ -158,6 +158,8 @@ http://www.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-16.txt
 		
 		try {
 			Long marker = (Long.parseLong(commandLine));
+			// the last of RANG and REST is the one the transfer uses
+			processor.removeTempValue(RANG);
 			processor.setTempValue(REST,marker);
 			processor.reply(REPLY_350_FILE_ACTION_PENDING,"Restarting at "+marker+". Send STORE or RETRIEVE"); 
 					

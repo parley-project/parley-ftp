@@ -114,6 +114,8 @@ public interface FTP {
 	public static final String QUIT = "QUIT";
 	public static final String RMD  = "RMD";
 	public static final String REST = "REST";
+	/** Octet range for the next transfer (draft-bryan-ftp-range, an expired draft) */
+	public static final String RANG = "RANG";
 	public static final String RNFR = "RNFR";
 	public static final String RNTO = "RNTO";
 	public static final String RETR = "RETR";

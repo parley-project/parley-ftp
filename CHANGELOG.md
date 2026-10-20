@@ -19,6 +19,8 @@ removed in 2.0.0.
 - `FtpClient.getOutputStream(path, ascii, startingPos, bufferSize)` and a `ClientFtpOutputStream`
   constructor with a starting position: `REST` then `STOR`. If the server refuses the `REST` nothing is
   stored (a `STOR` without it would replace the file).
+- `RANG start end` (draft-bryan-ftp-range-08), listed in `FEAT` as `RANG STREAM`: `RETR` sends that octet
+  range, and `STOR` writes it in place when `JFtp.storeAtOffset` is on. See the README, "Octet ranges (RANG)".
 
 ### Changed
 

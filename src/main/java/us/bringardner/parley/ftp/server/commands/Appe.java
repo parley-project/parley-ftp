@@ -75,6 +75,12 @@ public class Appe  extends BaseCommand {
 			return;
 		}
 			
+		if( processor.removeTempValue(RANG) != null ) {
+			// draft-bryan-ftp-range lets APPE act as STOR with a range; this server keeps APPE an append
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"APPE can't be used with RANG: use STOR");
+			return;
+		}
+
 		FileSource target = processor.createNewFile(commandLine);
 		
 		if( target == null || target.isDirectory()){
