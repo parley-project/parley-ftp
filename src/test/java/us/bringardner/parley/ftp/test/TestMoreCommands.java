@@ -177,4 +177,29 @@ public class TestMoreCommands {
 			c.close();
 		}
 	}
+
+	@Test
+	public void lang() throws Exception {
+		try (RawFtp c = new RawFtp(PORT)) {
+			assertTrue(String.join("\n", c.send("FEAT")).contains("\n LANG EN*"));
+			assertEquals(200, c.one("LANG"));
+			assertEquals(200, c.one("LANG EN"));
+			assertEquals(200, c.one("lang en-US"));
+			assertEquals(504, c.one("LANG fr"));
+			assertEquals(501, c.one("LANG 12"));
+			assertEquals(501, c.one("LANG en us"));
+		}
+		FtpClient c = new FtpClient("127.0.0.1", PORT);
+		c.setRequestSecure(false);
+		c.getLogger().setLevel(Level.ERROR);
+		assertTrue(c.connect("anonymous", "x", null));
+		try {
+			assertEquals(java.util.Collections.singletonList("EN*"), c.getLanguages());
+			assertTrue(c.setLanguage("en"));
+			assertFalse(c.setLanguage("de"));
+			assertTrue(c.getDialog().contains("Write:LANG de"), c.getDialog());
+		} finally {
+			c.close();
+		}
+	}
 }

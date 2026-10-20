@@ -28,6 +28,8 @@ removed in 2.0.0.
 - `STOU` (store under a unique name, `150 FILE: name`), the RFC 775 forms `XCWD`, `XMKD`, `XPWD`, `XRMD` and
   `XCUP`, `SMNT` (`502`), and `LPRT`/`LPSV` (RFC 1639). Client: `FtpClient.storeUnique()`
   (`ClientFtpOutputStream.getStoredName()`), and `LPSV`/`LPRT` when a server refuses `PASV` or `EPRT`.
+- `LANG` (RFC 2640), English only, listed in `FEAT` as `LANG EN*`. Client: `FtpClient.setLanguage()` and
+  `getLanguages()`.
 - Virtual hosts: `HOST` (RFC 7151), listed in `FEAT`. `FtpServer.addVirtualHost(name, root)` /
   `JFtp.virtualHosts` give each host its own root; the name must match TLS's (SNI); `REIN` forgets it. The client
   sends `HOST` before `AUTH` and `USER` (`FtpClient.setVirtualHost(name)`, else the name it connects to;

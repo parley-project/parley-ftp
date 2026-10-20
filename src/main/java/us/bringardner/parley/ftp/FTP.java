@@ -122,6 +122,8 @@ public interface FTP {
 	/** Virtual host (RFC 7151) */
 	public static final String HOST = "HOST";
 	public static final String STOU = "STOU";
+	/** Language of reply text (RFC 2640) */
+	public static final String LANG = "LANG";
 	public static final String SMNT = "SMNT";
 	/** RFC 775 forms of CWD, MKD, PWD, RMD and CDUP, still sent by some clients */
 	public static final String XCWD = "XCWD";
