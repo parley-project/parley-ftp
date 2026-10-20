@@ -107,6 +107,10 @@ public class Stat extends NoAuthReqBaseCommand {
 		if( sock != null ) {
 			lines.add(" Connected to "+sock.getLocalAddress().getHostAddress()+" from "+sock.getInetAddress().getHostAddress());
 		}
+		Object client = processor.getTempValue(Csid.CLIENT);
+		if( client != null ) {
+			lines.add(" Client: "+client);
+		}
 		if( processor.getVirtualHost() != null ) {
 			lines.add(" Virtual host: "+processor.getVirtualHost());
 		}

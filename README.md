@@ -92,6 +92,15 @@ Each setting can be passed as a system property or set with the matching `FtpSer
   the change. Owner and group need the ADMIN permission, the rest WRITE. An unknown fact gets `504` and nothing changes;
   an invalid time (February 30 included) `501`; no such file `550`; a fact the file system won't set `450` (MFF isn't
   atomic). A link gets a copy in its place, as with `SITE CHMOD`.
+- **draft-peterson-streamlined-ftp-command-extensions (each in `FEAT`):**
+  - `AVBL [dir]`: octets that can be uploaded there (the file system's usable space), `213 n`.
+  - `DSIZ [dir]`: octets in the files of a directory and all below it, `213 n`; links aren't followed.
+  - `RMDA dir`: removes a directory and everything in it (WRITE permission, as `RMD`); a link is removed, not
+    followed; `550` if anything is left, or for a file or the root.
+  - `THMB format width height path`: a thumbnail of an image, no larger than that (aspect kept, never enlarged), sent
+    on the data connection as `RETR` sends a file; formats are what Java writes (`BMP|GIF|JPEG|PNG`).
+  - `CSID Name=...;Version=...;Vendor=...;`: the client says what it is (shown by `STAT`), the server replies the same
+    of itself. Needs a login.
 - **Virtual hosts (`HOST`, RFC 7151, in `FEAT`):** a client sends `HOST name` before logging in and gets that host's
   root (`addVirtualHost(name, root)` or `JFtp.virtualHosts`; each root can be in its own file system). Users and
   their permissions are the server's, whatever the host.
@@ -253,6 +262,9 @@ points. This server doesn't say, for the reasons above.
 - **Active mode** (`setActive(true)`): the client listens on the control connection's local address and sends `PORT` (IPv4) or `EPRT` (IPv6). With a protected data channel the client is the TLS client, as RFC 4217 requires.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
+- **Streamlined extensions:** `getFreeSpace(dir)` (AVBL), `getDirectorySize(dir)` (DSIZ), `deleteRecursively(dir)`
+  (RMDA), `getThumbnail(path, format, width, height)` (THMB) and `identify(name, version, vendor)` (CSID), each when the
+  server lists the command in `FEAT`.
 - **Times and facts:** `setModificationTime(path, time)` and `setCreationTime(path, time)` use `MFMT`/`MFCT`, else
   `MFF`; `setFacts(path, facts)` uses `MFF`. `FtpClientFile.setLastModified()` uses `MFMT` when the server has it.
 - **Hashes:** `hash(path[, algorithm[, start, end]])` returns the server's hash of a file or part of one, using

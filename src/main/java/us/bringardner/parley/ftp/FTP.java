@@ -130,6 +130,12 @@ public interface FTP {
 	public static final String MFMT = "MFMT";
 	public static final String MFCT = "MFCT";
 	public static final String MFF = "MFF";
+	/** draft-peterson-streamlined-ftp-command-extensions */
+	public static final String AVBL = "AVBL";
+	public static final String DSIZ = "DSIZ";
+	public static final String RMDA = "RMDA";
+	public static final String THMB = "THMB";
+	public static final String CSID = "CSID";
 	public static final String XCRC = "XCRC";
 	public static final String XMD5 = "XMD5";
 	public static final String XSHA1 = "XSHA1";

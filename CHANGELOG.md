@@ -28,6 +28,8 @@ removed in 2.0.0.
 - `STOU` (store under a unique name, `150 FILE: name`), the RFC 775 forms `XCWD`, `XMKD`, `XPWD`, `XRMD` and
   `XCUP`, `SMNT` (`502`), and `LPRT`/`LPSV` (RFC 1639). Client: `FtpClient.storeUnique()`
   (`ClientFtpOutputStream.getStoredName()`), and `LPSV`/`LPRT` when a server refuses `PASV` or `EPRT`.
+- `AVBL`, `DSIZ`, `RMDA`, `THMB` and `CSID` (draft-peterson-streamlined-ftp-command-extensions). Client:
+  `FtpClient.getFreeSpace()`, `getDirectorySize()`, `deleteRecursively()`, `getThumbnail()`, `identify()`.
 - `MFMT`, `MFCT` and `MFF` (draft-somers-ftp-mfxx): modification and creation times, `UNIX.mode`, and (ADMIN only)
   `UNIX.owner`/`UNIX.group`. Client: `FtpClient.setModificationTime()`, `setCreationTime()`, `setFacts()`;
   `FtpClientFile.setLastModified()` uses `MFMT` when the server has it, else the `SITE` command as before.

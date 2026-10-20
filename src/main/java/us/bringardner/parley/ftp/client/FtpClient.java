@@ -1937,6 +1937,130 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		return ret;
 	}
 
+	/** @return the number in a 213 reply, or -1 */
+	private long number213(String command, String path) throws IOException {
+		ClientFtpResponse res = path == null || path.isEmpty() ? executeCommand(command) : executeCommand(command, path);
+		if( res._getResponseCode() == REPLY_213_FILE_STATUS ) {
+			try {
+				return Long.parseLong(res.getResponseText().trim().split("\\s+")[0]);
+			} catch (NumberFormatException e) {
+				logDebug(command+": "+res);
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * AVBL (draft-peterson-streamlined-ftp-command-extensions): the octets that can be uploaded to a remote
+	 * directory.
+	 * @param path the directory, or null for the current one
+	 * @return the octets, or -1 if the server doesn't say (no AVBL, not a directory, unknown)
+	 * @since 1.1.0
+	 */
+	public long getFreeSpace(String path) throws IOException {
+		return getFeatResponse().containsKey(AVBL) ? number213(AVBL, path) : -1;
+	}
+
+	/**
+	 * DSIZ (draft-peterson-streamlined-ftp-command-extensions): the octets in the files of a remote
+	 * directory and all below it.
+	 * @param path the directory, or null for the current one
+	 * @return the octets, or -1 if the server doesn't say
+	 * @since 1.1.0
+	 */
+	public long getDirectorySize(String path) throws IOException {
+		return getFeatResponse().containsKey(DSIZ) ? number213(DSIZ, path) : -1;
+	}
+
+	/**
+	 * RMDA (draft-peterson-streamlined-ftp-command-extensions): remove a remote directory and everything
+	 * in it, on the server.
+	 * @return true if all of it was removed; false if the server has no RMDA, or left something
+	 * @since 1.1.0
+	 */
+	public boolean deleteRecursively(String path) throws IOException {
+		checkStreamInProcess(path);
+		if( !getFeatResponse().containsKey(RMDA) ) {
+			return false;
+		}
+		return executeCommand(RMDA, path).isPositiveComplet();
+	}
+
+	/**
+	 * THMB (draft-peterson-streamlined-ftp-command-extensions): a thumbnail of a remote image, made by the
+	 * server, no larger than width x height.
+	 * @param format an image format the server lists for THMB in FEAT, e.g. PNG or JPEG
+	 * @return the image's bytes, or null if the server has no THMB
+	 * @throws IOException if the server can't make it (not an image, a format it doesn't write)
+	 * @since 1.1.0
+	 */
+	public byte[] getThumbnail(String path, String format, int width, int height) throws IOException {
+		if( !getFeatResponse().containsKey(THMB) ) {
+			return null;
+		}
+		String key = THMB+":"+path;
+		InputStream in;
+		commandLock.lock();
+		try {
+			checkStreamInProcess(key);
+			ClientFtpInputStream s;
+			String line = THMB+" "+format+" "+width+" "+height+" "+path;
+			try {
+				s = new ClientFtpInputStream(key, this, line, 0);
+			} catch (Tls12Needed e) {
+				fallBackToTls12(e);
+				s = new ClientFtpInputStream(key, this, line, 0);
+			}
+			streamsInProcess.put(key, s);
+			in = s;
+		} finally {
+			commandLock.unlock();
+		}
+		try (InputStream i = in) {
+			java.io.ByteArrayOutputStream ret = new java.io.ByteArrayOutputStream();
+			byte[] buf = new byte[8192];
+			int n;
+			while( (n = i.read(buf)) > 0 ) {
+				ret.write(buf, 0, n);
+			}
+			return ret.toByteArray();
+		}
+	}
+
+	/**
+	 * CSID (draft-peterson-streamlined-ftp-command-extensions): tell the server what this client is, and
+	 * learn what it is.
+	 * @return the server's facts (Name, Version, Vendor, CaseSensitive, OS, OSVer, ...); empty if it has
+	 * no CSID
+	 * @since 1.1.0
+	 */
+	public Map<String, String> identify(String name, String version, String vendor) throws IOException {
+		Map<String, String> ret = new java.util.LinkedHashMap<String, String>();
+		if( !getFeatResponse().containsKey(CSID) ) {
+			return ret;
+		}
+		StringBuilder arg = new StringBuilder();
+		if( name != null ) {
+			arg.append("Name=").append(name).append(';');
+		}
+		if( version != null ) {
+			arg.append("Version=").append(version).append(';');
+		}
+		if( vendor != null ) {
+			arg.append("Vendor=").append(vendor).append(';');
+		}
+		ClientFtpResponse res = executeCommand(CSID, arg.toString());
+		if( res.isPositiveComplet() ) {
+			for(String f : res.getResponseText().split(";")) {
+				int eq = f.indexOf('=');
+				if( eq > 0 ) {
+					ret.put(f.substring(0, eq).trim(), f.substring(eq+1).trim());
+				}
+			}
+		}
+		return ret;
+	}
+
 	/** The X checksum command for each HASH algorithm name */
 	private static final String[][] X_COMMANDS = {
 			{"SHA-256", XSHA256}, {"SHA-512", XSHA512}, {"SHA-1", XSHA1}, {"MD5", XMD5}, {"CRC32", XCRC}};
