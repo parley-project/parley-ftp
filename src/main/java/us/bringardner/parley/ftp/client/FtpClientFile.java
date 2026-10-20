@@ -415,8 +415,8 @@ public class FtpClientFile extends BaseObject {
 
 	/**
 	 * Sets the modification time with MFMT (draft-somers-ftp-mfxx) when the server lists it in FEAT
-	 * ({@link FtpClient#setModificationTime(String, long)}); otherwise with the SITE command parley's
-	 * FtpServer has.
+	 * ({@link FtpClient#setModificationTime(String, long)}) and {@link FtpClient#isUseModifyFacts()};
+	 * otherwise with the SITE command parley's FtpServer has.
 	 *
 	 * @param lastModifiedTime
 	 * @return true if the server accepted it
@@ -424,7 +424,7 @@ public class FtpClientFile extends BaseObject {
 	 */
 	public boolean setLastModified(long lastModifiedTime) {
 		try {
-			if( client().getFeatResponse().containsKey(FTP.MFMT) ) {
+			if( client().isUseModifyFacts() && client().getFeatResponse().containsKey(FTP.MFMT) ) {
 				if( client().setModificationTime(getAbsolutePath(), lastModifiedTime) ) {
 					this.lastModified = lastModifiedTime;
 					return true;

@@ -291,7 +291,8 @@ points. This server doesn't say, for the reasons above.
   (RMDA), `getThumbnail(path, format, width, height)` (THMB) and `identify(name, version, vendor)` (CSID), each when the
   server lists the command in `FEAT`.
 - **Times and facts:** `setModificationTime(path, time)` and `setCreationTime(path, time)` use `MFMT`/`MFCT`, else
-  `MFF`; `setFacts(path, facts)` uses `MFF`. `FtpClientFile.setLastModified()` uses `MFMT` when the server has it.
+  `MFF`; `setFacts(path, facts)` uses `MFF`. `FtpClientFile.setLastModified()` uses `MFMT` when the server has it
+  (`setUseModifyFacts(false)`: always parley's `SITE` command, as before).
 - **Hashes:** `hash(path[, algorithm[, start, end]])` returns the server's hash of a file or part of one, using
   `HASH` (with `OPTS HASH` and `RANG`) when the server lists it in `FEAT`, else the X commands.
 - **LANG:** `setLanguage(tag)` asks a server that lists `LANG` in `FEAT` for that language, now and after a reconnect;

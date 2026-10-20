@@ -38,7 +38,8 @@ removed in 2.0.0.
   `FtpClient.getFreeSpace()`, `getDirectorySize()`, `deleteRecursively()`, `getThumbnail()`, `identify()`.
 - `MFMT`, `MFCT` and `MFF` (draft-somers-ftp-mfxx): modification and creation times, `UNIX.mode`, and (ADMIN only)
   `UNIX.owner`/`UNIX.group`. Client: `FtpClient.setModificationTime()`, `setCreationTime()`, `setFacts()`;
-  `FtpClientFile.setLastModified()` uses `MFMT` when the server has it, else the `SITE` command as before.
+  `FtpClientFile.setLastModified()` uses `MFMT` when the server has it, else the `SITE` command as before
+  (`FtpClient.setUseModifyFacts(false)` to always use `SITE`).
 - File hashes: `HASH` (draft-ietf-ftpext2-hash) with `OPTS HASH` and `RANG`, and `XCRC`, `XMD5`, `XSHA1`,
   `XSHA256`, `XSHA512`; SHA-256, SHA-512, SHA-1, MD5 and CRC32. Client: `FtpClient.hash()`.
 - `LANG` (RFC 2640), English only, listed in `FEAT` as `LANG EN*`. Client: `FtpClient.setLanguage()` and

@@ -136,6 +136,24 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	private String host;
 	/** The name sent with HOST (RFC 7151) and used for TLS; null for the host connected to */
 	private volatile String virtualHost;
+	/** FtpClientFile.setLastModified uses MFMT when the server has it */
+	private volatile boolean useModifyFacts = true;
+
+	/** @return true (the default) if FtpClientFile.setLastModified uses MFMT when the server lists it */
+	public boolean isUseModifyFacts() {
+		return useModifyFacts;
+	}
+
+	/**
+	 * FtpClientFile.setLastModified (and so parley-files-ftp) sets a file's time with MFMT
+	 * (draft-somers-ftp-mfxx) when the server lists it in FEAT; false: always with parley's SITE command,
+	 * as before. On by default.
+	 * @since 1.1.0
+	 */
+	public void setUseModifyFacts(boolean useModifyFacts) {
+		this.useModifyFacts = useModifyFacts;
+	}
+
 	/** Send ABOR when a download is closed before its end */
 	private volatile boolean abortOnClose = true;
 	/** Send CLNT (the client's name) to servers that list it in FEAT */
@@ -1417,6 +1435,7 @@ public class FtpClient extends SecureBaseObject implements FTP {
 		ret.compression = compression;
 		ret.useSinglePort = useSinglePort;
 		ret.abortOnClose = abortOnClose;
+		ret.useModifyFacts = useModifyFacts;
 		ret.sendClientName = sendClientName;
 		ret.clientName = clientName;
 		ret.sendHost = sendHost;
