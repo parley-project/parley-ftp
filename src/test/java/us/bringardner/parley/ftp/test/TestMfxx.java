@@ -149,4 +149,25 @@ public class TestMfxx {
 			c.close();
 		}
 	}
+
+	@Test
+	public void clientFileUsesMfmt() throws Exception {
+		File f = file("cf.txt");
+		for (boolean mfmt : new boolean[] { true, false }) {
+			FtpClient c = new FtpClient("127.0.0.1", PORT);
+			c.setRequestSecure(false);
+			c.getLogger().setLevel(Level.ERROR);
+			c.setUseModifyFacts(mfmt);
+			assertTrue(c.connect("plain", "1234", null));
+			try {
+				us.bringardner.parley.ftp.client.FtpClientFile cf = new us.bringardner.parley.ftp.client.FtpClientFile("/cf.txt", null, c);
+				long t = T + (mfmt ? 0 : 120000);
+				assertTrue(cf.setLastModified(t), "mfmt=" + mfmt);
+				assertEquals(t, f.lastModified());
+				assertEquals(mfmt, c.getDialog().contains("Write:MFMT"), c.getDialog());
+			} finally {
+				c.close();
+			}
+		}
+	}
 }
