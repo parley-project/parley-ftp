@@ -82,9 +82,6 @@ public class Stru  extends BaseCommand {
 		} else {
 			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, " not implemented.");
 		}
-
-
-		processor.reply(REPLY_215_NAME,processor.getServer().getName());
 	}
 
 }

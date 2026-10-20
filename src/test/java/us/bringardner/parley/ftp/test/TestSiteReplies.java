@@ -149,6 +149,17 @@ public class TestSiteReplies {
 		}
 	}
 
+	/** STRU used to send a stray "215 server name" (copied from SYST) after its own reply. */
+	@Test
+	public void struGetsOneReply() throws Exception {
+		try (Control c = new Control("plain", "1234")) {
+			assertEquals(200, code(c.sendOne("STRU F")));
+			assertEquals(501, code(c.sendOne("STRU R")));
+			assertEquals(501, code(c.sendOne("STRU")));
+			assertEquals(215, code(c.sendOne("SYST")));
+		}
+	}
+
 	@Test
 	public void siteRootNeedsAdmin() throws Exception {
 		try (Control c = new Control("plain", "1234")) {

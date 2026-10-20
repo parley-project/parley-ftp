@@ -31,6 +31,11 @@ removed in 2.0.0.
 
 - The 226 and 426 replies that report a byte count say "transferred" (were "transfered").
 
+### Fixed
+
+- `STRU` sent a second reply (`215` and the server's name, copied from `SYST`) after its own, so a client read
+  it as the reply to its next command.
+
 ## parley-ftp 1.0.0 (2026-10-16)
 
 BjlNetFtp is now **parley-ftp**, part of the Parley library family. The code is the same as
