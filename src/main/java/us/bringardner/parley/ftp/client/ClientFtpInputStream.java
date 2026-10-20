@@ -41,6 +41,8 @@ public class ClientFtpInputStream extends InputStream implements FTP {
     //  This client is a private connection just for downloading one file.
     private FtpClient client;
     private String path;
+    /** The command that sends the data, with its argument: RETR path unless set (THMB) */
+    private String command;
     private InputStream in ;
     private boolean eof = false;
     private boolean closed = false;
@@ -80,6 +82,21 @@ public class ClientFtpInputStream extends InputStream implements FTP {
         this.effectiveBufferSize = Math.max(8192, bufferSize > 0 ? bufferSize : client.getTransferBufferSize());
         startDownload();
 
+    }
+
+    /**
+     * The data another command sends on the data connection, as RETR does (THMB). Binary.
+     *
+     * @param key what the stream is kept under in the client while it is open
+     * @param commandLine the command and its arguments
+     * @since 1.1.0
+     */
+    ClientFtpInputStream(String key, FtpClient client, String commandLine, int bufferSize) throws IOException {
+        this.path = key;
+        this.command = commandLine;
+        this.client = client;
+        this.effectiveBufferSize = Math.max(8192, bufferSize > 0 ? bufferSize : client.getTransferBufferSize());
+        startDownload();
     }
 
     /**
@@ -146,7 +163,7 @@ public class ClientFtpInputStream extends InputStream implements FTP {
         ClientFtpResponse res;
         try {
             dtp.connectBeforeCommand();
-            res = client.executeCommand(RETR, path.trim());
+            res = command == null ? client.executeCommand(RETR, path.trim()) : client.executeCommand(command);
         } catch (IOException e) {
             dtp.close();
             throw e;
