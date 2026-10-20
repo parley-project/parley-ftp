@@ -677,7 +677,12 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				dataSocket = null;
 			} finally {
 				((FtpServer) getServer()).removeSinglePort(sp.id);
-				sp.closeIfUnused();
+				if( dataSocket == null ) {
+					// gave up waiting: an SPDT connection that comes now (or just came) is closed
+					sp.cancel();
+				} else {
+					sp.closeIfUnused();
+				}
 			}
 		}
 
@@ -1082,9 +1087,19 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	public static final class SinglePort {
 		public final String id;
 		final java.util.concurrent.CompletableFuture<Socket> socket = new java.util.concurrent.CompletableFuture<Socket>();
+		private final FtpRequestProcessor owner;
 
-		SinglePort(String id) {
+		SinglePort(String id, FtpRequestProcessor owner) {
 			this.id = id;
+			this.owner = owner;
+		}
+
+		/**
+		 * @return true if a data connection from this address may be this session's: the same checks as
+		 * for PASV (the client's own address, unless foreign data addresses are allowed)
+		 */
+		public boolean isAllowedPeer(java.net.InetAddress addr) {
+			return owner.isAllowedPassivePeer(addr);
 		}
 
 		/** The SPDT session's socket arrives: false if this session no longer wants it */
@@ -1098,7 +1113,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 
 		/** No longer wanted: an SPDT connection that came is closed, one that comes later is refused */
-		void cancel() {
+		public void cancel() {
 			if( !socket.complete(null) ) {
 				Socket s = socket.join();
 				if( s != null ) {
@@ -1121,7 +1136,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		byte[] b = new byte[12];
 		RANDOM.nextBytes(b);
 		String id = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(b);
-		SinglePort sp = new SinglePort(id);
+		SinglePort sp = new SinglePort(id, this);
 		((FtpServer) getServer()).addSinglePort(sp);
 		singlePort = sp;
 		return id;

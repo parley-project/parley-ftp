@@ -425,8 +425,10 @@ public class FtpClientFile extends BaseObject {
 	public boolean setLastModified(long lastModifiedTime) {
 		try {
 			if( client().isUseModifyFacts() && client().getFeatResponse().containsKey(FTP.MFMT) ) {
-				if( client().setModificationTime(getAbsolutePath(), lastModifiedTime) ) {
-					this.lastModified = lastModifiedTime;
+				// the time as set: whole seconds if the server didn't take milliseconds
+				long set = client().setTimeAs(getAbsolutePath(), lastModifiedTime, FTP.MFMT, "Modify");
+				if( set >= 0 ) {
+					this.lastModified = set;
 					return true;
 				}
 				return false;

@@ -98,13 +98,15 @@ Each setting can be passed as a system property or set with the matching `FtpSer
   - `RMDA dir`: removes a directory and everything in it (WRITE permission, as `RMD`); a link is removed, not
     followed; `550` if anything is left, or for a file or the root.
   - `THMB format width height path`: a thumbnail of an image, no larger than that (aspect kept, never enlarged), sent
-    on the data connection as `RETR` sends a file; formats are what Java writes (`BMP|GIF|JPEG|PNG`).
+    on the data connection as `RETR` sends a file; formats are what Java writes (`BMP|GIF|JPEG|PNG`). A source image
+    whose header says it has more than 50 million pixels is refused (`550`) before it is decoded.
   - `CSID Name=...;Version=...;Vendor=...;`: the client says what it is (shown by `STAT`), the server replies the same
     of itself. Needs a login.
 - **CLNT name** (in `FEAT`; FileZilla, Serv-U and others have it, no RFC): the client says what it is; `STAT` shows it.
 - **SPSV (draft-rosenau-ftp-single-port, in `FEAT`):** passive mode through the control port only. The reply has a
   one-time identifier, `227 Entering single-port mode (id)`; the client opens a second connection to the control port,
-  sends `SPDT id`, gets `200 DATA`, and that connection carries the next transfer. It is protected as the control port
+  sends `SPDT id`, gets `200 DATA`, and that connection carries the next transfer. As with PASV, it must come from the
+  client's own address (`JFtp.allowForeignDataAddress` aside). It is protected as the control port
   is, so `SPSV` gets `504` when the data protection set differs (`PROT P` after `AUTH TLS`, `PROT C` with implicit TLS).
 - **MODE Z (draft-preston-ftpext-deflate, `MODE Z` in `FEAT`):** data connections (transfers and listings) are
   deflated (zlib); `OPTS MODE Z LEVEL n` sets the level (0-9); `MODE S` turns it off, as does `REIN`. `REST` and `RANG`
@@ -291,7 +293,7 @@ points. This server doesn't say, for the reasons above.
   (RMDA), `getThumbnail(path, format, width, height)` (THMB) and `identify(name, version, vendor)` (CSID), each when the
   server lists the command in `FEAT`.
 - **Times and facts:** `setModificationTime(path, time)` and `setCreationTime(path, time)` use `MFMT`/`MFCT`, else
-  `MFF`; `setFacts(path, facts)` uses `MFF`. `FtpClientFile.setLastModified()` uses `MFMT` when the server has it
+  `MFF`, with milliseconds when the server takes them, else whole seconds; `setFacts(path, facts)` uses `MFF`. `FtpClientFile.setLastModified()` uses `MFMT` when the server has it
   (`setUseModifyFacts(false)`: always parley's `SITE` command, as before).
 - **Hashes:** `hash(path[, algorithm[, start, end]])` returns the server's hash of a file or part of one, using
   `HASH` (with `OPTS HASH` and `RANG`) when the server lists it in `FEAT`, else the X commands.

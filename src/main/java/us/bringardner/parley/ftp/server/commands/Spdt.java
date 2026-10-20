@@ -57,6 +57,13 @@ public class Spdt extends NoAuthReqBaseCommand {
 			processor.stop();
 			return;
 		}
+		if( !wait.isAllowedPeer(sock.getInetAddress()) ) {
+			// as PASV: only the client's own address, so an identifier seen on the wire can't be used by another
+			wait.cancel();
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"Unknown SPDT identifier");
+			processor.stop();
+			return;
+		}
 		processor.reply(REPLY_200_OK,"DATA");
 		if( !wait.deliver(sock) ) {
 			// the session that asked no longer wants it

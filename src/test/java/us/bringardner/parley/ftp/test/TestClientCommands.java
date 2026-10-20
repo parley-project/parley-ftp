@@ -173,6 +173,11 @@ public class TestClientCommands {
 			assertTrue(c.status().contains("Control connection: clear; data connections: TLS"), c.status());
 			assertEquals("hello", read(c, "file.txt"));
 			assertFalse(c.clearCommandChannel(), "already clear");
+			// a new connection starts plain again and negotiates TLS
+			c.close();
+			assertTrue(c.connect("anonymous", "x", null));
+			assertTrue(c.isChannelSecure());
+			assertEquals("hello", read(c, "file.txt"));
 		} finally {
 			c.close();
 		}

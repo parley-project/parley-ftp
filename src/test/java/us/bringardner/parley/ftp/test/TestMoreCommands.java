@@ -77,6 +77,7 @@ public class TestMoreCommands {
 			assertEquals(504, c.one("TYPE L 16"));
 			assertEquals(504, c.one("TYPE A T"));
 			assertEquals(501, c.one("TYPE"));
+			assertEquals(501, c.one("TYPE L"));
 			assertEquals(200, c.one("TYPE L 8"));
 			assertTrue(String.join("", c.send("STAT")).contains("TYPE: BINARY"));
 			assertEquals(200, c.one("TYPE A N"));

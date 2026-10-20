@@ -285,6 +285,8 @@ public class FtpServerStream extends BaseThread {
 			}
 			if( done ) {
 				try {
+					// MODE Z: the end of the deflated stream, here so a failure to send it is a failed transfer
+					FtpRequestProcessor.finishData(output);
 					output.flush();
 				} catch (IOException e) {
 					localError = upload;

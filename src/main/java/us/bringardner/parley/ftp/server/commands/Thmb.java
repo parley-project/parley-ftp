@@ -132,11 +132,40 @@ public class Thmb extends BaseCommand implements FeatCommand {
 				"Opening BINARY mode data connection for thumbnail ("+thumb.length+" Bytes)");
 	}
 
-	/** @return the thumbnail, or nothing if the file isn't an image Java can read */
+	/** The most pixels a source image may have (its header says how many before it is decoded) */
+	public static final long MAX_SOURCE_PIXELS = 50_000_000L;
+
+	/** @return the thumbnail, or nothing if the file isn't an image Java can read, or is too large */
 	static byte[] thumbnail(FileSource f, String format, int maxW, int maxH) throws IOException {
 		BufferedImage src;
-		try (InputStream in = f.getInputStream()) {
-			src = ImageIO.read(in);
+		try (InputStream in = f.getInputStream();
+				javax.imageio.stream.ImageInputStream iis = ImageIO.createImageInputStream(in)) {
+			if( iis == null ) {
+				return new byte[0];
+			}
+			java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(iis);
+			if( !readers.hasNext() ) {
+				return new byte[0];
+			}
+			javax.imageio.ImageReader reader = readers.next();
+			try {
+				reader.setInput(iis, true, true);
+				// the size from the header, before anything is decoded: a small file can claim a huge image
+				int sw = reader.getWidth(0);
+				int sh = reader.getHeight(0);
+				if( sw < 1 || sh < 1 || (long) sw * sh > MAX_SOURCE_PIXELS ) {
+					return new byte[0];
+				}
+				javax.imageio.ImageReadParam param = reader.getDefaultReadParam();
+				// decode only every n-th pixel when the thumbnail is much smaller
+				int sub = Math.max(1, Math.min(sw / Math.max(1, maxW), sh / Math.max(1, maxH)) / 2);
+				if( sub > 1 ) {
+					param.setSourceSubsampling(sub, sub, 0, 0);
+				}
+				src = reader.read(0, param);
+			} finally {
+				reader.dispose();
+			}
 		}
 		if( src == null ) {
 			return new byte[0];

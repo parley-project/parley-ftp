@@ -136,8 +136,10 @@ public class TestMfxx {
 		assertTrue(c.connect("plain", "1234", null));
 		try {
 			assertTrue(c.setModificationTime("c.txt", T + 999));
-			assertEquals(T, f.lastModified(), "whole seconds");
-			assertTrue(c.getDialog().contains("Write:MFMT 20020717210715 c.txt"), c.getDialog());
+			assertEquals(T + 999, f.lastModified(), "with milliseconds");
+			assertTrue(c.getDialog().contains("Write:MFMT 20020717210715.999 c.txt"), c.getDialog());
+			assertTrue(c.setModificationTime("c.txt", T));
+			assertTrue(c.getDialog().contains("Write:MFMT 20020717210715 c.txt"), "whole seconds as they are");
 			Map<String, String> facts = new LinkedHashMap<>();
 			facts.put("Modify", FtpClient.timeVal(T + 60000));
 			Map<String, String> set = c.setFacts("c.txt", facts);

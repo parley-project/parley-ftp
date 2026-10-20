@@ -94,8 +94,10 @@ public class TestStreamlined {
 	public void rmda() throws Exception {
 		File d = tree("gone");
 		try (RawFtp c = new RawFtp(PORT).login()) {
-			assertEquals(250, c.one("RMDA gone"));
+			assertEquals(250, c.one("CWD gone/a"));
+			assertEquals(250, c.one("RMDA /gone"));
 			assertFalse(d.exists());
+			assertTrue(c.oneReply("PWD").get(0).startsWith("257 \"/\""), "the current directory was removed: its parent");
 			assertEquals(550, c.one("RMDA text.txt"));
 			assertEquals(550, c.one("RMDA nosuch"));
 			assertEquals(550, c.one("RMDA /"));
@@ -127,7 +129,31 @@ public class TestStreamlined {
 			assertEquals(501, c.one("THMB PNG 10 img.png"));
 			assertEquals(550, c.one("THMB PNG 10 10 text.txt"));
 			assertEquals(550, c.one("THMB PNG 10 10 nosuch.png"));
+			// a small file whose header claims 60000 x 60000: refused, not decoded
+			Files.write(new File(root, "bomb.png").toPath(), pngHeader(60000, 60000));
+			assertEquals(550, c.one("THMB PNG 10 10 bomb.png"));
 		}
+	}
+
+	/** A PNG signature, an IHDR with this size, and IEND: no image data */
+	private static byte[] pngHeader(int w, int h) throws Exception {
+		java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+		out.write(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'});
+		java.nio.ByteBuffer ihdr = java.nio.ByteBuffer.allocate(13).putInt(w).putInt(h).put((byte) 8).put((byte) 2).put((byte) 0).put((byte) 0).put((byte) 0);
+		chunk(out, "IHDR", ihdr.array());
+		chunk(out, "IEND", new byte[0]);
+		return out.toByteArray();
+	}
+
+	private static void chunk(java.io.ByteArrayOutputStream out, String type, byte[] data) throws Exception {
+		out.write(java.nio.ByteBuffer.allocate(4).putInt(data.length).array());
+		byte[] t = type.getBytes(StandardCharsets.US_ASCII);
+		out.write(t);
+		out.write(data);
+		java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+		crc.update(t);
+		crc.update(data);
+		out.write(java.nio.ByteBuffer.allocate(4).putInt((int) crc.getValue()).array());
 	}
 
 	@Test

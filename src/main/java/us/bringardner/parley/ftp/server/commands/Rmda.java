@@ -62,8 +62,14 @@ public class Rmda extends BaseCommand implements FeatCommand {
 			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"The root can't be removed");
 			return;
 		}
+		String removed = processor.getVirtualPath(dir);
+		String cwd = processor.getVirtualPath(processor.getCurrentDir());
 		int[] left = new int[1];
 		remove(processor, dir, left);
+		if( (cwd.equals(removed) || cwd.startsWith(removed.endsWith("/") ? removed : removed+"/")) && !dir.exists() ) {
+			// as RMD: the current directory was in what was removed
+			processor.setCurrentDir(dir.getParentFile());
+		}
 		if( left[0] > 0 ) {
 			processor.reply(REPLY_550_ACTION_NOT_TAKEN,left[0]+" item(s) in "+path+" could not be removed");
 		} else {
