@@ -56,6 +56,21 @@ import us.bringardner.parley.net.server.Server;
  */
 public class FtpServer extends Server {
 
+	/**
+	 * System property: how many servers share the store (off, the default: this server alone, and
+	 * a second one is refused; host: several on one machine; cluster: several anywhere). Uploads,
+	 * deletes and renames of one file keep out of each other across all of them, through
+	 * parley-net's {@link us.bringardner.parley.net.lock.StoreLocks}.
+	 * @since 1.1.0
+	 */
+	public static final String SHARED_STORE_PROPERTY = "parley.ftp.sharedStore";
+	/**
+	 * System property: this server's id among those that share the store (default: the host, the
+	 * server's name and its port).
+	 * @since 1.1.0
+	 */
+	public static final String SERVER_ID_PROPERTY = "parley.ftp.serverId";
+
 	public static final int FTP_PORT = 21;
 	public static final int FTP_SSL_PORT = 421;
 	public static final String FTP_NAME = "JFtp";
@@ -475,6 +490,71 @@ public class FtpServer extends Server {
 			
 			return ret;
 		}
+	}
+
+	/** The roots this server has claimed while it runs: their domains and claims. */
+	private final java.util.List<us.bringardner.parley.net.lock.LockDomain> lockDomains = new java.util.ArrayList<>();
+	private final java.util.List<us.bringardner.parley.net.lock.StoreClaim> storeClaims = new java.util.ArrayList<>();
+
+	/**
+	 * Claims the store of the root and of every virtual host (see {@link #SHARED_STORE_PROPERTY})
+	 * before accepting connections: with sharing off a second server on one is refused, shared
+	 * the servers that share it are let in. Fails to start if a claim fails.
+	 */
+	@Override
+	public synchronized void start() {
+		if( lockDomains.isEmpty() ) {
+			try {
+				claimStores();
+			} catch (IOException e) {
+				releaseStores();
+				logError("Can't start "+getName()+": "+e.getMessage(), e);
+				throw new java.io.UncheckedIOException(e);
+			} catch (RuntimeException e) {
+				releaseStores();
+				logError("Can't start "+getName()+": "+e.getMessage(), e);
+				throw e;
+			}
+		}
+		boolean started = false;
+		try {
+			super.start();
+			started = true;
+		} finally {
+			if( !started ) {
+				releaseStores();
+			}
+		}
+	}
+
+	@Override
+	public void stop() {
+		super.stop();
+		releaseStores();
+	}
+
+	private void claimStores() throws IOException {
+		java.util.List<FileSource> roots = new java.util.ArrayList<FileSource>();
+		roots.add(getFtpRoot());
+		roots.addAll(virtualHosts.values());
+		us.bringardner.parley.net.lock.Sharing sharing = us.bringardner.parley.net.lock.StoreLocks.sharing(SHARED_STORE_PROPERTY);
+		String id = us.bringardner.parley.net.lock.StoreLocks.serverId(SERVER_ID_PROPERTY, "ftp", getPort());
+		for(FileSource root : roots) {
+			us.bringardner.parley.net.lock.LockDomain d = us.bringardner.parley.net.lock.StoreLocks.get().acquire(root, sharing);
+			lockDomains.add(d);
+			storeClaims.add(d.claimStore(id));
+		}
+	}
+
+	private synchronized void releaseStores() {
+		for(us.bringardner.parley.net.lock.StoreClaim c : storeClaims) {
+			c.close();
+		}
+		storeClaims.clear();
+		for(us.bringardner.parley.net.lock.LockDomain d : lockDomains) {
+			us.bringardner.parley.net.lock.StoreLocks.get().release(d);
+		}
+		lockDomains.clear();
 	}
 
 	public FileSource getFtpRoot() throws IOException {

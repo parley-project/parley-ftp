@@ -86,7 +86,20 @@ public class Dele extends BaseCommand {
 			processor.reply(REPLY_450_FILE_ACTION_FAILED,"Invalid or non existing file");
 		} else {			
 			name = processor.getVirtualPath(dest);
-			if( dest.delete() ) {
+			// not while another session (or server) uploads it
+			us.bringardner.parley.ftp.server.FtpFileLock lock = dest.isDirectory() ? null : processor.lockFile(dest);
+			if( lock == null && !dest.isDirectory() ) {
+				return; // busy: told
+			}
+			boolean deleted;
+			try {
+				deleted = dest.delete();
+			} finally {
+				if( lock != null ) {
+					lock.close();
+				}
+			}
+			if( deleted ) {
 				if(cwd.equals(dest)) {
 					// we just deleted the cwd
 					processor.setCurrentDir(cwd.getParentFile());

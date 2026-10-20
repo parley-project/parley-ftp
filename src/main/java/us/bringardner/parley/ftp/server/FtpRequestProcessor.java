@@ -211,6 +211,65 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		return ftpRoot;
 	}
 
+	/** This session's own reference to a lock domain, for a root no server registered (see lockFile), or null. */
+	private transient us.bringardner.parley.net.lock.LockDomain sessionDomain;
+
+	/**
+	 * The file's lock, for an upload, a delete or a rename: taken at once, or the client is told the
+	 * file is busy (450) and null is returned. It reaches the other sessions here and the servers
+	 * that share the store (see {@link FtpServer#SHARED_STORE_PROPERTY}); downloads don't take it.
+	 *
+	 * @return the lock (close it when the change is done, from any thread), or null if busy
+	 * @since 1.1.0
+	 */
+	public FtpFileLock lockFile(FileSource f) throws IOException {
+		us.bringardner.parley.net.lock.StoreLocks locks = us.bringardner.parley.net.lock.StoreLocks.get();
+		us.bringardner.parley.net.lock.LockDomain d = locks.acquireFor(f);
+		if( d == null && sessionDomain == null ) {
+			// a root outside every server's (a virtual host added while running, say): this session's own
+			sessionDomain = locks.acquire(getFtpRoot(), us.bringardner.parley.net.lock.StoreLocks.sharing(FtpServer.SHARED_STORE_PROPERTY));
+			d = locks.acquireFor(f);
+		}
+		if( d == null ) {
+			return FtpFileLock.NONE; // outside every store: nothing to keep out
+		}
+		us.bringardner.parley.net.lock.NamedLock l = null;
+		try {
+			// not reentrant: an upload of this session still running holds it
+			l = d.request(us.bringardner.parley.net.lock.StoreLocks.fileLockName(d, f)).exclusive().reentrant(false).tryAcquire();
+		} catch (IllegalStateException heldHere) {
+			l = null;
+		} catch (IOException | RuntimeException e) {
+			locks.release(d);
+			throw e;
+		}
+		if( l == null ) {
+			locks.release(d);
+			reply(REPLY_450_FILE_ACTION_FAILED, getDisplayFileName(f.getName())+": the file is busy (another upload or change is under way); try again later");
+			return null;
+		}
+		return new FtpFileLock(d, l);
+	}
+
+	/**
+	 * A directory's entries as clients may see them: without the store's lock directory.
+	 * @return the entries; none if the directory can't be listed
+	 * @since 1.1.0
+	 */
+	public FileSource[] listVisible(FileSource dir) throws IOException {
+		FileSource[] list = dir.listFiles();
+		if( list == null ) {
+			return new FileSource[0];
+		}
+		java.util.List<FileSource> ret = new java.util.ArrayList<FileSource>(list.length);
+		for(FileSource f : list) {
+			if( !us.bringardner.parley.net.lock.StoreLocks.get().isLockFile(f) ) {
+				ret.add(f);
+			}
+		}
+		return ret.toArray(new FileSource[0]);
+	}
+
 	public void setFtpRoot(FileSource ftpRoot) throws IOException {
 
 		logDebug("Set ftpRoot = "+ftpRoot.getAbsolutePath());
@@ -352,6 +411,11 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			FileSource ret = root.getChild(rel.toString());
 			if( !isInsideRoot(ret) ) {
 				logInfo("Rejected path outside of root: "+path);
+				return null;
+			}
+			if( us.bringardner.parley.net.lock.StoreLocks.get().isLockFile(ret) ) {
+				// the store's locks: no client may see or change them
+				logInfo("Rejected path in the lock directory: "+path);
 				return null;
 			}
 			return ret;
@@ -939,6 +1003,10 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			 * passive listener / data socket here so no ports or files are left open.
 			 */
 			resetDataConnection();
+			if( sessionDomain != null ) {
+				us.bringardner.parley.net.lock.StoreLocks.get().release(sessionDomain);
+				sessionDomain = null;
+			}
 		}
 
 	}
@@ -1333,10 +1401,27 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @param inPlace true to write into the target, with resuming
 	 */
 	public void receiveFile(final FileSource target, boolean append, final boolean inPlace) throws IOException {
+		// the file's lock first: a busy file is refused before the data connection is opened
+		final FtpFileLock lock = lockFile(target);
+		if( lock == null ) {
+			return;
+		}
+		boolean started = false;
+		try {
+			started = receiveFileLocked(target, append, inPlace, lock);
+		} finally {
+			if( !started ) {
+				lock.close();
+			}
+		}
+	}
+
+	/** @return true if the transfer was started (it lets go of the lock when it ends) */
+	private boolean receiveFileLocked(final FileSource target, boolean append, final boolean inPlace, final FtpFileLock lock) throws IOException {
 		Socket sock = getDataSocket();
 		if( sock == null ){
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data socket");
-			return;
+			return false;
 		}
 
 		InputStream in;
@@ -1344,7 +1429,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			in = sock.getInputStream();
 		} catch (IOException e) {
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
-			return;
+			return false;
 		}
 
 		OutputStream out = null;
@@ -1372,6 +1457,13 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 					@Override
 					public void transferComplete(boolean success) throws IOException {
 						if( success ) {
+							try {
+								// a server that lost the lock (paused past its lease) replaces nothing
+								lock.checkValid();
+							} catch (IOException lost) {
+								temp.delete();
+								throw lost;
+							}
 							commitUpload(temp, target);
 						} else if( temp.exists() && !temp.delete() ) {
 							logError("Can't delete incomplete upload "+temp);
@@ -1383,10 +1475,31 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			logError("Can't open "+target+" for writing", e);
 			IoUtils.closeQuietly(sock);
 			reply(REPLY_553_FILE_NAME_NOT_ALLOWED,"Can't write "+getDisplayFileName(target.getName())+": "+e.getMessage());
-			return;
+			return false;
 		}
 
-		transferStream(in, out, sock, true, handler);
+		transferStream(in, out, sock, true, releasing(handler, lock));
+		return true;
+	}
+
+	/**
+	 * A transfer's completion handler that lets go of the file's lock once the handler has run,
+	 * before the final reply (so a client that goes on at once finds the file free). The transfer
+	 * runs it once, also when it isn't started.
+	 */
+	private static FtpServerStream.CompletionHandler releasing(final FtpServerStream.CompletionHandler handler, final FtpFileLock lock) {
+		return new FtpServerStream.CompletionHandler() {
+			@Override
+			public void transferComplete(boolean success) throws IOException {
+				try {
+					if( handler != null ) {
+						handler.transferComplete(success);
+					}
+				} finally {
+					lock.close();
+				}
+			}
+		};
 	}
 
 	/** Reads at most limit bytes of a stream (a RANG retrieve); closing it closes the stream. */
@@ -1527,10 +1640,25 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @since 1.1.0
 	 */
 	public void receiveFileAt(final FileSource target, final long position, final long maxLength) throws IOException {
+		final FtpFileLock lock = lockFile(target);
+		if( lock == null ) {
+			return;
+		}
+		boolean started = false;
+		try {
+			started = receiveFileAtLocked(target, position, maxLength, lock);
+		} finally {
+			if( !started ) {
+				lock.close();
+			}
+		}
+	}
+
+	private boolean receiveFileAtLocked(final FileSource target, final long position, final long maxLength, final FtpFileLock lock) throws IOException {
 		Socket sock = getDataSocket();
 		if( sock == null ){
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data socket");
-			return;
+			return false;
 		}
 
 		InputStream in;
@@ -1538,7 +1666,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			in = sock.getInputStream();
 		} catch (IOException e) {
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
-			return;
+			return false;
 		}
 
 		OutputStream out;
@@ -1558,19 +1686,20 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			logError("Can't open "+target+" for writing at "+position, e);
 			IoUtils.closeQuietly(sock);
 			reply(REPLY_553_FILE_NAME_NOT_ALLOWED,"Can't write "+getDisplayFileName(target.getName())+" at "+position+": "+e.getMessage());
-			return;
+			return false;
 		}
 		// an upload this server knew was cut off is now whatever this made of it
 		clearUnfinishedUpload(target);
-		transferStream(in, out, sock, true, null);
+		transferStream(in, out, sock, true, releasing(null, lock));
+		return true;
 	}
 
 	/**
 	 * Move a completed upload into place, replacing target.
 	 */
 	void commitUpload(FileSource temp, FileSource target) throws IOException {
-		// On POSIX file systems this atomically replaces the target.
-		if( temp.renameTo(target) ) {
+		// one step where the store can (a download sees the old file or the new one, never neither)
+		if( temp.renameTo(target, true) ) {
 			return;
 		}
 		// Some file systems (Windows, some FileSource implementations) won't rename over an

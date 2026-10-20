@@ -146,6 +146,37 @@ clients may not have it. Both points count octets from the start of the file, an
   `JFtp.storeAtOffset`.
 - `APPE` refuses a range (`504`).
 
+## Writers
+
+Two sessions never change one file at once, whether they are on this server or on others that share
+the store:
+
+- An upload (`STOR`, `STOU`, `APPE`, a resumed or ranged `STOR`) holds the file's lock from the command
+  until the transfer ends. A `STOR` that writes a temporary file holds it until the temporary file has
+  replaced the target, in one step. Removing a file (`DELE`) and renaming one (`RNFR`/`RNTO`, both the old
+  and the new name) take the lock too.
+- While another session (or this one, in a second transfer) holds it, the command is refused at once
+  with `450` and "the file is busy (another upload or change is under way); try again later". Nothing
+  waits.
+- Downloads take no lock: a reader sees the file as it is being written, or, for a `STOR` through a
+  temporary file, the old file until it is replaced.
+- The locks are parley-net's (`StoreLocks`): one lock domain per root, shared with the other servers in
+  the JVM that serve it (parley-ssh's SFTP server, say), so an FTP upload and an SFTP write of one file
+  keep out of each other too. A root inside one already in use shares its domain.
+- How many servers share the store is the system property `parley.ftp.sharedStore`: `off` (the default:
+  this server alone), `host` (several on one machine) or `cluster` (several anywhere). At start the
+  server claims the store of its root and of every virtual host; with `off`, a server elsewhere that
+  claims it is refused, and this one doesn't start if the store is already claimed alone. With `host` or
+  `cluster`, every server must serve the same root, where the locks are kept. `parley.ftp.serverId` names
+  this server among them (default: the host, the name and the port).
+- The locks are kept in the root, in `.parley-net-locks`. The server hides it: it isn't listed and can't
+  be reached, so no client can change it.
+- Not covered: a directory removed or renamed while a file in it is uploaded (the upload then fails as it
+  would without locks), two names for one file on a file system that ignores case, and a virtual host
+  added after the server started (its files are locked, but its store isn't claimed).
+
+Tested in `TestFtpLocks`.
+
 ## Links
 
 An administrator can make a file or a directory appear in a user's root without copying it, by making a
