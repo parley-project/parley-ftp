@@ -136,6 +136,12 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	private String host;
 	/** The name sent with HOST (RFC 7151) and used for TLS; null for the host connected to */
 	private volatile String virtualHost;
+	/** SPSV (draft-rosenau-ftp-single-port) for passive data connections when the server has it */
+	private volatile boolean useSinglePort = false;
+	/** MODE Z (draft-preston-ftpext-deflate) asked for */
+	private volatile boolean compression = false;
+	/** MODE Z is on, on this connection */
+	private volatile boolean modeZActive = false;
 	/** The language asked for with LANG (RFC 2640), sent again after a reconnect; null for none */
 	private volatile String language;
 	/** Send HOST before logging in (RFC 7151) */
@@ -1184,6 +1190,8 @@ public class FtpClient extends SecureBaseObject implements FTP {
 		ret.useSsl = useSsl;
 		ret.virtualHost = virtualHost;
 		ret.language = language;
+		ret.compression = compression;
+		ret.useSinglePort = useSinglePort;
 		ret.sendHost = sendHost;
 		ret.connect(userId,password,account);
 
@@ -1606,7 +1614,7 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 					// empty listing, already complete
 					return new String[0];
 				}
-				in = new CRLFLineReader(dtp.getInput());
+				in = new CRLFLineReader(isModeZActive() ? inflate(dtp.getInput()) : dtp.getInput());
 				String line = null;
 				List<String> list = new ArrayList<String>();
 				while((line=in.readLine()) != null) {
@@ -2382,8 +2390,116 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		return ret;
 	}
 
+	/**
+	 * @return true if passive data connections use SPSV (draft-rosenau-ftp-single-port) when the server
+	 * lists it in FEAT
+	 * @since 1.1.0
+	 */
+	public boolean isUseSinglePort() {
+		return useSinglePort;
+	}
+
+	/**
+	 * Passive data connections through the control port only (SPSV, draft-rosenau-ftp-single-port): for a
+	 * server behind port forwarding that only forwards that port. Used when the server lists SPSV in FEAT
+	 * and accepts it (it is refused when the data protection differs from the control port's); otherwise
+	 * EPSV and PASV as usual. Off by default.
+	 * @since 1.1.0
+	 */
+	public void setUseSinglePort(boolean useSinglePort) {
+		this.useSinglePort = useSinglePort;
+	}
+
+	/** @return true if MODE Z was asked for with {@link #setCompression(boolean)} */
+	public boolean isCompression() {
+		return compression;
+	}
+
+	/** @return true if data connections are deflated (MODE Z) on this connection now */
+	public boolean isModeZActive() {
+		return modeZActive && connected;
+	}
+
+	/**
+	 * MODE Z (draft-preston-ftpext-deflate): data connections deflated, for servers that list "MODE Z" in
+	 * FEAT; sent now (when connected) and after every reconnect. REST and RANG aren't used with it: a
+	 * download from a position reads and skips up to it, and an upload at a position fails. Off by
+	 * default.
+	 *
+	 * @return true if MODE Z (or, for false, MODE S) is in effect now; false if not connected or the
+	 * server has no MODE Z
+	 * @since 1.1.0
+	 */
+	public boolean setCompression(boolean compression) throws IOException {
+		this.compression = compression;
+		if( !connected ) {
+			return false;
+		}
+		return sendMode();
+	}
+
+	private boolean sendMode() throws IOException {
+		if( compression ) {
+			String mode = getFeatResponse().get(MODE);
+			if( mode == null || !mode.toUpperCase(java.util.Locale.ROOT).matches(".*\\bZ\\b.*") ) {
+				modeZActive = false;
+				return false;
+			}
+			modeZActive = executeCommand(MODE, "Z").isPositiveComplet();
+			return modeZActive;
+		}
+		if( modeZActive ) {
+			modeZActive = !executeCommand(MODE, "S").isPositiveComplet();
+		}
+		return !modeZActive;
+	}
+
+	/** A deflating stream for MODE Z that ends its Deflater when finished */
+	public static final class ZOutputStream extends java.util.zip.DeflaterOutputStream {
+		ZOutputStream(OutputStream out) {
+			super(out, new java.util.zip.Deflater(), 64*1024);
+		}
+
+		/** The end of the deflated data, and the Deflater released */
+		public void finishAndEnd() throws IOException {
+			try {
+				finish();
+				flush();
+			} finally {
+				def.end();
+			}
+		}
+	}
+
+	/** @return out, deflated (MODE Z) */
+	ZOutputStream deflate(OutputStream out) {
+		return new ZOutputStream(out);
+	}
+
+	/** @return in, inflated (MODE Z) */
+	InputStream inflate(InputStream in) {
+		return new java.util.zip.InflaterInputStream(in, new java.util.zip.Inflater(), 64*1024) {
+			@Override
+			public void close() throws IOException {
+				try {
+					super.close();
+				} finally {
+					inf.end();
+				}
+			}
+		};
+	}
+
 	/** What is sent once logged in: LANG when a language was asked for */
 	private void afterLogin() {
+		modeZActive = false;
+		if( compression ) {
+			try {
+				sendMode();
+			} catch (IOException e) {
+				logError("MODE Z failed", e);
+			}
+		}
 		if( language != null ) {
 			try {
 				if( !sendLanguage() ) {

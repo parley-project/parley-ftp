@@ -663,6 +663,21 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	public Socket getDataSocket() {
 		Socket ret = null;
 
+		SinglePort sp = singlePort;
+		if( sp != null ) {
+			// SPSV: wait for the client's SPDT connection to the control port
+			singlePort = null;
+			try {
+				dataSocket = sp.socket.get(activityTimeOut > 0 ? activityTimeOut : FtpServer.DEFAULT_DATA_TIMEOUT, java.util.concurrent.TimeUnit.MILLISECONDS);
+			} catch (Exception e) {
+				logDebug("No SPDT connection for "+sp.id, e);
+				dataSocket = null;
+			} finally {
+				((FtpServer) getServer()).removeSinglePort(sp.id);
+				sp.closeIfUnused();
+			}
+		}
+
 		if( pasvSocket != null ){
 			ret = pasvSocket.getDataSocket();
 		} else {
@@ -1039,6 +1054,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		// RFC 7151 section 3.2.1: a new HOST is needed
 		virtualHost = null;
 		representationType = TYPE_ASCII;
+		modeZ = false;
+		deflateLevel = java.util.zip.Deflater.DEFAULT_COMPRESSION;
 		FtpServer server = (FtpServer) getServer();
 		// not setFactory(): that would look for the current root in the server's file system
 		this.factory = server.getFileSourceFactory();
@@ -1058,7 +1075,144 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 	}
 
+	/**
+	 * SPSV (draft-rosenau-ftp-single-port): the data connection is a second connection to the control
+	 * port, which sends {@code SPDT id} and is handed to this session.
+	 * @since 1.1.0
+	 */
+	public static final class SinglePort {
+		public final String id;
+		final java.util.concurrent.CompletableFuture<Socket> socket = new java.util.concurrent.CompletableFuture<Socket>();
+
+		SinglePort(String id) {
+			this.id = id;
+		}
+
+		/** The SPDT session's socket arrives: false if this session no longer wants it */
+		public boolean deliver(Socket s) {
+			return socket.complete(s);
+		}
+
+		/** No longer wanted: an SPDT connection that came is closed, one that comes later is refused */
+		void closeIfUnused() {
+			if( !socket.complete(null) ) {
+				// it came; whoever took it closes it, or this does if nobody did
+			}
+		}
+
+		void cancel() {
+			if( !socket.complete(null) ) {
+				Socket s = socket.getNow(null);
+				if( s != null ) {
+					IoUtils.closeQuietly(s);
+				}
+			}
+		}
+	}
+
+	private volatile SinglePort singlePort;
+
+	/**
+	 * SPSV: a new identifier for the next data connection, registered with the server. Closes any other
+	 * data connection set up.
+	 * @return the identifier the client sends with SPDT
+	 * @since 1.1.0
+	 */
+	public String openSinglePort() {
+		setPasvSocket(null);
+		byte[] b = new byte[12];
+		RANDOM.nextBytes(b);
+		String id = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+		SinglePort sp = new SinglePort(id);
+		((FtpServer) getServer()).addSinglePort(sp);
+		singlePort = sp;
+		return id;
+	}
+
+	private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
+
+	/** MODE Z (draft-preston-ftpext-deflate): data connections are deflated (zlib, RFC 1950) */
+	private volatile boolean modeZ = false;
+	private volatile int deflateLevel = java.util.zip.Deflater.DEFAULT_COMPRESSION;
+
+	/** @return true after MODE Z, until MODE S or REIN */
+	public boolean isModeZ() {
+		return modeZ;
+	}
+
+	public void setModeZ(boolean modeZ) {
+		this.modeZ = modeZ;
+	}
+
+	/** @param level 0 to 9 (OPTS MODE Z LEVEL n), or -1 for the default */
+	public void setDeflateLevel(int level) {
+		this.deflateLevel = level;
+	}
+
+	public int getDeflateLevel() {
+		return deflateLevel;
+	}
+
+	/** Deflates, and ends its Deflater when closed */
+	private static final class ZOutputStream extends java.util.zip.DeflaterOutputStream {
+		ZOutputStream(OutputStream out, int level) {
+			super(out, new java.util.zip.Deflater(level), 64*1024, false);
+		}
+
+		@Override
+		public void close() throws IOException {
+			try {
+				super.close();
+			} finally {
+				def.end();
+			}
+		}
+	}
+
+	/**
+	 * @return what data sent on this data connection is written to: deflated in MODE Z
+	 * @since 1.1.0
+	 */
+	public OutputStream dataOutput(Socket sock) throws IOException {
+		OutputStream out = sock.getOutputStream();
+		return modeZ ? new ZOutputStream(out, deflateLevel) : out;
+	}
+
+	/**
+	 * @return what data received on this data connection is read from: inflated in MODE Z
+	 * @since 1.1.0
+	 */
+	public InputStream dataInput(Socket sock) throws IOException {
+		InputStream in = sock.getInputStream();
+		return modeZ ? new java.util.zip.InflaterInputStream(in, new java.util.zip.Inflater(), 64*1024) {
+			@Override
+			public void close() throws IOException {
+				try {
+					super.close();
+				} finally {
+					inf.end();
+				}
+			}
+		} : in;
+	}
+
+	/** Ends a deflated stream (MODE Z) so what was written is all sent; nothing for a plain one */
+	public static void finishData(OutputStream out) throws IOException {
+		if( out instanceof java.util.zip.DeflaterOutputStream ) {
+			((java.util.zip.DeflaterOutputStream) out).finish();
+		}
+	}
+
 	private void resetDataConnection() {
+		SinglePort sp = singlePort;
+		if( sp != null ) {
+			singlePort = null;
+			IServer server = getServer();
+			if( server instanceof FtpServer ) {
+				((FtpServer) server).removeSinglePort(sp.id);
+			}
+			sp.cancel();
+		}
 		if( pasvSocket != null ) {
 			pasvSocket.abor();
 			pasvSocket = null;
@@ -1213,7 +1367,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 			OutputStream out;
 			try {
-				out = sock.getOutputStream();
+				out = dataOutput(sock);
 			} catch (IOException e) {
 				reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
 				return;
@@ -1303,7 +1457,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		} else {
 			InputStream in;
 			try {
-				in = sock.getInputStream();
+				in = dataInput(sock);
 			} catch (IOException e) {
 				IoUtils.closeQuietly(out);
 				reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
@@ -1363,7 +1517,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 		InputStream in;
 		try {
-			in = sock.getInputStream();
+			in = dataInput(sock);
 		} catch (IOException e) {
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
 			return;
@@ -1570,7 +1724,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 		InputStream in;
 		try {
-			in = sock.getInputStream();
+			in = dataInput(sock);
 		} catch (IOException e) {
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
 			return;

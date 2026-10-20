@@ -136,6 +136,9 @@ public interface FTP {
 	public static final String RMDA = "RMDA";
 	public static final String THMB = "THMB";
 	public static final String CSID = "CSID";
+	/** Single-port passive mode (draft-rosenau-ftp-single-port) */
+	public static final String SPSV = "SPSV";
+	public static final String SPDT = "SPDT";
 	public static final String XCRC = "XCRC";
 	public static final String XMD5 = "XMD5";
 	public static final String XSHA1 = "XSHA1";

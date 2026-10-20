@@ -268,6 +268,13 @@ Internet Draft        draft-ietf-ftpext-mlst-16.txt       September 2002
 			utf8(processor, options);
 		} else if( MLST.equals(name) ) {
 			mlst(processor, options);
+		} else if( MODE.equals(name) && options.toUpperCase(Locale.ROOT).matches("Z( +LEVEL +[0-9])?") ) {
+			// draft-preston-ftpext-deflate: OPTS MODE Z LEVEL n, 0 (none) to 9 (most)
+			String[] t = options.trim().split(" +");
+			if( t.length == 3 ) {
+				processor.setDeflateLevel(Integer.parseInt(t[2]));
+			}
+			processor.reply(REPLY_200_OK, "MODE Z LEVEL "+(processor.getDeflateLevel() < 0 ? 6 : processor.getDeflateLevel()));
 		} else if( HASH.equals(name) ) {
 			// draft-ietf-ftpext2-hash: OPTS HASH says which algorithm, OPTS HASH name chooses one
 			if( options.isEmpty() ) {

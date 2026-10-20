@@ -123,7 +123,7 @@ public class Thmb extends BaseCommand implements FeatCommand {
 		}
 		OutputStream out;
 		try {
-			out = sock.getOutputStream();
+			out = processor.dataOutput(sock);
 		} catch (IOException e) {
 			processor.reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
 			return;

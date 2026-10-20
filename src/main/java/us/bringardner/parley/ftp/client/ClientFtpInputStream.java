@@ -204,6 +204,11 @@ public class ClientFtpInputStream extends InputStream implements FTP {
             }
         }
         
+        if( !eof && client.isModeZActive() ) {
+            // MODE Z (draft-preston-ftpext-deflate)
+            in = client.inflate(in);
+        }
+
         if( endAt >= 0 && !ranged ) {
             // the server sends to the end of the file: stop at endAt here
             long len = endAt - startAt;

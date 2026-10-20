@@ -183,6 +183,58 @@ public abstract class ClientDataTransferProcess extends BaseObject implements FT
 		}
 	}
 	
+	/** SPSV: the identifier sent with SPDT on the data connection, or null */
+	private String singlePortId;
+
+	protected void setSinglePortId(String id) {
+		this.singlePortId = id;
+	}
+
+	/** One line from the server on the data connection, a byte at a time so no data is read with it */
+	private static String readLine(java.io.InputStream in) throws IOException {
+		StringBuilder ret = new StringBuilder();
+		int c;
+		while( (c = in.read()) >= 0 && c != '\n' ) {
+			if( c != '\r' ) {
+				ret.append((char) c);
+			}
+		}
+		if( c < 0 && ret.length() == 0 ) {
+			throw new IOException("The server closed the SPDT connection");
+		}
+		return ret.toString();
+	}
+
+	/** One reply (the last line of a multi-line one) */
+	private static String readReply(java.io.InputStream in) throws IOException {
+		String line = readLine(in);
+		if( line.length() > 3 && line.charAt(3) == '-' ) {
+			String end = line.substring(0, 3)+" ";
+			while( !line.startsWith(end) ) {
+				line = readLine(in);
+			}
+		}
+		return line;
+	}
+
+	/**
+	 * SPSV (draft-rosenau-ftp-single-port): on a new connection to the control port, the greeting, then
+	 * SPDT id, then 200 DATA; then it is the data connection.
+	 */
+	private void singlePortHandshake(Socket s) throws IOException {
+		java.io.InputStream in = s.getInputStream();
+		String greeting = readReply(in);
+		if( !greeting.startsWith("220") ) {
+			throw new IOException("SPDT: unexpected greeting "+greeting);
+		}
+		s.getOutputStream().write(("SPDT "+singlePortId+"\r\n").getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+		s.getOutputStream().flush();
+		String reply = readReply(in);
+		if( !reply.startsWith("200") ) {
+			throw new IOException("SPDT "+singlePortId+": "+reply);
+		}
+	}
+
 	private Socket getClientSocket() throws UnknownHostException, IOException {
 		FtpClient client = getClient();
 		// Plain TCP first; TLS is added once connected so it can resume the control
@@ -202,6 +254,9 @@ public abstract class ClientDataTransferProcess extends BaseObject implements FT
 			ret.setSoTimeout(client.getTransferTimeout());
 			if( client.isDataChannelSecure() ) {
 				ret = client.secureDataSocket(ret);
+			}
+			if( singlePortId != null ) {
+				singlePortHandshake(ret);
 			}
 		} catch (IOException e) {
 			IoUtils.closeQuietly(ret);

@@ -34,6 +34,12 @@ class RawFtp implements AutoCloseable {
 	BufferedReader in;
 	Writer out;
 
+	/** On a connection already open: reads the greeting */
+	RawFtp(Socket s) throws IOException {
+		attach(s);
+		assertEquals(220, code(read()));
+	}
+
 	RawFtp(int port) throws IOException {
 		plain.connect(new InetSocketAddress("127.0.0.1", port), 5000);
 		attach(plain);

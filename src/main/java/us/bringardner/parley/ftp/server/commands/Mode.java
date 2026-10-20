@@ -39,7 +39,7 @@ import us.bringardner.parley.ftp.server.FtpRequestProcessor;
  * @author Tony Bringardner
  *
  */
-public class Mode extends BaseCommand {
+public class Mode extends BaseCommand implements us.bringardner.parley.ftp.server.FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -71,30 +71,37 @@ public class Mode extends BaseCommand {
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
-		String commandLine = context.getCommandLine();
-		
-		String [] args = commandLine.split(" ");
-		if( args.length != 2 || args[1].length() == 0) {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Not enough parameters");
+		String commandLine = context.getCommandLine().trim();
+		String [] args = commandLine.split(" +");
+		if( args.length != 2 || args[1].length() != 1) {
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Syntax: MODE S | Z");
 			return;
 		}
-		
-		boolean ok = false;
-		switch(args[1].toLowerCase(java.util.Locale.ROOT).charAt(0)){
-			case 's': ok = true;
-					break;
+		switch(args[1].toUpperCase(java.util.Locale.ROOT).charAt(0)){
+			case 'S':
+				processor.setModeZ(false);
+				processor.reply(REPLY_200_OK,"mode " + args[1]);
+				break;
+			case 'Z':
+				// draft-preston-ftpext-deflate: stream mode, deflated; a REST or RANG set is dropped
+				processor.removeTempValue(REST);
+				processor.removeTempValue(RANG);
+				processor.setModeZ(true);
+				processor.reply(REPLY_200_OK,"mode Z (deflate)");
+				break;
 			default:
-					// only STREAM mode is supported
-					break;
+				// RFC 959: 504 for a mode that isn't implemented (B, C)
+				processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"mode " + args[1] + " not implemented.");
+				break;
 		}
-		if( ok ){
-			processor.reply(REPLY_200_OK,"mode " + args[1]);
-		} else {
-			// RFC 959: 504 for a mode that isn't implemented (B, C)
-			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"mode " + args[1] + " not implemented.");
-		}
-
 	}
+
+	/** MODE Z (draft-preston-ftpext-deflate) is listed in FEAT */
+	@Override
+	public String getFeatResponse(FtpRequestProcessor processor) {
+		return MODE+" Z";
+	}
+
 	
 	@Override
 	public IPermission getPermission() {

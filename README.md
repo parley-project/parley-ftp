@@ -101,6 +101,13 @@ Each setting can be passed as a system property or set with the matching `FtpSer
     on the data connection as `RETR` sends a file; formats are what Java writes (`BMP|GIF|JPEG|PNG`).
   - `CSID Name=...;Version=...;Vendor=...;`: the client says what it is (shown by `STAT`), the server replies the same
     of itself. Needs a login.
+- **SPSV (draft-rosenau-ftp-single-port, in `FEAT`):** passive mode through the control port only. The reply has a
+  one-time identifier, `227 Entering single-port mode (id)`; the client opens a second connection to the control port,
+  sends `SPDT id`, gets `200 DATA`, and that connection carries the next transfer. It is protected as the control port
+  is, so `SPSV` gets `504` when the data protection set differs (`PROT P` after `AUTH TLS`, `PROT C` with implicit TLS).
+- **MODE Z (draft-preston-ftpext-deflate, `MODE Z` in `FEAT`):** data connections (transfers and listings) are
+  deflated (zlib); `OPTS MODE Z LEVEL n` sets the level (0-9); `MODE S` turns it off, as does `REIN`. `REST` and `RANG`
+  get `504` in MODE Z.
 - **Virtual hosts (`HOST`, RFC 7151, in `FEAT`):** a client sends `HOST name` before logging in and gets that host's
   root (`addVirtualHost(name, root)` or `JFtp.virtualHosts`; each root can be in its own file system). Users and
   their permissions are the server's, whatever the host.
@@ -262,6 +269,11 @@ points. This server doesn't say, for the reasons above.
 - **Active mode** (`setActive(true)`): the client listens on the control connection's local address and sends `PORT` (IPv4) or `EPRT` (IPv6). With a protected data channel the client is the TLS client, as RFC 4217 requires.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
+- **SPSV:** `setUseSinglePort(true)` uses `SPSV` and `SPDT` for passive data connections when the server lists `SPSV`
+  in `FEAT` and accepts it; otherwise `EPSV`/`PASV`. Off by default.
+- **MODE Z:** `setCompression(true)` deflates data connections with a server that lists `MODE Z` in `FEAT` (now, and
+  after a reconnect). A download from a position then reads and skips up to it; an upload at a position fails. Off
+  by default.
 - **Streamlined extensions:** `getFreeSpace(dir)` (AVBL), `getDirectorySize(dir)` (DSIZ), `deleteRecursively(dir)`
   (RMDA), `getThumbnail(path, format, width, height)` (THMB) and `identify(name, version, vendor)` (CSID), each when the
   server lists the command in `FEAT`.

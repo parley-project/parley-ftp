@@ -48,6 +48,8 @@ import us.bringardner.parley.ftp.server.commands.Digests;
 import us.bringardner.parley.ftp.server.commands.Hash;
 import us.bringardner.parley.ftp.server.commands.Mfxx;
 import us.bringardner.parley.ftp.server.commands.Avbl;
+import us.bringardner.parley.ftp.server.commands.Spdt;
+import us.bringardner.parley.ftp.server.commands.Spsv;
 import us.bringardner.parley.ftp.server.commands.Csid;
 import us.bringardner.parley.ftp.server.commands.Dsiz;
 import us.bringardner.parley.ftp.server.commands.Rmda;
@@ -116,7 +118,6 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		addCommand(new Dele());
 		addCommand(new Debug());
 		addCommand(new Help());
-		addCommand(new Mode());
 		addCommand(new Mkd());
 		addCommand(new List());
 		addCommand(new Nlst());
@@ -186,6 +187,11 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		feat.addSupportedCommand(new Rmda());
 		feat.addSupportedCommand(new Thmb());
 		feat.addSupportedCommand(new Csid());
+		// MODE Z (draft-preston-ftpext-deflate) is in FEAT
+		feat.addSupportedCommand(new Mode());
+		// draft-rosenau-ftp-single-port
+		feat.addSupportedCommand(new Spsv());
+		addCommand(new Spdt());
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XCRC, Digests.CRC32));
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XMD5, Digests.MD5));
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XSHA1, Digests.SHA_1));
