@@ -99,6 +99,13 @@ public class Stor  extends BaseCommand {
 			return;
 		}
 
+		Rang.Range range = (Rang.Range)processor.removeTempValue(RANG);
+		if( range != null ) {
+			processor.removeTempValue(REST);
+			storeRange(processor, target, range);
+			return;
+		}
+
 		Long rest = (Long)processor.removeTempValue(REST);
 		// REST 0 means "no restart" (RFC 3659)
 		boolean resume = rest != null && rest.longValue() > 0;
@@ -153,6 +160,29 @@ public class Stor  extends BaseCommand {
 
 	}
 	
+	/**
+	 * RANG then STOR (draft-bryan-ftp-range): the upload is written into the file from the range's start,
+	 * in place, and nothing outside the range changes. Allowed only where REST then STOR may write at an
+	 * offset (FtpServer.setStoreAtOffset).
+	 */
+	private void storeRange(FtpRequestProcessor processor, FileSource target, Rang.Range range) throws IOException {
+		if( !processor.isStoreAtOffset() ) {
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM," RANG with STOR is not enabled on this server; nothing was stored");
+			return;
+		}
+		if( processor.isLink(target) ) {
+			// written in place, the file it leads to would change
+			processor.reply(REPLY_450_FILE_ACTION_FAILED," RANG with STOR is not accepted on a link");
+			return;
+		}
+		long len = target.exists() ? target.length() : 0;
+		if( range.getStart() > len ) {
+			processor.reply(REPLY_554_INVALID_REST,"Invalid RANG "+range.getStart()+" "+range.getEnd()+": the file is "+len+" bytes");
+			return;
+		}
+		processor.receiveFileAt(target, range.getStart(), range.getLength());
+	}
+
 	@Override
 	public IPermission getPermission() {
 		return WRITE_PERMISSION;

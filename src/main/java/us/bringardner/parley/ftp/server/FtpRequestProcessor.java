@@ -1034,7 +1034,17 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		 */
 		Long rest = (Long)removeTempValue(REST);
 		long startAt = rest == null ? 0 : rest.longValue();
-		if( startAt > 0 ) {
+		/*
+		 * RANG (draft-bryan-ftp-range): from start to end, inclusive. An end past the end of the
+		 * file sends to the end of the file, and a start at or past it sends nothing.
+		 */
+		us.bringardner.parley.ftp.server.commands.Rang.Range range =
+				(us.bringardner.parley.ftp.server.commands.Rang.Range)removeTempValue(RANG);
+		boolean nothing = false;
+		if( range != null ) {
+			startAt = range.getStart();
+			nothing = startAt >= local.length();
+		} else if( startAt > 0 ) {
 			long size = local.length();
 			if( startAt > size ) {
 				// RFC 3659 section 5.5
@@ -1044,7 +1054,14 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 
 		try {
-			in = startAt > 0 ? local.getInputStream(startAt) : local.getInputStream();
+			if( nothing ) {
+				in = new java.io.ByteArrayInputStream(new byte[0]);
+			} else {
+				in = startAt > 0 ? local.getInputStream(startAt) : local.getInputStream();
+				if( range != null ) {
+					in = new LimitedInputStream(in, range.getLength());
+				}
+			}
 		} catch(Exception ex) {
 			logError("Error creating stream",ex);
 			reply(REPLY_450_FILE_ACTION_FAILED,"Can't create stream, "+ex);
@@ -1250,6 +1267,99 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		transferStream(in, out, sock, true, handler);
 	}
 
+	/** Reads at most limit bytes of a stream (a RANG retrieve); closing it closes the stream. */
+	private static final class LimitedInputStream extends java.io.FilterInputStream {
+		private long remaining;
+
+		LimitedInputStream(InputStream in, long limit) {
+			super(in);
+			this.remaining = limit;
+		}
+
+		@Override
+		public int read() throws IOException {
+			if( remaining <= 0 ) {
+				return -1;
+			}
+			int b = super.read();
+			if( b >= 0 ) {
+				remaining--;
+			}
+			return b;
+		}
+
+		@Override
+		public int read(byte[] b, int off, int len) throws IOException {
+			if( remaining <= 0 ) {
+				return -1;
+			}
+			int n = super.read(b, off, (int)Math.min(len, remaining));
+			if( n > 0 ) {
+				remaining -= n;
+			}
+			return n;
+		}
+
+		@Override
+		public long skip(long n) throws IOException {
+			long s = super.skip(Math.min(n, remaining));
+			if( s > 0 ) {
+				remaining -= s;
+			}
+			return s;
+		}
+
+		@Override
+		public int available() throws IOException {
+			return (int)Math.min(super.available(), remaining);
+		}
+
+		@Override
+		public boolean markSupported() {
+			return false;
+		}
+	}
+
+	/**
+	 * Writes at most limit bytes (a RANG store): more than that fails the write, after the bytes that
+	 * fit are written, so nothing outside the range changes.
+	 */
+	private static final class LimitedOutputStream extends java.io.FilterOutputStream {
+		private final long limit;
+		private long remaining;
+
+		LimitedOutputStream(OutputStream out, long limit) {
+			super(out);
+			this.limit = limit;
+			this.remaining = limit;
+		}
+
+		private IOException tooMuch() {
+			return new IOException("More data than the RANG range ("+limit+" bytes) holds");
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+			if( remaining <= 0 ) {
+				throw tooMuch();
+			}
+			out.write(b);
+			remaining--;
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			int fits = (int)Math.min(len, remaining);
+			if( fits > 0 ) {
+				out.write(b, off, fits);
+				remaining -= fits;
+			}
+			if( fits < len ) {
+				throw tooMuch();
+			}
+		}
+	}
+
 	/** Writes into a random access stream from where it is; closing it closes the stream. */
 	private static final class RandomAccessOutputStream extends OutputStream {
 		private final us.bringardner.parley.files.IRandomAccessStream ras;
@@ -1283,6 +1393,18 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * @since 1.1.0
 	 */
 	public void receiveFileAt(final FileSource target, final long position) throws IOException {
+		receiveFileAt(target, position, -1);
+	}
+
+	/**
+	 * As {@link #receiveFileAt(FileSource, long)}, writing at most maxLength bytes (RANG then STOR):
+	 * more than that fails the transfer once the bytes that fit are written.
+	 *
+	 * @param position where the data goes, 0 &le; position &le; the target's length
+	 * @param maxLength the most bytes written, or -1 for no limit
+	 * @since 1.1.0
+	 */
+	public void receiveFileAt(final FileSource target, final long position, final long maxLength) throws IOException {
 		Socket sock = getDataSocket();
 		if( sock == null ){
 			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data socket");
@@ -1307,6 +1429,9 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				throw e;
 			}
 			out = new RandomAccessOutputStream(ras);
+			if( maxLength >= 0 ) {
+				out = new LimitedOutputStream(out, maxLength);
+			}
 		} catch (Exception e) {
 			logError("Can't open "+target+" for writing at "+position, e);
 			IoUtils.closeQuietly(sock);
