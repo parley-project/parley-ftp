@@ -46,6 +46,10 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     private boolean append = false;
     /** Where STOR starts writing (sent as REST first); 0 for a plain STOR or APPE. */
     private long startAt = 0;
+    /** The last octet of a RANG store (inclusive), or -1 when there is no range. */
+    private long endAt = -1;
+    /** Octets the range still holds; -1 for no limit. */
+    private long remaining = -1;
     /** What the buffer was made with: the size asked for, or the client's, and never under 8 KB. */
     private int effectiveBufferSize;
     private boolean closed = false;
@@ -91,6 +95,35 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
         startUpload();
     }
 
+    /**
+     * A STOR of the octets from startAt to endAt, inclusive: RANG startAt endAt is sent just before
+     * STOR (draft-bryan-ftp-range), so the server writes the data into the file from startAt and
+     * changes nothing outside the range (the file isn't truncated). If the server refuses the RANG,
+     * nothing is stored and this throws. Writing more than the range holds throws, and less writes
+     * only what was written.
+     *
+     * @param startAt the first octet written
+     * @param endAt the last octet the range holds (inclusive)
+     * @param bufferSize the size of this stream's buffer, or 0 for the client's
+     * {@link FtpClient#getTransferBufferSize()} (it is never less than 8 KB)
+     * @throws IllegalArgumentException if startAt is negative or endAt is before it
+     * @since 1.1.0
+     */
+    public ClientFtpOutputStream(String path, FtpClient client, boolean ascii, long startAt, long endAt, int bufferSize) throws IOException {
+        if( startAt < 0 || endAt < startAt ) {
+            throw new IllegalArgumentException("Invalid range "+startAt+"-"+endAt);
+        }
+        this.startAt = startAt;
+        this.endAt = endAt;
+        long len = endAt - startAt;
+        this.remaining = len == Long.MAX_VALUE ? Long.MAX_VALUE : len + 1;
+        this.path = path;
+        this.client = client;
+        this.ascii = ascii;
+        this.effectiveBufferSize = Math.max(8192, bufferSize > 0 ? bufferSize : client.getTransferBufferSize());
+        startUpload();
+    }
+
     private void startUpload() throws IOException {
         if( ascii ) {
             client.setAsciiType();
@@ -104,7 +137,13 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
         ClientFtpResponse res = null;
         try {
             dtp.connectBeforeCommand();
-            if( startAt > 0 ) {
+            if( endAt >= 0 ) {
+                // straight before STOR, after PASV/PORT, so no other command comes between them
+                ClientFtpResponse rang = client.executeCommand(RANG, startAt+" "+endAt);
+                if( !rang.isPositiveIntermediate() ) {
+                    throw new IOException("The server won't STOR "+path+" in the range "+startAt+"-"+endAt+": RANG "+startAt+" "+endAt+" = "+rang);
+                }
+            } else if( startAt > 0 ) {
                 // straight before STOR, after PASV/PORT, so no other command comes between them
                 ClientFtpResponse rest = client.executeCommand(REST, ""+startAt);
                 if( !rest.isPositiveIntermediate() ) {
@@ -133,7 +172,17 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     }
 
     public void write(int b) throws IOException {
+        if( remaining == 0 ) {
+            throw tooMuch();
+        }
         out.write(b);
+        if( remaining > 0 ) {
+            remaining--;
+        }
+    }
+
+    private IOException tooMuch() {
+        return new IOException("More data than the range "+startAt+"-"+endAt+" of "+path+" holds");
     }
 
     /** @return the size of this stream's buffer: what it was opened with, else the client's, and at least 8 KB */
@@ -179,11 +228,18 @@ public class ClientFtpOutputStream extends OutputStream implements FTP {
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
+        if( remaining >= 0 && len > remaining ) {
+            // nothing of it is written: the server would refuse what's past the range anyway
+            throw tooMuch();
+        }
         out.write(b, off, len);
+        if( remaining > 0 ) {
+            remaining -= len;
+        }
     }
 
     public void write(byte[] b) throws IOException {
-        out.write(b);
+        write(b, 0, b.length);
     }
 
 }

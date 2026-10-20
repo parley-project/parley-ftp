@@ -1689,6 +1689,37 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	}
 
 	/**
+	 * Open an input stream to the octets of a remote file from startingPos to endingPos, inclusive.
+	 * A server that lists RANG in FEAT (draft-bryan-ftp-range) is sent RANG and sends just that
+	 * range; with any other the download starts at startingPos as with REST and the stream stops
+	 * after endingPos. An endingPos past the end of the file reads to the end of the file.
+	 *
+	 * @param startingPos the first octet wanted
+	 * @param endingPos the last octet wanted (inclusive)
+	 * @param bufferSize the size of the stream's buffer in bytes (at least 8 KB is used), or 0 for
+	 * {@link #getTransferBufferSize()}
+	 * @since 1.1.0
+	 */
+	public InputStream getInputStream(String path, boolean ascii, long startingPos, long endingPos, int bufferSize) throws IOException {
+		commandLock.lock();
+		try {
+			checkStreamInProcess(path);
+			ClientFtpInputStream ret;
+			try {
+				ret = new ClientFtpInputStream(path,this,ascii, startingPos, endingPos, bufferSize);
+			} catch (Tls12Needed e) {
+				fallBackToTls12(e);
+				ret = new ClientFtpInputStream(path,this,ascii, startingPos, endingPos, bufferSize);
+			}
+			streamsInProcess.put(path, ret);
+
+			return ret;
+		} finally {
+			commandLock.unlock();
+		}
+	}
+
+	/**
 	 * Open an input stream to a remote file
 	 * @param path
 	 * @param ascii
@@ -1783,6 +1814,38 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		}
 	}
 
+	/**
+	 * Open an output stream that writes the octets from startingPos to endingPos, inclusive, of a
+	 * remote file: RANG startingPos endingPos, then STOR (draft-bryan-ftp-range). The server writes
+	 * the data into the file in place and changes nothing outside the range. If the server refuses
+	 * the RANG this throws, and nothing is stored; writing more than the range holds throws.
+	 *
+	 * @param startingPos the first octet written
+	 * @param endingPos the last octet the range holds (inclusive)
+	 * @param bufferSize the size of the stream's buffer in bytes (at least 8 KB is used), or 0 for
+	 * {@link #getTransferBufferSize()}
+	 * @since 1.1.0
+	 */
+	public OutputStream getOutputStream(String path, boolean ascii, long startingPos, long endingPos, int bufferSize) throws IOException {
+		commandLock.lock();
+		try {
+			checkStreamInProcess(path);
+
+			ClientFtpOutputStream ret;
+			try {
+				ret = new ClientFtpOutputStream(path,this,ascii, startingPos, endingPos, bufferSize);
+			} catch (Tls12Needed e) {
+				// nothing was written yet
+				fallBackToTls12(e);
+				ret = new ClientFtpOutputStream(path,this,ascii, startingPos, endingPos, bufferSize);
+			}
+			streamsInProcess.put(path, ret);
+
+			return ret;
+		} finally {
+			commandLock.unlock();
+		}
+	}
 
 	public boolean rename(String from, String to ) throws IOException {
 		checkStreamInProcess(from);
