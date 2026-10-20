@@ -124,6 +124,13 @@ public interface FTP {
 	public static final String STOU = "STOU";
 	/** Language of reply text (RFC 2640) */
 	public static final String LANG = "LANG";
+	/** File hashes (draft-ietf-ftpext2-hash) and the X checksum commands other servers have */
+	public static final String HASH = "HASH";
+	public static final String XCRC = "XCRC";
+	public static final String XMD5 = "XMD5";
+	public static final String XSHA1 = "XSHA1";
+	public static final String XSHA256 = "XSHA256";
+	public static final String XSHA512 = "XSHA512";
 	public static final String SMNT = "SMNT";
 	/** RFC 775 forms of CWD, MKD, PWD, RMD and CDUP, still sent by some clients */
 	public static final String XCWD = "XCWD";
