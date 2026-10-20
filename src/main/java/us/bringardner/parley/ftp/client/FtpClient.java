@@ -136,6 +136,8 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	private String host;
 	/** The name sent with HOST (RFC 7151) and used for TLS; null for the host connected to */
 	private volatile String virtualHost;
+	/** The language asked for with LANG (RFC 2640), sent again after a reconnect; null for none */
+	private volatile String language;
 	/** Send HOST before logging in (RFC 7151) */
 	private volatile boolean sendHost = true;
 	private int port = FTP_PORT;
@@ -1156,6 +1158,7 @@ public class FtpClient extends SecureBaseObject implements FTP {
 						if( isSecure() || isChannelSecure() ) {
 							negotiateDataProtection();
 						}
+						afterLogin();
 					}
 
 				}
@@ -1180,6 +1183,7 @@ public class FtpClient extends SecureBaseObject implements FTP {
 		FtpClient ret = new FtpClient(getHost(),getPort());
 		ret.useSsl = useSsl;
 		ret.virtualHost = virtualHost;
+		ret.language = language;
 		ret.sendHost = sendHost;
 		ret.connect(userId,password,account);
 
@@ -2039,6 +2043,67 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	 */
 	public boolean isRequestSecure() {
 		return requestSecure;
+	}
+
+	/**
+	 * LANG (RFC 2640): ask the server for its reply text in this language, now and after every reconnect.
+	 * Only a server that lists LANG in FEAT is asked.
+	 *
+	 * @param tag a language tag (EN, fr, en-US), or null for the server's default
+	 * @return true if the server accepted it (200)
+	 * @since 1.1.0
+	 */
+	public boolean setLanguage(String tag) throws IOException {
+		language = tag == null || tag.trim().isEmpty() ? null : tag.trim();
+		return sendLanguage();
+	}
+
+	/** @return the language asked for with {@link #setLanguage(String)}, or null */
+	public String getLanguage() {
+		return language;
+	}
+
+	/**
+	 * @return the languages the server lists in FEAT (LANG, RFC 2640), the one in use marked with '*';
+	 * empty if it has no LANG
+	 * @since 1.1.0
+	 */
+	public java.util.List<String> getLanguages() throws IOException {
+		java.util.List<String> ret = new java.util.ArrayList<String>();
+		String lang = getFeatResponse().get(LANG);
+		if( lang != null ) {
+			String list = lang.trim();
+			if( list.toUpperCase(java.util.Locale.ROOT).startsWith(LANG) ) {
+				list = list.substring(LANG.length()).trim();
+			}
+			for(String t : list.split(";")) {
+				if( !t.trim().isEmpty() ) {
+					ret.add(t.trim());
+				}
+			}
+		}
+		return ret;
+	}
+
+	/** What is sent once logged in: LANG when a language was asked for */
+	private void afterLogin() {
+		if( language != null ) {
+			try {
+				if( !sendLanguage() ) {
+					logDebug("The server didn't take LANG "+language);
+				}
+			} catch (IOException e) {
+				logError("LANG "+language+" failed", e);
+			}
+		}
+	}
+
+	private boolean sendLanguage() throws IOException {
+		if( !getFeatResponse().containsKey(LANG) ) {
+			return false;
+		}
+		ClientFtpResponse res = language == null ? executeCommand(LANG) : executeCommand(LANG, language);
+		return res.isPositiveComplet();
 	}
 
 	/**
