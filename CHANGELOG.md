@@ -25,6 +25,10 @@ removed in 2.0.0.
   transfer's progress, and `STAT path` lists on the control connection; `REIN` logs out and resets the session
   (after AUTH TLS the control connection goes back to clear text, RFC 4217 section 13); `ALLO` replies `202`.
   See the README, "Behaviour notes".
+- Virtual hosts: `HOST` (RFC 7151), listed in `FEAT`. `FtpServer.addVirtualHost(name, root)` /
+  `JFtp.virtualHosts` give each host its own root; the name must match TLS's (SNI); `REIN` forgets it. The client
+  sends `HOST` before `AUTH` and `USER` (`FtpClient.setVirtualHost(name)`, else the name it connects to;
+  `setSendHost(false)` to not), and a virtual host is also the name used for TLS. See the README.
 - `FtpClient.getInputStream(path, ascii, startingPos, endingPos, bufferSize)` and
   `getOutputStream(path, ascii, startingPos, endingPos, bufferSize)` (and `ClientFtpInputStream` /
   `ClientFtpOutputStream` constructors with a range): `RANG` then `RETR` or `STOR`. A download from a server

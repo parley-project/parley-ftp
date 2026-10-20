@@ -107,6 +107,9 @@ public class Stat extends NoAuthReqBaseCommand {
 		if( sock != null ) {
 			lines.add(" Connected to "+sock.getLocalAddress().getHostAddress()+" from "+sock.getInetAddress().getHostAddress());
 		}
+		if( processor.getVirtualHost() != null ) {
+			lines.add(" Virtual host: "+processor.getVirtualHost());
+		}
 		IPrincipal user = processor.getPrincipal();
 		lines.add(user == null ? " Not logged in" : " Logged in as "+user.getName());
 		lines.add(" TYPE: "+(processor.isImageMode() ? "BINARY" : "ASCII")+", STRU: File, MODE: Stream");

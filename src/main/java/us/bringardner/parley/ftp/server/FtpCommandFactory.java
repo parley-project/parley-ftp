@@ -38,6 +38,7 @@ import us.bringardner.parley.ftp.server.commands.Debug;
 import us.bringardner.parley.ftp.server.commands.Dele;
 import us.bringardner.parley.ftp.server.commands.Feat;
 import us.bringardner.parley.ftp.server.commands.Help;
+import us.bringardner.parley.ftp.server.commands.Host;
 import us.bringardner.parley.ftp.server.commands.List;
 import us.bringardner.parley.ftp.server.commands.Mdtm;
 import us.bringardner.parley.ftp.server.commands.Mkd;
@@ -143,6 +144,8 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		feat.addSupportedCommand(new Opts());
 		// draft-bryan-ftp-range (RANG STREAM): an octet range for RETR and STOR
 		feat.addSupportedCommand(new Rang());
+		// RFC 7151 virtual hosts
+		feat.addSupportedCommand(new Host());
 		
 		
 		//  Security (RFC 2228)

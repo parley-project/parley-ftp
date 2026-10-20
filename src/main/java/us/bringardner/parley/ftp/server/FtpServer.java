@@ -151,6 +151,11 @@ public class FtpServer extends Server {
 	/** Delay (ms) before replying to a failed login, to slow down password guessing. */
 	public static final int DEFAULT_LOGIN_FAILURE_DELAY = 1000;
 	/** Older name of the delay setting, still read: see {@link #getDefaultLoginFailureDelay()} */
+	/**
+	 * Virtual hosts for HOST (RFC 7151): {@code name=root;name=root}, each root a path in the server's
+	 * file system. See {@link #addVirtualHost(String, FileSource)}.
+	 */
+	public static final String VIRTUAL_HOSTS_PROP = FTP_NAME+".virtualHosts";
 	public static final String LOGIN_FAILURE_DELAY_PROP = FTP_NAME+".loginFailureDelay";
 
 	private volatile int bufferSize = Integer.getInteger(BUFFER_SIZE_PROP, DEFAULT_BUFFER_SIZE);
@@ -240,6 +245,8 @@ public class FtpServer extends Server {
 	}
 	private volatile java.util.List<String> allowedLinkTargets = parseTargets(System.getProperty(ALLOWED_LINK_TARGETS_PROP, ""));
 	private FileSource ftpRoot;
+	/** Virtual host name (lower case) to its root */
+	private final java.util.Map<String, FileSource> virtualHosts = new java.util.concurrent.ConcurrentHashMap<String, FileSource>();
 	//private boolean useJdbc = false;
 	private FileSourceFactory factory = FileSourceFactory.getDefaultFactory();
 	
@@ -368,6 +375,28 @@ public class FtpServer extends Server {
 		} catch (IOException e) {
 			logInfo("Error attmtping set set root "+tmp+" using "+factory.getTypeId()+" factory");
 		}
+
+		tmp = System.getProperty(VIRTUAL_HOSTS_PROP);
+		if( tmp != null ) {
+			for(String entry : tmp.split(";")) {
+				entry = entry.trim();
+				if( entry.isEmpty() ) {
+					continue;
+				}
+				int eq = entry.indexOf('=');
+				if( eq <= 0 ) {
+					logError(VIRTUAL_HOSTS_PROP+": expected name=root, not "+entry);
+					continue;
+				}
+				String name = entry.substring(0, eq).trim();
+				String path = entry.substring(eq+1).trim();
+				try {
+					addVirtualHost(name, factory.createFileSource(path));
+				} catch (IOException | RuntimeException e) {
+					logError(VIRTUAL_HOSTS_PROP+": can't add "+name+" at "+path, e);
+				}
+			}
+		}
 		
 		
 		if( (tmp = System.getProperty(PASIVE_CONTROL_PORT_PROP)) != null ) {
@@ -459,6 +488,58 @@ public class FtpServer extends Server {
 		return ftpRoot;
 	}
 	
+	/**
+	 * Adds a virtual host (RFC 7151): a client that sends {@code HOST name} before logging in gets this
+	 * root, in the root's file system. With no virtual hosts, HOST accepts any name and the client gets
+	 * the server's root; with some, a name that isn't one of them is refused (504) and the client stays on
+	 * the host it had (the server's root unless an earlier HOST chose one). A client that sends no HOST
+	 * gets the server's root. Users and their permissions are the server's, whatever the host.
+	 *
+	 * @param name a host name (letters, digits and '-', in labels separated by '.'; IDNs as A-labels),
+	 * matched without regard to case
+	 * @param root the host's root directory; made if it doesn't exist
+	 * @throws IllegalArgumentException if the name isn't a host name
+	 * @since 1.1.0
+	 */
+	public void addVirtualHost(String name, FileSource root) throws IOException {
+		String key = us.bringardner.parley.ftp.server.commands.Host.normalize(name);
+		if( key == null || key.startsWith("[") ) {
+			throw new IllegalArgumentException("Not a host name: "+name);
+		}
+		if( !root.exists() ){
+			root.mkdirs();
+		} else if( !root.isDirectory() ) {
+			throw new IllegalArgumentException("Not a directory: "+root);
+		}
+		virtualHosts.put(key, root);
+	}
+
+	/**
+	 * @return the root it had, or null if it wasn't a virtual host
+	 * @since 1.1.0
+	 */
+	public FileSource removeVirtualHost(String name) {
+		String key = us.bringardner.parley.ftp.server.commands.Host.normalize(name);
+		return key == null ? null : virtualHosts.remove(key);
+	}
+
+	/**
+	 * @return the virtual hosts (name in lower case to root)
+	 * @since 1.1.0
+	 */
+	public java.util.Map<String, FileSource> getVirtualHosts() {
+		return java.util.Collections.unmodifiableMap(new java.util.TreeMap<String, FileSource>(virtualHosts));
+	}
+
+	/**
+	 * @return the root of the virtual host with this name, or null
+	 * @since 1.1.0
+	 */
+	public FileSource getVirtualHostRoot(String name) {
+		String key = us.bringardner.parley.ftp.server.commands.Host.normalize(name);
+		return key == null ? null : virtualHosts.get(key);
+	}
+
 	public void setFtpRoot(FileSource ftpRoot) throws IOException {
 		if( !ftpRoot.exists() ){
 			ftpRoot.mkdirs();

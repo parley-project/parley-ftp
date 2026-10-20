@@ -45,6 +45,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 | `JFtp.allowedLinkTargets` | none | Comma-separated directories that links may lead into when the policy is `allowedTargets`. `setAllowedLinkTargets()` |
 | `JFtp.uploadMode` | `atomic` | How `STOR` puts an upload in place: `atomic` or `inPlace` (see [Uploads and resuming](#uploads-and-resuming)). `setUploadMode()` |
 | `JFtp.storeAtOffset` | false | `REST n` then `STOR` writes in place from `n` (random access); see [Writing at an offset](#writing-at-an-offset). `setStoreAtOffset()` |
+| `JFtp.virtualHosts` | none | Virtual hosts for `HOST` (RFC 7151): `name=root;name=root` (see below). `addVirtualHost()` |
 | `JFtp.loginFailureDelay` | 1000 ms | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
 | `JavaFtpServer.linger` | off | SO_LINGER (seconds) for data connections |
 
@@ -67,6 +68,17 @@ Each setting can be passed as a system property or set with the matching `FtpSer
     protected and the control connection then goes back to clear text (RFC 4217 section 13); with implicit TLS it stays
     TLS. Failed logins still count.
   - `ALLO` is accepted and does nothing (`202`): space is allocated as the data arrives.
+- **Virtual hosts (`HOST`, RFC 7151, in `FEAT`):** a client sends `HOST name` before logging in and gets that host's
+  root (`addVirtualHost(name, root)` or `JFtp.virtualHosts`; each root can be in its own file system). Users and
+  their permissions are the server's, whatever the host.
+  - With no virtual hosts, any name is accepted (`220`) and is the server. With some, a name that isn't one of them
+    gets `504` and the session stays on the host it had. A client that sends no `HOST` gets the server's root.
+  - An IP address must be this server's (`504` otherwise) and is the server's own host; IPv6 goes in brackets.
+    A port, or anything that isn't a host name, gets `501`; `HOST` after logging in gets `503`.
+  - A later `HOST` replaces an earlier one and forgets a `USER` already sent; `REIN` forgets the host.
+  - With TLS the name must match the one the client asked for (SNI): `HOST` after `AUTH TLS` gets `504` if it
+    doesn't; `HOST` before `AUTH TLS` that doesn't gets `421` once TLS is up, and the connection is closed. There is
+    one certificate for all hosts.
 - **Logging** defaults to INFO.
 - **TLS (RFC 4217):**
   - **Explicit TLS:** `AUTH TLS` on the normal port. Data connections are clear until the client sends `PBSZ 0` and `PROT P`.
@@ -217,6 +229,10 @@ points. This server doesn't say, for the reasons above.
 - **Active mode** (`setActive(true)`): the client listens on the control connection's local address and sends `PORT` (IPv4) or `EPRT` (IPv6). With a protected data channel the client is the TLS client, as RFC 4217 requires.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
+- **HOST (RFC 7151):** the client sends `HOST` before `AUTH` and `USER`: the name it connects to, or
+  `setVirtualHost(name)`. A virtual host is also the name used for TLS (SNI and the certificate check). A server that
+  refuses the name it connects to, or doesn't know `HOST`, is logged in to as usual; one that refuses a virtual
+  host that was set makes `connect()` fail. `setSendHost(false)` doesn't send it.
 - **Streams** returned by `getInputStream`/`getOutputStream` are buffered.
 - **Ranges (RANG):** `getInputStream(path, ascii, start, end, bufferSize)` reads the octets from `start` to `end`
   (inclusive). It sends `RANG start end` when the server lists `RANG` in `FEAT`; with any other server it starts
