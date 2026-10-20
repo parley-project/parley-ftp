@@ -94,8 +94,9 @@ length, the marker matched, and the new data was appended to the old file, which
 ### Writing at an offset
 
 With `JFtp.storeAtOffset` / `setStoreAtOffset(true)` (off by default), `REST n` then `STOR` writes the
-upload into the file from `n`, in place, and leaves the rest of the file as it was (ProFTPD calls this
-`AllowStoreRestart`; vsftpd does it always). A client can then write a block in the middle of a file, which
+upload into the file from `n`, in place, and leaves the rest of the file as it was. The FTP standards don't say what
+a server does with `REST` then `STOR`, and other servers differ (some refuse, some replace the file, some add to it).
+A client can then write a block in the middle of a file, which
 is how parley-files-ftp gives read-write random access (`FtpClient.getOutputStream(path, ascii, startingPos,
 bufferSize)` sends the `REST` and `STOR`).
 
