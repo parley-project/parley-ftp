@@ -79,6 +79,13 @@ Each setting can be passed as a system property or set with the matching `FtpSer
   - `LPRT` and `LPSV` (RFC 1639, historic) are the long address forms of `PORT` and `PASV`, IPv4 or IPv6.
 - **LANG (RFC 2640, `LANG EN*` in `FEAT`):** replies are in English only: `LANG`, `LANG EN` and English variants
   (`en-US`) get `200`, another language `504`.
+- **Hashes:**
+  - `HASH path` (draft-ietf-ftpext2-hash, in `FEAT` as `HASH SHA-256*;SHA-512;SHA-1;MD5;CRC32`) replies
+    `213 SHA-256 0-1023 <hex> path`: the hash of what `RETR` in `TYPE I` sends. `OPTS HASH name` chooses the
+    algorithm (`REIN` goes back to SHA-256); `RANG start end` first hashes part of the file. A long hash sends a `213-`
+    line every 5 seconds. `550` no such file, `553` a directory, `450` while a transfer is in progress.
+  - `XCRC`, `XMD5`, `XSHA1`, `XSHA256` and `XSHA512 path [start [end]]` (as ProFTPD, Serv-U, FileZilla and WinSCP
+    have them; `end` not included) reply `250 <hex>`. The path may be in double quotes.
 - **Virtual hosts (`HOST`, RFC 7151, in `FEAT`):** a client sends `HOST name` before logging in and gets that host's
   root (`addVirtualHost(name, root)` or `JFtp.virtualHosts`; each root can be in its own file system). Users and
   their permissions are the server's, whatever the host.
@@ -240,6 +247,8 @@ points. This server doesn't say, for the reasons above.
 - **Active mode** (`setActive(true)`): the client listens on the control connection's local address and sends `PORT` (IPv4) or `EPRT` (IPv6). With a protected data channel the client is the TLS client, as RFC 4217 requires.
 - **One transfer per connection:** while a stream from `getInputStream`/`getOutputStream` is open, any other command on the same `FtpClient` throws `IOException`. Use one `FtpClient` per concurrent transfer.
 - **Reconnect:** if the server has closed the control connection (e.g. idle timeout), the next command reconnects, logs in again (including AUTH), restores the current directory and retries safe commands (NOOP, PWD, CWD, TYPE, SIZE, …) once. Turn this off with `setAutoReconnect(false)`.
+- **Hashes:** `hash(path[, algorithm[, start, end]])` returns the server's hash of a file or part of one, using
+  `HASH` (with `OPTS HASH` and `RANG`) when the server lists it in `FEAT`, else the X commands.
 - **LANG:** `setLanguage(tag)` asks a server that lists `LANG` in `FEAT` for that language, now and after a reconnect;
   `getLanguages()` lists what it offers.
 - **STOU:** `storeUnique(baseName, ascii, bufferSize)` returns a stream whose `getStoredName()` is the name the server

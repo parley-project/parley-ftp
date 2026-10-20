@@ -268,6 +268,19 @@ Internet Draft        draft-ietf-ftpext-mlst-16.txt       September 2002
 			utf8(processor, options);
 		} else if( MLST.equals(name) ) {
 			mlst(processor, options);
+		} else if( HASH.equals(name) ) {
+			// draft-ietf-ftpext2-hash: OPTS HASH says which algorithm, OPTS HASH name chooses one
+			if( options.isEmpty() ) {
+				processor.reply(REPLY_200_OK, Hash.current(processor));
+			} else {
+				String a = Digests.find(options);
+				if( a == null ) {
+					processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, "Unknown algorithm, current selection not changed");
+				} else {
+					processor.setTempValue(HASH, a);
+					processor.reply(REPLY_200_OK, a);
+				}
+			}
 		} else {
 			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, "OPTS not supported for "+name);
 		}

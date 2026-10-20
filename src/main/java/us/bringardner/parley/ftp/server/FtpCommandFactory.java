@@ -44,6 +44,9 @@ import us.bringardner.parley.ftp.server.commands.Dele;
 import us.bringardner.parley.ftp.server.commands.Feat;
 import us.bringardner.parley.ftp.server.commands.Help;
 import us.bringardner.parley.ftp.server.commands.Host;
+import us.bringardner.parley.ftp.server.commands.Digests;
+import us.bringardner.parley.ftp.server.commands.Hash;
+import us.bringardner.parley.ftp.server.commands.XHash;
 import us.bringardner.parley.ftp.server.commands.Lang;
 import us.bringardner.parley.ftp.server.commands.List;
 import us.bringardner.parley.ftp.server.commands.Mdtm;
@@ -165,6 +168,13 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		feat.addSupportedCommand(new Host());
 		// RFC 2640 language of replies (English only)
 		feat.addSupportedCommand(new Lang());
+		// draft-ietf-ftpext2-hash, and the X checksums other servers and clients use
+		feat.addSupportedCommand(new Hash());
+		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XCRC, Digests.CRC32));
+		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XMD5, Digests.MD5));
+		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XSHA1, Digests.SHA_1));
+		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XSHA256, Digests.SHA_256));
+		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XSHA512, Digests.SHA_512));
 		
 		
 		//  Security (RFC 2228)

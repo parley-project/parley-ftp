@@ -389,7 +389,7 @@ public abstract class TestFtpBaseTestClass {
 	public void testOptsAndList() throws IOException, ParseException {
 		//supported={REST=REST STREAM, MDTM=MDTM, MLST=MLST MODIFY*;PERM*;SIZE*;TYPE*;Unix.group*;Unix.owner*;, SIZE=SIZE, TVFS=TVFS}
 
-		String [] expect = {"REST", "MDTM", "MLST","SIZE", "TVFS", "UTF8", "RANG", "HOST", "LANG"};
+		String [] expect = {"REST", "MDTM", "MLST","SIZE", "TVFS", "UTF8", "RANG", "HOST", "LANG", "HASH", "XCRC", "XMD5", "XSHA1", "XSHA256", "XSHA512"};
 
 		FtpClient client = getFtpClient();
 		Map<String, String> supported = client.getFeatResponse();

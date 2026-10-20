@@ -1862,6 +1862,104 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		}
 	}
 
+	/** The X checksum command for each HASH algorithm name */
+	private static final String[][] X_COMMANDS = {
+			{"SHA-256", XSHA256}, {"SHA-512", XSHA512}, {"SHA-1", XSHA1}, {"MD5", XMD5}, {"CRC32", XCRC}};
+
+	/** @return the algorithm as HASH names it (SHA-256, SHA-512, SHA-1, MD5, CRC32), or the name as given */
+	private static String hashName(String algorithm) {
+		String n = algorithm.trim().toUpperCase(java.util.Locale.ROOT);
+		for(String[] x : X_COMMANDS) {
+			if( x[0].equals(n) || x[0].replace("-", "").equals(n.replace("-", "")) ) {
+				return x[0];
+			}
+		}
+		return n;
+	}
+
+	/**
+	 * The hash of a remote file, computed by the server: {@link #hash(String, String, long, long)} with
+	 * the server's algorithm (SHA-256 on parley's server) and the whole file.
+	 * @since 1.1.0
+	 */
+	public String hash(String path) throws IOException {
+		return hash(path, null, 0, -1);
+	}
+
+	/**
+	 * {@link #hash(String, String, long, long)} of the whole file.
+	 * @since 1.1.0
+	 */
+	public String hash(String path, String algorithm) throws IOException {
+		return hash(path, algorithm, 0, -1);
+	}
+
+	/**
+	 * The hash of a remote file, or of the octets from start to end (inclusive), computed by the server, in
+	 * lower case hex. It is the hash of what RETR in TYPE I would send. A server that lists HASH in FEAT
+	 * (draft-ietf-ftpext2-hash) is asked with OPTS HASH (when an algorithm is given) and HASH, after RANG
+	 * for part of a file. Otherwise, or if it refuses those, the checksum commands many servers have are
+	 * tried: XSHA256, XSHA512, XSHA1, XMD5 or XCRC.
+	 *
+	 * @param algorithm SHA-256, SHA-512, SHA-1, MD5 or CRC32 (SHA256 and so on also do), or null for the
+	 *        server's (HASH) or SHA-256 (the X commands)
+	 * @param start the first octet
+	 * @param end the last octet (inclusive), or -1 for the end of the file
+	 * @throws IOException if the server can't or won't
+	 * @since 1.1.0
+	 */
+	public String hash(String path, String algorithm, long start, long end) throws IOException {
+		if( start < 0 || (end >= 0 && end < start) ) {
+			throw new IllegalArgumentException("Invalid range "+start+"-"+end);
+		}
+		boolean part = start > 0 || end >= 0;
+		String alg = algorithm == null ? null : hashName(algorithm);
+		Map<String, String> feat = getFeatResponse();
+		ClientFtpResponse res = null;
+		if( feat.containsKey(HASH) && (!part || feat.containsKey(RANG)) ) {
+			boolean ok = true;
+			if( alg != null ) {
+				ok = executeCommand(OPTS, HASH+" "+alg).isPositiveComplet();
+			}
+			if( ok && part ) {
+				ok = executeCommand(RANG, start+" "+(end < 0 ? Long.MAX_VALUE : end)).isPositiveIntermediate();
+			}
+			if( ok ) {
+				res = executeCommand(HASH, path);
+				if( res._getResponseCode() == REPLY_213_FILE_STATUS ) {
+					String[] lines = res.getResponseText().trim().split("\n");
+					String[] t = lines[lines.length-1].trim().split(" +");
+					if( t.length >= 3 ) {
+						return t[2].toLowerCase(java.util.Locale.ROOT);
+					}
+				}
+			}
+		}
+		String a = alg == null ? "SHA-256" : alg;
+		String x = null;
+		for(String[] c : X_COMMANDS) {
+			if( c[0].equals(a) ) {
+				x = c[1];
+			}
+		}
+		if( x == null ) {
+			throw new IOException("No hash "+algorithm+(res == null ? "" : ": "+res));
+		}
+		String arg = path.contains(" ") ? "\""+path+"\"" : path;
+		if( part ) {
+			arg += " "+start+(end >= 0 ? " "+(end+1) : "");
+		}
+		ClientFtpResponse xres = executeCommand(x, arg);
+		if( xres.isPositiveComplet() ) {
+			for(String t : xres.getResponseText().trim().split("\\s+")) {
+				if( t.matches("[0-9A-Fa-f]{8,}") ) {
+					return t.toLowerCase(java.util.Locale.ROOT);
+				}
+			}
+		}
+		throw new IOException("The server won't hash "+path+" with "+a+": "+(res == null ? "" : res+"; ")+xres);
+	}
+
 	/**
 	 * STORE UNIQUE (STOU, RFC 959): open an output stream whose data the server stores under a name it
 	 * chooses in the current directory; {@link ClientFtpOutputStream#getStoredName()} says which (when the
