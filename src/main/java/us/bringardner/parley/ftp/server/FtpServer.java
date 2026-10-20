@@ -140,6 +140,11 @@ public class FtpServer extends Server {
 		}
 	}
 	public static final String UPLOAD_MODE_PROP = FTP_NAME+".uploadMode";
+	/**
+	 * true: REST n then STOR writes the upload into the file from n, in place, leaving the rest of the
+	 * file as it was (what ProFTPD calls AllowStoreRestart). Off by default. See {@link #setStoreAtOffset(boolean)}.
+	 */
+	public static final String STORE_AT_OFFSET_PROP = FTP_NAME+".storeAtOffset";
 	/** Directories that links may lead into with SymlinkPolicy.ALLOWED_TARGETS, separated by commas. */
 	public static final String ALLOWED_LINK_TARGETS_PROP = FTP_NAME+".allowedLinkTargets";
 
@@ -154,6 +159,7 @@ public class FtpServer extends Server {
 	private volatile boolean allowForeignDataAddress = Boolean.getBoolean(ALLOW_FOREIGN_DATA_ADDRESS_PROP);
 	private volatile SymlinkPolicy symlinkPolicy = SymlinkPolicy.parse(System.getProperty(SYMLINK_POLICY_PROP, "strict"));
 	private volatile UploadMode uploadMode = UploadMode.parse(System.getProperty(UPLOAD_MODE_PROP, "atomic"));
+	private volatile boolean storeAtOffset = Boolean.getBoolean(STORE_AT_OFFSET_PROP);
 
 	/** How many unfinished uploads are remembered (the oldest are forgotten first). */
 	static final int MAX_UNFINISHED_UPLOADS = 1000;
@@ -195,6 +201,24 @@ public class FtpServer extends Server {
 			throw new IllegalArgumentException("mode must not be null");
 		}
 		this.uploadMode = mode;
+	}
+
+	/** @return true if REST n then STOR writes in place from n (default false) */
+	public boolean isStoreAtOffset() {
+		return storeAtOffset;
+	}
+
+	/**
+	 * @param storeAtOffset false (default): REST before STOR only resumes an upload this server knows
+	 * was cut off, at the length it stopped at; true: REST n (0 &lt; n &le; the file's length) then STOR
+	 * writes the upload into the file from n, in place, and leaves the rest of it as it was, so a
+	 * client can write a block in the middle of a file (random access). Such a write isn't atomic: a
+	 * transfer that breaks leaves what arrived. With n equal to the length it adds to the file, even
+	 * one that wasn't cut off. Takes effect on the next STOR.
+	 * @since 1.1.0
+	 */
+	public void setStoreAtOffset(boolean storeAtOffset) {
+		this.storeAtOffset = storeAtOffset;
 	}
 
 	void markUnfinished(String path, long length) {

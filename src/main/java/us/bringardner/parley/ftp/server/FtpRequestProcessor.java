@@ -469,6 +469,12 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		return server instanceof FtpServer ? ((FtpServer)server).getUploadMode() : FtpServer.UploadMode.ATOMIC;
 	}
 
+	/** @return true if REST n then STOR writes in place from n (see FtpServer.setStoreAtOffset) */
+	public boolean isStoreAtOffset() {
+		IServer server = getServer();
+		return server instanceof FtpServer && ((FtpServer)server).isStoreAtOffset();
+	}
+
 	/** @return true if an earlier upload of this file stopped when it was this long (so REST can carry on) */
 	public boolean isUnfinishedUpload(FileSource target, long length) {
 		IServer server = getServer();
@@ -1242,6 +1248,74 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 
 		transferStream(in, out, sock, true, handler);
+	}
+
+	/** Writes into a random access stream from where it is; closing it closes the stream. */
+	private static final class RandomAccessOutputStream extends OutputStream {
+		private final us.bringardner.parley.files.IRandomAccessStream ras;
+
+		RandomAccessOutputStream(us.bringardner.parley.files.IRandomAccessStream ras) {
+			this.ras = ras;
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+			ras.write(b);
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			ras.write(b, off, len);
+		}
+
+		@Override
+		public void close() throws IOException {
+			ras.close();
+		}
+	}
+
+	/**
+	 * REST n then STOR with {@link FtpServer#setStoreAtOffset(boolean)} on: the data is written into
+	 * the target from position, in place, through the file's random access stream, and the rest of
+	 * the file is left as it was. A transfer that breaks leaves what arrived.
+	 *
+	 * @param position where the data goes, 0 &lt; position &le; the target's length
+	 * @since 1.1.0
+	 */
+	public void receiveFileAt(final FileSource target, final long position) throws IOException {
+		Socket sock = getDataSocket();
+		if( sock == null ){
+			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data socket");
+			return;
+		}
+
+		InputStream in;
+		try {
+			in = sock.getInputStream();
+		} catch (IOException e) {
+			reply(REPLY_425_CANT_OPEN_DATA_CON,"Can't open data connection: "+e.getMessage());
+			return;
+		}
+
+		OutputStream out;
+		try {
+			final us.bringardner.parley.files.IRandomAccessStream ras = target.getRandomAccessStream("rw");
+			try {
+				ras.seek(position);
+			} catch (IOException | RuntimeException e) {
+				ras.close();
+				throw e;
+			}
+			out = new RandomAccessOutputStream(ras);
+		} catch (Exception e) {
+			logError("Can't open "+target+" for writing at "+position, e);
+			IoUtils.closeQuietly(sock);
+			reply(REPLY_553_FILE_NAME_NOT_ALLOWED,"Can't write "+getDisplayFileName(target.getName())+" at "+position+": "+e.getMessage());
+			return;
+		}
+		// an upload this server knew was cut off is now whatever this made of it
+		clearUnfinishedUpload(target);
+		transferStream(in, out, sock, true, null);
 	}
 
 	/**
