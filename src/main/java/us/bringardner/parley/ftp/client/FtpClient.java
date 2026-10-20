@@ -1204,8 +1204,8 @@ public class FtpClient extends SecureBaseObject implements FTP {
 
 				// connecting a socket will trigger the server to send us a greeting line
 				ClientFtpResponse res = readResponse();
-				if( res.isPositiveComplet() && !login() && isRequireSecure() && !isSecure() && !isChannelSecure() ) {
-					return false;
+				if( res.isPositiveComplet() ) {
+					login();
 				}
 
 				//  All done, if we're not connected we need to close socket
@@ -1277,6 +1277,10 @@ public class FtpClient extends SecureBaseObject implements FTP {
 		try {
 			checkStreamInProcess("REIN");
 			ClientFtpResponse res = sendCommand(REIN);
+			// RFC 959: 120 (ready in a while), then 220
+			while( res._getResponseCode() / 100 == 1 ) {
+				res = readResponse();
+			}
 			if( res._getResponseCode() != REPLY_220_READY_NEW_USER ) {
 				logError("REIN: "+res);
 				return false;
@@ -1290,7 +1294,12 @@ public class FtpClient extends SecureBaseObject implements FTP {
 			currentType = null;
 			currentDir = null;
 			modeZActive = false;
-			return login();
+			if( login() ) {
+				return true;
+			}
+			// logged out on an open connection: drop it, so the next command connects again
+			abandonConnection();
+			return false;
 		} finally {
 			commandLock.unlock();
 		}
@@ -1345,6 +1354,11 @@ public class FtpClient extends SecureBaseObject implements FTP {
 		channelSecure = false;
 		input = null;
 		output = null;
+		if( !isSecure() ) {
+			// the next control connection (a reconnect) starts plain again; PROT P keeps the server
+			// socket factory for active data connections
+			setSocketFactory(SocketFactory.getDefault());
+		}
 		try {
 			socket.setSoTimeout(getCmdTimeout());
 		} catch (IOException e) {
@@ -1390,6 +1404,15 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	 * @since 1.1.0
 	 */
 	public String[] nameList(String path) throws IOException {
+		try {
+			return nameListOnce(path);
+		} catch (Tls12Needed e) {
+			fallBackToTls12(e);
+			return nameListOnce(path);
+		}
+	}
+
+	private String[] nameListOnce(String path) throws IOException {
 		commandLock.lock();
 		try {
 			checkStreamInProcess(path == null ? "NLST" : path);
@@ -2127,7 +2150,8 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 
 	/**
 	 * Set a remote file's modification time: MFMT (draft-somers-ftp-mfxx) when the server lists it in
-	 * FEAT, else MFF Modify= when it lists that. Whole seconds, UTC.
+	 * FEAT, else MFF Modify= when it lists that. With milliseconds when the server takes them (parley's
+	 * does), else whole seconds; UTC.
 	 *
 	 * @param time milliseconds since the epoch
 	 * @return true if the server set it; false if it has neither, or refused
@@ -2149,15 +2173,38 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	}
 
 	private boolean setTime(String path, long time, String command, String fact) throws IOException {
+		return setTimeAs(path, time, command, fact) >= 0;
+	}
+
+	/** @return the time as an RFC 3659 time-val with milliseconds (UTC), e.g. 20020717210715.123 */
+	public static String timeValMillis(long time) {
+		return timeVal(time)+String.format(".%03d", Math.floorMod(time, 1000L));
+	}
+
+	/**
+	 * Sets the time with milliseconds when it has any and the server takes them (RFC 3659 allows a
+	 * fraction), else in whole seconds.
+	 * @return the time that was set (time, or time in whole seconds), or -1 if it wasn't
+	 */
+	long setTimeAs(String path, long time, String command, String fact) throws IOException {
 		Map<String, String> feat = getFeatResponse();
-		if( feat.containsKey(command) ) {
-			return executeCommand(command, timeVal(time), path)._getResponseCode() == REPLY_213_FILE_STATUS;
-		}
 		String mff = feat.get(MFF);
-		if( mff != null && mff.toLowerCase(java.util.Locale.ROOT).contains(fact.toLowerCase(java.util.Locale.ROOT)) ) {
-			return !setFacts(path, java.util.Collections.singletonMap(fact, timeVal(time))).isEmpty();
+		boolean byCommand = feat.containsKey(command);
+		boolean byMff = !byCommand && mff != null && mff.toLowerCase(java.util.Locale.ROOT).contains(fact.toLowerCase(java.util.Locale.ROOT));
+		if( !byCommand && !byMff ) {
+			return -1;
 		}
-		return false;
+		long whole = time - Math.floorMod(time, 1000L);
+		String[] tries = time == whole ? new String[] {timeVal(time)} : new String[] {timeValMillis(time), timeVal(time)};
+		for(int i=0; i < tries.length; i++ ) {
+			boolean ok = byCommand
+					? executeCommand(command, tries[i], path)._getResponseCode() == REPLY_213_FILE_STATUS
+					: !setFacts(path, java.util.Collections.singletonMap(fact, tries[i])).isEmpty();
+			if( ok ) {
+				return i == 0 ? time : whole;
+			}
+		}
+		return -1;
 	}
 
 	/**
@@ -2316,6 +2363,26 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		return ret;
 	}
 
+	/**
+	 * ABOR's reply after the transfer's (ClientFtpInputStream): waited for 5 seconds at most. A server that
+	 * sends none gets its connection dropped (the next command connects again) rather than this hanging.
+	 */
+	void readAborReply() {
+		try {
+			Socket s = getSocket();
+			int old = s.getSoTimeout();
+			s.setSoTimeout(5000);
+			try {
+				readResponse();
+			} finally {
+				s.setSoTimeout(old);
+			}
+		} catch (IOException e) {
+			logDebug("No reply to ABOR", e);
+			abandonConnection();
+		}
+	}
+
 	/** The X checksum command for each HASH algorithm name */
 	private static final String[][] X_COMMANDS = {
 			{"SHA-256", XSHA256}, {"SHA-512", XSHA512}, {"SHA-1", XSHA1}, {"MD5", XMD5}, {"CRC32", XCRC}};
@@ -2383,7 +2450,8 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 				if( res._getResponseCode() == REPLY_213_FILE_STATUS ) {
 					String[] lines = res.getResponseText().trim().split("\n");
 					String[] t = lines[lines.length-1].trim().split(" +");
-					if( t.length >= 3 ) {
+					// "213 SHA-256 0-4 <hex> path"; a failure after "213-" lines has no hash in it
+					if( t.length >= 3 && t[2].matches("[0-9A-Fa-f]+") ) {
 						return t[2].toLowerCase(java.util.Locale.ROOT);
 					}
 				}

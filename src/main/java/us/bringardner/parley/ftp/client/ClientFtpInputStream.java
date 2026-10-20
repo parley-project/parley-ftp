@@ -136,7 +136,9 @@ public class ClientFtpInputStream extends InputStream implements FTP {
         boolean canRestore = false;
         boolean ranged = false;
 
-        if( endAt >= 0 && client.getFeatResponse().containsKey(RANG) ) {
+        // MODE Z: the server refuses RANG and REST (draft-preston-ftpext-deflate); skip here instead
+        boolean z = client.isModeZActive();
+        if( endAt >= 0 && !z && client.getFeatResponse().containsKey(RANG) ) {
             ClientFtpResponse res = client.executeCommand(RANG, startAt+" "+endAt);
             if( res.isPositiveIntermediate() ) {
                 ranged = true;
@@ -145,7 +147,7 @@ public class ClientFtpInputStream extends InputStream implements FTP {
             }
         }
 
-        if( startAt > 0l && !ranged) {
+        if( startAt > 0l && !ranged && !z) {
             canRestore = client.getFeatResponse().containsKey(REST);
             if(canRestore) {
                 //  WE can do a restore
@@ -242,11 +244,17 @@ public class ClientFtpInputStream extends InputStream implements FTP {
             client.writeLine(ABOR);
         }
         dtp.close();
+        // ends a MODE Z Inflater (its native memory); the data connection is closed already
+        try {
+            in.close();
+        } catch (IOException e) {
+            // closed
+        }
         try {
             ClientFtpResponse ret = client.readResponse();
             if( abort ) {
                 // two replies: the transfer's (426, or 226 if it had ended) and ABOR's (226 or 225)
-                client.readResponse();
+                client.readAborReply();
             }
             return ret;
         } catch(SocketTimeoutException ex) {

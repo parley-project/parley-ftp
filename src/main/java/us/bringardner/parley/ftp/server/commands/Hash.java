@@ -95,11 +95,17 @@ public class Hash extends BaseCommand implements FeatCommand {
 		}
 		String algorithm = current(processor);
 		String hex;
+		StillWorking keepAlive = new StillWorking(processor, algorithm);
 		try {
-			hex = Digests.compute(f, algorithm, start, Math.max(0, end - start + 1), new StillWorking(processor, algorithm));
+			hex = Digests.compute(f, algorithm, start, Math.max(0, end - start + 1), keepAlive);
 		} catch (IOException e) {
 			processor.logError("HASH "+path, e);
-			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't read "+path);
+			if( keepAlive.sent ) {
+				// a multi-line reply ends with the code it started with (RFC 959 4.2); no hash in it
+				processor.reply(REPLY_213_FILE_STATUS,"FAILED Can't read "+path);
+			} else {
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't read "+path);
+			}
 			return;
 		}
 		processor.reply(REPLY_213_FILE_STATUS,algorithm+" "+start+"-"+Math.max(end, start)+" "+hex+" "+path);
@@ -109,6 +115,8 @@ public class Hash extends BaseCommand implements FeatCommand {
 	private static final class StillWorking implements Digests.KeepAlive {
 		private final FtpRequestProcessor processor;
 		private final String algorithm;
+		/** a "213-" line was sent: the reply must end with 213 */
+		boolean sent;
 
 		StillWorking(FtpRequestProcessor processor, String algorithm) {
 			this.processor = processor;
@@ -118,6 +126,7 @@ public class Hash extends BaseCommand implements FeatCommand {
 		@Override
 		public void stillWorking() throws IOException {
 			processor.reply(REPLY_213_FILE_STATUS+"-Computing "+algorithm);
+			sent = true;
 		}
 	}
 

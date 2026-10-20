@@ -101,6 +101,10 @@ public class Type extends NoAuthReqBaseCommand {
 				type = second == null || second.equals("N") ? FtpRequestProcessor.TYPE_ASCII : -1;
 				break;
 			case 'L':
+				if( second == null ) {
+					processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Syntax: TYPE L <byte size>");
+					return;
+				}
 				// RFC 959: local byte size 8 is the same as image on these 8-bit systems
 				type = "8".equals(second) ? FtpRequestProcessor.TYPE_IMAGE : -1;
 				break;
