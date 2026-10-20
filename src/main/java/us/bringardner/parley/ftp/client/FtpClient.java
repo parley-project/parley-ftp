@@ -134,6 +134,10 @@ public class FtpClient extends SecureBaseObject implements FTP {
 
 
 	private String host;
+	/** The name sent with HOST (RFC 7151) and used for TLS; null for the host connected to */
+	private volatile String virtualHost;
+	/** Send HOST before logging in (RFC 7151) */
+	private volatile boolean sendHost = true;
 	private int port = FTP_PORT;
 	private boolean useSsl;
 	/**
@@ -767,7 +771,7 @@ public class FtpClient extends SecureBaseObject implements FTP {
 					try {
 						if( tmp instanceof SSLSocket ) {
 							//  Implicit TLS: SNI and the host name check, before the handshake
-							TlsSockets.configureClient((SSLSocket) tmp, host, isVerifyHostname());
+							TlsSockets.configureClient((SSLSocket) tmp, tlsName(), isVerifyHostname());
 						}
 						tmp.setKeepAlive(true);
 						tmp.setTcpNoDelay(true);
@@ -1122,7 +1126,10 @@ public class FtpClient extends SecureBaseObject implements FTP {
 
 				// connecting a socket will trigger the server to send us a greeting line
 				ClientFtpResponse res = readResponse();
-				if( res.isPositiveComplet()) {
+				if( res.isPositiveComplet() && isSendHost() && !executeHost() ) {
+					res = null;
+				}
+				if( res != null && res.isPositiveComplet()) {
 					if( !isSecure() ) {
 						boolean ok = executeAuth();
 						if( isRequireSecure() && !ok) {
@@ -1172,6 +1179,8 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	protected FtpClient getNewConnection() throws  IOException {
 		FtpClient ret = new FtpClient(getHost(),getPort());
 		ret.useSsl = useSsl;
+		ret.virtualHost = virtualHost;
+		ret.sendHost = sendHost;
 		ret.connect(userId,password,account);
 
 		//  The response should always be the same so we only need to do this once.
@@ -1416,7 +1425,9 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	 * @return the TLS socket; the handshake happens on first use
 	 */
 	public Socket secureDataSocket(Socket plain) throws IOException {
-		SSLEngine engine = getSSLContext().createSSLEngine(getHost(), getPort());
+		// the name the control connection's session is kept under: the one connected to with implicit
+		// TLS, the one TLS was layered with after AUTH
+		SSLEngine engine = getSSLContext().createSSLEngine(isSecure() ? getHost() : tlsName(), getPort());
 		SslEngineSocket ssl = new SslEngineSocket(plain, engine);
 		ssl.setSoTimeout(plain.getSoTimeout());
 		return ssl;
@@ -2002,6 +2013,90 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	}
 
 	/**
+	 * @return the virtual host this client asks for, or null (the default) for the host it connects to
+	 * @see #setVirtualHost(String)
+	 * @since 1.1.0
+	 */
+	public String getVirtualHost() {
+		return virtualHost;
+	}
+
+	/**
+	 * The virtual host to ask the server for with HOST (RFC 7151), when it isn't the name connected to:
+	 * a server reached by address, or one name among several on one server. It is also the name used for
+	 * TLS (SNI, and the certificate's host name check), as RFC 7151 section 4 asks. A server that refuses
+	 * it (501, 504) or closes (421) makes {@link #connect(String, String, String)} fail; one that doesn't
+	 * know HOST (500, 502) is logged in to as usual.
+	 *
+	 * @param virtualHost a host name, or null for the host connected to
+	 * @since 1.1.0
+	 */
+	public void setVirtualHost(String virtualHost) {
+		this.virtualHost = virtualHost == null || virtualHost.trim().isEmpty() ? null : virtualHost.trim();
+	}
+
+	/**
+	 * @return true (the default) if HOST (RFC 7151) is sent before logging in: the virtual host set, or
+	 * else the host connected to
+	 * @since 1.1.0
+	 */
+	public boolean isSendHost() {
+		return sendHost;
+	}
+
+	/**
+	 * Send HOST (RFC 7151) before logging in, or not. With the host connected to (no virtual host set),
+	 * any refusal is ignored and the login goes on, so this is safe with servers that don't know HOST.
+	 * @since 1.1.0
+	 */
+	public void setSendHost(boolean sendHost) {
+		this.sendHost = sendHost;
+	}
+
+	/** The name for TLS: the virtual host, else the host connected to (without IPv6 brackets) */
+	private String tlsName() {
+		String ret = virtualHost != null ? virtualHost : getHost();
+		if( ret != null && ret.startsWith("[") && ret.endsWith("]") ) {
+			ret = ret.substring(1, ret.length()-1);
+		}
+		return ret;
+	}
+
+	/** The argument of HOST: the name for TLS, with an IPv6 address in brackets (RFC 7151 section 3.1) */
+	private String hostArgument() {
+		String ret = tlsName();
+		return ret != null && ret.contains(":") ? "["+ret+"]" : ret;
+	}
+
+	/**
+	 * HOST (RFC 7151), before AUTH so a server without SNI can choose its certificate (section 3.2.2).
+	 * @return false if the login can't go on: the server closed (421), or refused a virtual host that
+	 * was asked for
+	 */
+	private boolean executeHost() throws IOException {
+		String name = hostArgument();
+		if( name == null ) {
+			return true;
+		}
+		ClientFtpResponse res = sendCommand(HOST+" "+name);
+		int code = res._getResponseCode();
+		if( res.isPositiveComplet() ) {
+			return true;
+		}
+		if( code == REPLY_421_SERVICE_NOT_AVAILIBLE ) {
+			logError("HOST "+name+": "+res);
+			return false;
+		}
+		if( virtualHost != null && (code == REPLY_501_SYNTAXT_ERROR_IN_PARAM || code == REPLY_504_NOT_IMP_FOR_PARAM) ) {
+			logError("The server won't be virtual host "+name+": "+res);
+			return false;
+		}
+		// a server without HOST (500, 502), or one that won't take the name connected to
+		logDebug("HOST "+name+": "+res);
+		return true;
+	}
+
+	/**
 	 * if true the client will request a secure channel user AUTH command (RFC 2228)
 	 * @param requestSecure
 	 */
@@ -2139,7 +2234,8 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		// With the host (it was null), Java caches the session under this host and port,
 		// which is what lets data connections resume it (see secureDataSocket, BJL-18).
 		// TlsSockets also sets SNI and the host name check (it had none).
-		sslSocket = TlsSockets.layer(ctx, socket, getHost(), true, isVerifyHostname(), false);
+		// the virtual host's name when one is set (RFC 7151 section 4)
+		sslSocket = TlsSockets.layer(ctx, socket, tlsName(), true, isVerifyHostname(), false);
 		sslSocket.setWantClientAuth(false);
 		sslSocket.startHandshake();
 		channelSecure = true;

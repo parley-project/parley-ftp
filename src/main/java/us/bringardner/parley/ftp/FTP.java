@@ -119,6 +119,8 @@ public interface FTP {
 	public static final String STAT = "STAT";
 	public static final String REIN = "REIN";
 	public static final String ALLO = "ALLO";
+	/** Virtual host (RFC 7151) */
+	public static final String HOST = "HOST";
 	public static final String RNFR = "RNFR";
 	public static final String RNTO = "RNTO";
 	public static final String RETR = "RETR";

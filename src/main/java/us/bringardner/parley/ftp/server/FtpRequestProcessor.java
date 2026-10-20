@@ -185,6 +185,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	private FileSourceFactory factory;
 	private boolean allowAnonymous = true;
 	private int representationType = TYPE_ASCII;
+	/** The host chosen with HOST (RFC 7151), lower case; null until one is */
+	private volatile String virtualHost;
 
 
 	private FileSource tmp;
@@ -949,6 +951,60 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		return pasvSocket;
 	}
 
+	/**
+	 * @return the host chosen with HOST (RFC 7151), in lower case, or null if none was
+	 * @since 1.1.0
+	 */
+	public String getVirtualHost() {
+		return virtualHost;
+	}
+
+	/**
+	 * HOST (RFC 7151): this session is now that host, with that root (in the root's file system), and
+	 * anything USER, PASS or ACCT left for login is forgotten.
+	 * @since 1.1.0
+	 */
+	public void selectVirtualHost(String name, FileSource root) throws IOException {
+		removeTempValue(USER);
+		removeTempValue(PASS);
+		removeTempValue(ACCT);
+		this.factory = root.getFileSourceFactory();
+		setFtpRoot(root);
+		virtualHost = name;
+	}
+
+	/**
+	 * @return the host names the client asked for in TLS (SNI, RFC 6066) on the control connection, in
+	 * lower case; empty if it isn't TLS or the client sent none
+	 * @since 1.1.0
+	 */
+	public java.util.List<String> getTlsServerNames() {
+		java.util.List<String> ret = new java.util.ArrayList<String>();
+		us.bringardner.parley.net.IConnection con = getConnection();
+		Socket sock = con == null ? null : con.getSocket();
+		if( sock instanceof SSLSocket ) {
+			javax.net.ssl.SSLSession session = ((SSLSocket) sock).getSession();
+			if( session instanceof javax.net.ssl.ExtendedSSLSession ) {
+				for(javax.net.ssl.SNIServerName n : ((javax.net.ssl.ExtendedSSLSession) session).getRequestedServerNames()) {
+					if( n instanceof javax.net.ssl.SNIHostName ) {
+						ret.add(((javax.net.ssl.SNIHostName) n).getAsciiName().toLowerCase(java.util.Locale.ROOT));
+					}
+				}
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * @return true if the address is the one this session's control connection is connected to
+	 * @since 1.1.0
+	 */
+	public boolean isServerAddress(InetAddress addr) {
+		us.bringardner.parley.net.IConnection con = getConnection();
+		Socket sock = con == null ? null : con.getSocket();
+		return sock != null && isSameHost(addr, sock.getLocalAddress());
+	}
+
 	/** @return true if an active mode (PORT/EPRT) data connection is open and not yet used */
 	public boolean hasDataSocket() {
 		return dataSocket != null;
@@ -980,6 +1036,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		passive = false;
 		tempStorage.clear();
 		setPrincipal(null);
+		// RFC 7151 section 3.2.1: a new HOST is needed
+		virtualHost = null;
 		representationType = TYPE_ASCII;
 		FtpServer server = (FtpServer) getServer();
 		// not setFactory(): that would look for the current root in the server's file system
@@ -1630,6 +1688,13 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			this.channelSecure = false;
 		} else {
 			this.channelSecure = true;
+			// RFC 7151 section 4: a HOST sent before AUTH must match the name the client asked for in TLS
+			String host = virtualHost;
+			java.util.List<String> names = host == null ? java.util.Collections.<String>emptyList() : getTlsServerNames();
+			if( !names.isEmpty() && !names.contains(host) ) {
+				reply(REPLY_421_SERVICE_NOT_AVAILIBLE,"The TLS server name "+names.get(0)+" doesn't match HOST "+host+"; closing");
+				stop();
+			}
 		}
 	}
 
