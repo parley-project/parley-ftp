@@ -198,7 +198,7 @@ public class Mlsd  extends BaseCommand  implements FeatCommand {
 		FileSource [] list = null;
 
 		if( dir.isDirectory()) {
-			if( (list = dir.listFiles()) == null ) {
+			if( (list = processor.listVisible(dir)) == null ) {
 				list = new FileSource[0];
 			}
 		} else {

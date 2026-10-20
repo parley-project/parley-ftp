@@ -13,6 +13,11 @@ removed in 2.0.0.
 
 ### Added
 
+- Writers keep out of each other: an upload, a `DELE` or an `RNTO` of a file another session (here, or on
+  a server sharing the store) is changing is refused at once with `450`. Downloads take no lock. The
+  server claims the store of its root and its virtual hosts at start. System properties
+  `parley.ftp.sharedStore` (`off`, `host`, `cluster`; default `off`) and `parley.ftp.serverId`. The lock
+  directory `.parley-net-locks` in the root is hidden from clients. See the README, "Writers".
 - `FtpServer.setStoreAtOffset(boolean)` / `JFtp.storeAtOffset` (off by default): `REST n` then `STOR` writes
   in place from `n` and leaves the rest of the file as it was, so a client can write a block in the middle
   of a file. See the README, "Writing at an offset".
@@ -37,6 +42,8 @@ removed in 2.0.0.
 
 ### Changed
 
+- A `STOR` through a temporary file replaces the target in one step where the store can (it moved the old file aside first, so a download could find no file for a moment).
+- Dependencies: parley-net and parley-files 1.1.0.
 - The 226 and 426 replies that report a byte count say "transferred" (were "transfered").
 
 ### Fixed
