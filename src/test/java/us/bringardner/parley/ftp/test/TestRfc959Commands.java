@@ -51,10 +51,10 @@ public class TestRfc959Commands {
 	public static void start() throws Exception {
 		File keystore = new File(TestFtpBaseTestClass.TEST_KEYSTORE);
 		TestFtpBaseTestClass.makeTestKeystore(keystore);
-		System.setProperty("FtpServer.KeyStoreName", keystore.getPath());
-		System.setProperty("FtpServer.KeyStorePassword", "peekab00");
-		System.setProperty("FtpServer.KeyStoreType", "PKCS12");
-		System.setProperty("FtpServer.Algorithm", "SunX509");
+		System.setProperty("parley.ftp.keyStoreName", keystore.getPath());
+		System.setProperty("parley.ftp.keyStorePassword", "peekab00");
+		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
+		System.setProperty("parley.ftp.algorithm", "SunX509");
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
 

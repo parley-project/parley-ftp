@@ -127,8 +127,8 @@ public class FtpClient extends SecureBaseObject implements FTP {
 
 	private boolean requestSecure = true;
 	/** "false" turns off the host name check for secure connections, see {@link #isVerifyHostname()}. */
-	public static final String PROPERTY_VERIFY_HOSTNAME = "VerifyHostname";
-	//  null means the VerifyHostname property has not been read yet
+	public static final String PROPERTY_VERIFY_HOSTNAME = "verifyHostname";
+	//  null means the verifyHostname property has not been read yet
 	private volatile Boolean verifyHostname;
 	private boolean requireSecure = false;
 
@@ -720,14 +720,14 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	}
 
 	/**
-	 * @return SoLinger value for the Command Socket (in seconds)
+	 * @return soLinger value for the Command Socket (in seconds)
 	 */
 	public int getCmdLinger() {
 		return cmdLinger;
 	}
 
 	/**
-	 * Set the SoLinger value for the Command socket (in seconds)
+	 * Set the soLinger value for the Command socket (in seconds)
 	 * @param cmdLinger
 	 */
 	public void setCmdLinger(int cmdLinger) {
@@ -735,14 +735,14 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	}
 
 	/**
-	 * @return SoLinger value for the Transfer Socket (in seconds)
+	 * @return soLinger value for the Transfer Socket (in seconds)
 	 */
 	public int getTransferLinger() {
 		return transferLinger;
 	}
 
 	/**
-	 * Set the SoLinger value for the Transfer socket (in seconds)
+	 * Set the soLinger value for the Transfer socket (in seconds)
 	 * @param transferLinger
 	 */
 	public void setTransferLinger(int transferLinger) {
@@ -2946,7 +2946,7 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	 * @return true (the default) if secure connections (implicit TLS and AUTH TLS) check that the
 	 *  server's certificate was issued for the host name (or address) being connected to. Without
 	 *  this check any certificate the trust managers accept is accepted for every host, so a server
-	 *  with any trusted certificate could pretend to be another. The VerifyHostname property
+	 *  with any trusted certificate could pretend to be another. The verifyHostname property
 	 *  ("false") changes the default.
 	 */
 	public boolean isVerifyHostname() {

@@ -33,21 +33,23 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 
 | Property | Default | Meaning |
 |---|---|---|
-| `JFtp.port` | 21 | Control port (used by `FtpServer.main`) |
-| `JFtp.root` | `/ftp` (`C:/ftp` on Windows) | FTP root directory |
-| `JFtp.dataTimeout` | 600000 ms | A transfer that moves no data for this long is aborted with a 426 reply. This is also how long PASV waits for the client to connect. `setDataTimeout()` |
-| `JFtp.connectTimeout` | 15000 ms | Connect timeout for active mode (PORT/EPRT). `setConnectTimeout()` |
-| `JFtp.bufferSize` | 65536 bytes | Transfer buffer size. `setBufferSize()` |
-| `JFtp.minControlPort` / `JFtp.maxControlPort` | 10333 / 65333 | Passive (PASV/EPSV) port range; busy ports are skipped |
-| `JFtp.externalAddress` | control connection address | Address advertised in PASV replies (for NAT) |
-| `JFtp.allowForeignDataAddress` | false | Allow PORT/EPRT to other hosts or ports below 1024, and PASV connections from other hosts (needed only for FXP). `setAllowForeignDataAddress()` |
-| `JFtp.symlinkPolicy` | `strict` | How symbolic links inside a user's root are treated: `strict`, `allowedTargets` or `follow` (see below). `setSymlinkPolicy()` |
-| `JFtp.allowedLinkTargets` | none | Comma-separated directories that links may lead into when the policy is `allowedTargets`. `setAllowedLinkTargets()` |
-| `JFtp.uploadMode` | `atomic` | How `STOR` puts an upload in place: `atomic` or `inPlace` (see [Uploads and resuming](#uploads-and-resuming)). `setUploadMode()` |
-| `JFtp.storeAtOffset` | false | `REST n` then `STOR` writes in place from `n` (random access); see [Writing at an offset](#writing-at-an-offset). `setStoreAtOffset()` |
-| `JFtp.virtualHosts` | none | Virtual hosts for `HOST` (RFC 7151): `name=root;name=root` (see below). `addVirtualHost()` |
-| `JFtp.loginFailureDelay` | 1000 ms | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
-| `JavaFtpServer.linger` | off | SO_LINGER (seconds) for data connections |
+| `parley.ftp.port` | 21 | Control port (used by `FtpServer.main`) |
+| `parley.ftp.root` | `/ftp` (`C:/ftp` on Windows) | FTP root directory |
+| `parley.ftp.dataTimeout` | 600000 ms | A transfer that moves no data for this long is aborted with a 426 reply. This is also how long PASV waits for the client to connect. `setDataTimeout()` |
+| `parley.ftp.connectTimeout` | 15000 ms | Connect timeout for active mode (PORT/EPRT). `setConnectTimeout()` |
+| `parley.ftp.bufferSize` | 65536 bytes | Transfer buffer size. `setBufferSize()` |
+| `parley.ftp.passiveMinPort` / `parley.ftp.passiveMaxPort` | 10333 / 65333 | Passive (PASV/EPSV) port range; busy ports are skipped |
+| `parley.ftp.externalAddress` | control connection address | Address advertised in PASV replies (for NAT) |
+| `parley.ftp.allowForeignDataAddress` | false | Allow PORT/EPRT to other hosts or ports below 1024, and PASV connections from other hosts (needed only for FXP). `setAllowForeignDataAddress()` |
+| `parley.ftp.symlinkPolicy` | `strict` | How symbolic links inside a user's root are treated: `strict`, `allowedTargets` or `follow` (see below). `setSymlinkPolicy()` |
+| `parley.ftp.allowedLinkTargets` | none | Comma-separated directories that links may lead into when the policy is `allowedTargets`. `setAllowedLinkTargets()` |
+| `parley.ftp.uploadMode` | `atomic` | How `STOR` puts an upload in place: `atomic` or `inPlace` (see [Uploads and resuming](#uploads-and-resuming)). `setUploadMode()` |
+| `parley.ftp.storeAtOffset` | false | `REST n` then `STOR` writes in place from `n` (random access); see [Writing at an offset](#writing-at-an-offset). `setStoreAtOffset()` |
+| `parley.ftp.virtualHosts` | none | Virtual hosts for `HOST` (RFC 7151): `name=root;name=root` (see below). `addVirtualHost()` |
+| `parley.ftp.loginFailureDelay` | 1000 ms | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
+| `parley.ftp.linger` | off | SO_LINGER (seconds) for data connections |
+| `parley.ftp.secure` | false | `main` starts a server with implicit TLS (its port is `parley.ftps.port`) |
+| `parley.ftp.*` | | The server's own settings use its prefix: the key store (`keyStoreName`, `keyStorePassword`, `keyStoreType`), the limits of parley-core's `AbstractCoreServer` (`maxConnections`, `maxLoginAttempts`, ...) and the access control list (`authenticationProvider`, `userFile`). A server with implicit TLS uses `parley.ftps`. |
 
 ### Behaviour notes
 
@@ -106,13 +108,13 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 - **SPSV (draft-rosenau-ftp-single-port, in `FEAT`):** passive mode through the control port only. The reply has a
   one-time identifier, `227 Entering single-port mode (id)`; the client opens a second connection to the control port,
   sends `SPDT id`, gets `200 DATA`, and that connection carries the next transfer. As with PASV, it must come from the
-  client's own address (`JFtp.allowForeignDataAddress` aside). It is protected as the control port
+  client's own address (`parley.ftp.allowForeignDataAddress` aside). It is protected as the control port
   is, so `SPSV` gets `504` when the data protection set differs (`PROT P` after `AUTH TLS`, `PROT C` with implicit TLS).
 - **MODE Z (draft-preston-ftpext-deflate, `MODE Z` in `FEAT`):** data connections (transfers and listings) are
   deflated (zlib); `OPTS MODE Z LEVEL n` sets the level (0-9); `MODE S` turns it off, as does `REIN`. `REST` and `RANG`
   get `504` in MODE Z.
 - **Virtual hosts (`HOST`, RFC 7151, in `FEAT`):** a client sends `HOST name` before logging in and gets that host's
-  root (`addVirtualHost(name, root)` or `JFtp.virtualHosts`; each root can be in its own file system). Users and
+  root (`addVirtualHost(name, root)` or `parley.ftp.virtualHosts`; each root can be in its own file system). Users and
   their permissions are the server's, whatever the host.
   - With no virtual hosts, any name is accepted (`220`) and is the server. With some, a name that isn't one of them
     gets `504` and the session stays on the host it had. A client that sends no `HOST` gets the server's root.
@@ -131,11 +133,11 @@ Each setting can be passed as a system property or set with the matching `FtpSer
     and `PROT` stay, so data connections are protected as before. After the reply to `CCC` (and to `REIN`), TLS is
     shut down both ways as RFC 4217 section 12.3 shows: the server sends close_notify and reads the client's. A client
     that sends none should wait 2 seconds before its next command, or that command is lost.
-- **Failed logins** wait `JFtp.loginFailureDelay` ms (default 1000) before the reply, and a connection is closed after 3 failures.
+- **Failed logins** wait `parley.ftp.loginFailureDelay` ms (default 1000) before the reply, and a connection is closed after 3 failures.
 
 ## Uploads and resuming
 
-`STOR` puts an upload in place in one of two ways, set with `JFtp.uploadMode` / `setUploadMode()`. They
+`STOR` puts an upload in place in one of two ways, set with `parley.ftp.uploadMode` / `setUploadMode()`. They
 trade two things against each other: a file that is never half replaced, and an upload that can be resumed.
 
 | | `atomic` (default) | `inPlace` |
@@ -161,7 +163,7 @@ length, the marker matched, and the new data was appended to the old file, which
 
 ### Writing at an offset
 
-With `JFtp.storeAtOffset` / `setStoreAtOffset(true)` (off by default), `REST n` then `STOR` writes the
+With `parley.ftp.storeAtOffset` / `setStoreAtOffset(true)` (off by default), `REST n` then `STOR` writes the
 upload into the file from `n`, in place, and leaves the rest of the file as it was. The FTP standards don't say what
 a server does with `REST` then `STOR`, and other servers differ (some refuse, some replace the file, some add to it).
 A client can then write a block in the middle of a file, which
@@ -170,7 +172,7 @@ bufferSize)` sends the `REST` and `STOR`).
 
 - `n` may be anything from 1 to the file's length; past the end it is refused (`554`). `n` equal to the
   length adds to the file, **even one that wasn't cut off**: the check described above is off with it.
-- The write isn't atomic, whatever `JFtp.uploadMode` is: a transfer that breaks leaves what arrived.
+- The write isn't atomic, whatever `parley.ftp.uploadMode` is: a transfer that breaks leaves what arrived.
 - `REST 0` is no restart: `STOR` replaces the file, as always.
 - On a link it is refused (`450`), as before.
 
@@ -190,7 +192,7 @@ clients may not have it. Both points count octets from the start of the file, an
   file isn't truncated, and more data than the range holds fails the transfer (`451`) once the range is
   written. A start past the end of the file is refused (`554`). On a link it is refused (`450`).
   Unlike `REST` then `STOR`, the range says exactly which octets are written, so this doesn't need
-  `JFtp.storeAtOffset`.
+  `parley.ftp.storeAtOffset`.
 - `APPE` refuses a range (`504`).
 
 ## Writers
@@ -282,10 +284,10 @@ accept uploads.
 
 ### Where a link may lead
 
-`JFtp.symlinkPolicy` decides whether a link may lead outside the user's root:
+`parley.ftp.symlinkPolicy` decides whether a link may lead outside the user's root:
 
 - `strict` (default): a link that leads outside the root is refused, so it can't be used to reach other files.
-- `allowedTargets`: links may lead outside the root only into the directories listed in `JFtp.allowedLinkTargets`,
+- `allowedTargets`: links may lead outside the root only into the directories listed in `parley.ftp.allowedLinkTargets`,
   e.g. to share `/data/shared` in every user's root. **This is the setting for linking in files from elsewhere.**
 - `follow`: every link inside the root is followed. Use it only when users can't create links by other means
   (shell, SFTP, Samba, unpacked archives).
