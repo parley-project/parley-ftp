@@ -1,5 +1,19 @@
 # Changelog
 
+## parley-ftp 2.0.0 (unreleased)
+
+### Changed (needs a configuration change)
+
+- **Property names** (Parley 2.0.0; the old names are no longer read): `JFtp.*` is `parley.ftp.*`
+  (`parley.ftp.root`, `.dataTimeout`, `.uploadMode` ...). The passive port settings have meaningful names:
+  `JFtp.controlPort`, `JFtp.minControlPort` and `JFtp.maxControlPort` are `parley.ftp.passivePort`,
+  `parley.ftp.passiveMinPort` and `parley.ftp.passiveMaxPort`. `JavaFtpServer.linger` is `parley.ftp.linger`
+  (`FtpServer.LINGER_PROP`), and `JFtp.properties` is `parley.ftp.configFile`.
+- A server's own settings are read with its prefix, `parley.ftp` (was `FtpServer`): key store, limits and access
+  control. A server with implicit TLS uses `parley.ftps`.
+- `JFtp.loginFailureDelay` is now the server's `loginFailureDelay`: `LOGIN_FAILURE_DELAY_PROP` is gone.
+- `FtpClient`'s `VerifyHostname` is `verifyHostname`.
+
 ## parley-ftp 1.1.0 (unreleased)
 
 ### Deprecated

@@ -35,7 +35,7 @@ import us.bringardner.parley.net.server.Server.VirtualThreads;
 import us.bringardner.parley.ftp.server.FtpServer;
 
 /**
- * BJL-52: with Server VirtualThreads ON, a data transfer runs on a virtual thread like its
+ * BJL-52: with Server virtualThreads ON, a data transfer runs on a virtual thread like its
  * session, so many sessions with a transfer each need few platform threads. The transfers are
  * left blocked (the client doesn't read) while the threads are counted, which is also the case
  * that pinned carrier threads on Java 21-23 while transfer and reply code was synchronized.

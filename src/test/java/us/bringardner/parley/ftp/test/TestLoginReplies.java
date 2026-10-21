@@ -208,7 +208,7 @@ public class TestLoginReplies {
 		}
 	}
 
-	/** The shared MaxLoginAttempts setting: 3 by default, as the other servers */
+	/** The shared maxLoginAttempts setting: 3 by default, as the other servers */
 	@Test
 	public void closedAfterMaxLoginAttempts() throws Exception {
 		assertEquals(3, failuresUntilClosed(3), "closed after the 3rd failed login");

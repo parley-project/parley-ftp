@@ -98,10 +98,10 @@ public class TestTlsResumption {
 	public static void start() throws Exception {
 		File keystore = new File(TestFtpBaseTestClass.TEST_KEYSTORE);
 		TestFtpBaseTestClass.makeTestKeystore(keystore);
-		System.setProperty("FtpServer.KeyStoreName", keystore.getPath());
-		System.setProperty("FtpServer.KeyStorePassword", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD);
-		System.setProperty("FtpServer.KeyStoreType", "PKCS12");
-		System.setProperty("FtpServer.Algorithm", "SunX509");
+		System.setProperty("parley.ftp.keyStoreName", keystore.getPath());
+		System.setProperty("parley.ftp.keyStorePassword", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD);
+		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
+		System.setProperty("parley.ftp.algorithm", "SunX509");
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
 		root = new File(FtpTestSupport.scratchDir("FtpTlsResumption")).getAbsoluteFile();
@@ -111,8 +111,8 @@ public class TestTlsResumption {
 		// A configured protocol that differs from the AUTH name ("TLS") once made the server
 		// run AUTH on a different TLS context from its data connections, so the first data
 		// connection couldn't resume; keep that setup covered.
-		oldServerProtocol = System.getProperty("FtpServer.Protocol");
-		System.setProperty("FtpServer.Protocol", "TLSv1.3");
+		oldServerProtocol = System.getProperty("parley.ftp.protocol");
+		System.setProperty("parley.ftp.protocol", "TLSv1.3");
 		explicit = startServer(EXPLICIT_PORT, false);
 		implicit = startServer(IMPLICIT_PORT, true);
 	}
@@ -141,9 +141,9 @@ public class TestTlsResumption {
 			}
 		}
 		if (oldServerProtocol == null) {
-			System.clearProperty("FtpServer.Protocol");
+			System.clearProperty("parley.ftp.protocol");
 		} else {
-			System.setProperty("FtpServer.Protocol", oldServerProtocol);
+			System.setProperty("parley.ftp.protocol", oldServerProtocol);
 		}
 	}
 

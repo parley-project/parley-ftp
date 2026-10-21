@@ -26,15 +26,15 @@ public class InteropServer {
 		int explicitPort = Integer.parseInt(args[1]);
 		int implicitPort = Integer.parseInt(args[2]);
 		if (args.length > 3) {
-			System.setProperty("FtpServer.Protocol", args[3]);
+			System.setProperty("parley.ftp.protocol", args[3]);
 		}
 		root.mkdirs();
 		File keystore = new File(TestFtpBaseTestClass.TEST_KEYSTORE);
 		TestFtpBaseTestClass.makeTestKeystore(keystore);
-		System.setProperty("FtpServer.KeyStoreName", keystore.getPath());
-		System.setProperty("FtpServer.KeyStorePassword", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD);
-		System.setProperty("FtpServer.KeyStoreType", "PKCS12");
-		System.setProperty("FtpServer.Algorithm", "SunX509");
+		System.setProperty("parley.ftp.keyStoreName", keystore.getPath());
+		System.setProperty("parley.ftp.keyStorePassword", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD);
+		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
+		System.setProperty("parley.ftp.algorithm", "SunX509");
 		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
 

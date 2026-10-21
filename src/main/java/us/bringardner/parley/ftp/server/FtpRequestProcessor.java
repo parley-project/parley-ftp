@@ -145,7 +145,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				try {
 					/*
 					 * The server runs and manages the transfer thread (BJL-60): the same kind
-					 * of thread as the session (VirtualThreads), stopped when the session ends
+					 * of thread as the session (virtualThreads), stopped when the session ends
 					 * or the server stops.
 					 */
 					getServer().startTask(FtpRequestProcessor.this, next);
@@ -970,7 +970,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		super();
 		setCommandFactory(new FtpCommandFactory());
 		setName("FtpRequestProcessor");
-		setPropertyPrefix("FtpRequestProcessor");
+		setPropertyPrefix("parley.ftp.session");
 
 	}
 
@@ -1520,12 +1520,12 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			 * to the activity timeout, i.e. 10 minutes). A normal close still delivers all
 			 * queued data in the background.
 			 */
-			String tmp = System.getProperty("JavaFtpServer.linger");
+			String tmp = System.getProperty(FtpServer.LINGER_PROP);
 			if( tmp != null ) {
 				try {
 					this.linger = Integer.parseInt(tmp);
 				} catch(NumberFormatException ex) {
-					logError("JavaFtpServer.linger is not a number: "+tmp);
+					logError(FtpServer.LINGER_PROP+" is not a number: "+tmp);
 				}
 			}
 		}
@@ -2266,7 +2266,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	/**
 	 * Count a failed login.
 	 *
-	 * @return true if that was one too many (the server's MaxLoginAttempts) and the
+	 * @return true if that was one too many (the server's maxLoginAttempts) and the
 	 * connection should be closed
 	 */
 	public boolean loginFailed() {

@@ -76,32 +76,39 @@ public class FtpServer extends Server {
 	public static final String FTP_NAME = "JFtp";
 	
 	
-	public static final String CONFIG_PROP = FTP_NAME+".properties";	
-	public static final String ROOT_PROP = FTP_NAME+".root";
-	public static final String DEBUG_PROP = FTP_NAME+".debug";
-	public static final String FILE_SOURCE_PROP = FTP_NAME+".fileSource";
+	/** The prefix of the properties of an FTP server. */
+	public static final String FTP_PREFIX = "parley.ftp";
+	/** The prefix of the properties of an FTP server with implicit TLS. */
+	public static final String FTPS_PREFIX = "parley.ftps";
+	/** A properties file main loads into the system properties. */
+	public static final String CONFIG_PROP = FTP_PREFIX+".configFile";
+	public static final String ROOT_PROP = FTP_PREFIX+".root";
+	public static final String DEBUG_PROP = FTP_PREFIX+".debug";
+	public static final String FILE_SOURCE_PROP = FTP_PREFIX+".fileSource";
     
 	public static final String DEFAULT_ROOT_WINDOWS = "C:/ftp";
 	public static final String DEFAULT_ROOT = "/ftp";
-	public static final String EXTERNAL_ADDRESS_PROP = FTP_NAME+".externalAddress";
-	public static final String PASIVE_CONTROL_PORT_PROP = FTP_NAME+".controlPort";
-	public static final String PASIVE_CONTROL_MIN_PROP = FTP_NAME+".minControlPort";
-	public static final String PASIVE_CONTROL_MAX_PROP = FTP_NAME+".maxControlPort";
+	public static final String EXTERNAL_ADDRESS_PROP = FTP_PREFIX+".externalAddress";
+	/** One port for every passive (PASV/EPSV) data connection. */
+	public static final String PASIVE_CONTROL_PORT_PROP = FTP_PREFIX+".passivePort";
+	/** The range of ports for passive (PASV/EPSV) data connections. */
+	public static final String PASIVE_CONTROL_MIN_PROP = FTP_PREFIX+".passiveMinPort";
+	public static final String PASIVE_CONTROL_MAX_PROP = FTP_PREFIX+".passiveMaxPort";
 	
 	/** Default size (bytes) of the buffer used to copy data-channel transfers. */
 	public static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
-	public static final String BUFFER_SIZE_PROP = FTP_NAME+".bufferSize";
+	public static final String BUFFER_SIZE_PROP = FTP_PREFIX+".bufferSize";
 	/** Default data-connection inactivity timeout (ms) */
 	public static final int DEFAULT_DATA_TIMEOUT = 10 * 60 * 1000;
-	public static final String DATA_TIMEOUT_PROP = FTP_NAME+".dataTimeout";
+	public static final String DATA_TIMEOUT_PROP = FTP_PREFIX+".dataTimeout";
 	/** Default timeout (ms) for connecting to the client in active mode (PORT/EPRT) */
 	public static final int DEFAULT_CONNECT_TIMEOUT = 15 * 1000;
-	public static final String CONNECT_TIMEOUT_PROP = FTP_NAME+".connectTimeout";
+	public static final String CONNECT_TIMEOUT_PROP = FTP_PREFIX+".connectTimeout";
 	/**
 	 * If "true", PORT/EPRT may name any address/port and PASV accepts a data connection from any
 	 * address (needed for FXP / server-to-server transfers). Default false (RFC 2577 protections).
 	 */
-	public static final String ALLOW_FOREIGN_DATA_ADDRESS_PROP = FTP_NAME+".allowForeignDataAddress";
+	public static final String ALLOW_FOREIGN_DATA_ADDRESS_PROP = FTP_PREFIX+".allowForeignDataAddress";
 	/**
 	 * How symbolic links inside a user's root are treated. {@code ..} can never leave the
 	 * root in any mode (it is resolved on the virtual path first).
@@ -125,7 +132,7 @@ public class FtpServer extends Server {
 			}
 		}
 	}
-	public static final String SYMLINK_POLICY_PROP = FTP_NAME+".symlinkPolicy";
+	public static final String SYMLINK_POLICY_PROP = FTP_PREFIX+".symlinkPolicy";
 
 	/**
 	 * How STOR puts an upload in place.
@@ -154,24 +161,24 @@ public class FtpServer extends Server {
 			}
 		}
 	}
-	public static final String UPLOAD_MODE_PROP = FTP_NAME+".uploadMode";
+	public static final String UPLOAD_MODE_PROP = FTP_PREFIX+".uploadMode";
 	/**
 	 * true: REST n then STOR writes the upload into the file from n, in place, leaving the rest of the
 	 * file as it was (what ProFTPD calls AllowStoreRestart). Off by default. See {@link #setStoreAtOffset(boolean)}.
 	 */
-	public static final String STORE_AT_OFFSET_PROP = FTP_NAME+".storeAtOffset";
+	public static final String STORE_AT_OFFSET_PROP = FTP_PREFIX+".storeAtOffset";
 	/** Directories that links may lead into with SymlinkPolicy.ALLOWED_TARGETS, separated by commas. */
-	public static final String ALLOWED_LINK_TARGETS_PROP = FTP_NAME+".allowedLinkTargets";
+	public static final String ALLOWED_LINK_TARGETS_PROP = FTP_PREFIX+".allowedLinkTargets";
 
 	/** Delay (ms) before replying to a failed login, to slow down password guessing. */
 	public static final int DEFAULT_LOGIN_FAILURE_DELAY = 1000;
-	/** Older name of the delay setting, still read: see {@link #getDefaultLoginFailureDelay()} */
 	/**
 	 * Virtual hosts for HOST (RFC 7151): {@code name=root;name=root}, each root a path in the server's
 	 * file system. See {@link #addVirtualHost(String, FileSource)}.
 	 */
-	public static final String VIRTUAL_HOSTS_PROP = FTP_NAME+".virtualHosts";
-	public static final String LOGIN_FAILURE_DELAY_PROP = FTP_NAME+".loginFailureDelay";
+	public static final String VIRTUAL_HOSTS_PROP = FTP_PREFIX+".virtualHosts";
+	/** SO_LINGER (seconds) for data connections; off by default. */
+	public static final String LINGER_PROP = FTP_PREFIX+".linger";
 
 	private volatile int bufferSize = Integer.getInteger(BUFFER_SIZE_PROP, DEFAULT_BUFFER_SIZE);
 	private volatile int dataTimeout = Integer.getInteger(DATA_TIMEOUT_PROP, DEFAULT_DATA_TIMEOUT);
@@ -293,7 +300,7 @@ public class FtpServer extends Server {
 	 */
 	public FtpServer(int port, String name,  boolean secure) {
 		super(port, name);
-		setPropertyPrefix("FtpServer");
+		setPropertyPrefix(secure ? FTPS_PREFIX : FTP_PREFIX);
 		setSecure(secure);
 		setDaemon(false);
 		initMe();
@@ -355,13 +362,13 @@ public class FtpServer extends Server {
 				System.setProperty(args[idx++],args[idx]);
 			}
 		}
+		boolean sucure = System.getProperty(FTP_PREFIX+".secure", "false").toLowerCase(java.util.Locale.ROOT).equals("true");
 		int port = FTP_PORT;
-		tmp = System.getProperty(FTP_NAME+".port");
+		tmp = System.getProperty((sucure ? FTPS_PREFIX : FTP_PREFIX)+".port");
 		if( tmp != null )  {
 			port = Integer.parseInt(tmp);
 		}
-		
-		boolean sucure = System.getProperty(FTP_NAME+".secure", "false").toLowerCase(java.util.Locale.ROOT).equals("true");
+
 		FtpServer server = new FtpServer(port, FTP_NAME,sucure);		
 		server.start();
 		System.out.println("FtpServer started on port "+port);
@@ -711,15 +718,6 @@ public class FtpServer extends Server {
 	 */
 	public void setAllowForeignDataAddress(boolean allow) {
 		this.allowForeignDataAddress = allow;
-	}
-
-	/**
-	 * The shared LoginFailureDelay setting (see AbstractCoreServer) defaults to the older
-	 * {@value #LOGIN_FAILURE_DELAY_PROP} system property, else {@value #DEFAULT_LOGIN_FAILURE_DELAY} ms.
-	 */
-	@Override
-	protected int getDefaultLoginFailureDelay() {
-		return Integer.getInteger(LOGIN_FAILURE_DELAY_PROP, DEFAULT_LOGIN_FAILURE_DELAY);
 	}
 
 	/**

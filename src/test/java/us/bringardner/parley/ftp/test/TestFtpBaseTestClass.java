@@ -271,11 +271,11 @@ public abstract class TestFtpBaseTestClass {
 
 
 	public  static void startFtpServer() throws IOException  {
-		System.setProperty("FtpServer.KeyStoreName", TEST_KEYSTORE);
-		System.setProperty("FtpServer.KeyStorePassword", "peekab00");
-		System.setProperty("FtpServer.KeyStoreType", "PKCS12");
-		System.setProperty("FtpServer.Algorithm", "SunX509");
-		System.setProperty("FtpServer.Protocol", "TLSv1.3");
+		System.setProperty("parley.ftp.keyStoreName", TEST_KEYSTORE);
+		System.setProperty("parley.ftp.keyStorePassword", "peekab00");
+		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
+		System.setProperty("parley.ftp.algorithm", "SunX509");
+		System.setProperty("parley.ftp.protocol", "TLSv1.3");
 		System.setProperty("us.bringardner.parley.ftp.client.FtpClient.Protocol", "TLSv1.3");
 
 		makeTestKeystore(new File(TEST_KEYSTORE));
