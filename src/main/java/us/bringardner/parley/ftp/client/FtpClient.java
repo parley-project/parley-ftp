@@ -2952,7 +2952,7 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 	public boolean isVerifyHostname() {
 		Boolean ret = verifyHostname;
 		if( ret == null ) {
-			ret = getBooleanProperty(PROPERTY_VERIFY_HOSTNAME, true);
+			ret = getBooleanProperty(propertyName(PROPERTY_VERIFY_HOSTNAME), true);
 			verifyHostname = ret;
 		}
 		return ret;

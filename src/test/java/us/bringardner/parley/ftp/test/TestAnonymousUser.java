@@ -1,6 +1,7 @@
 package us.bringardner.parley.ftp.test;
 
 import java.io.IOException;
+import us.bringardner.parley.ftp.server.FtpServer;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,7 +15,7 @@ public class TestAnonymousUser extends TestFtpBaseTestClass {
 		TestFtpBaseTestClass.useFileBasedAcl=false;
 		// Other test classes configure a file based ACL through system properties; clear it so
 		// this class gets the built in anonymous ACL regardless of test execution order.
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		TestFtpBaseTestClass.implicitSecure = false;
 		
 		TestFtpBaseTestClass._client = null;

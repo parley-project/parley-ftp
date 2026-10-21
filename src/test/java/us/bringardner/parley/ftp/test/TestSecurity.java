@@ -49,8 +49,8 @@ public class TestSecurity {
 
 	@BeforeAll
 	public static void startServer() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 
 		base = new File(BASE).getAbsoluteFile();
 		deleteAll(base);

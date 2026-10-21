@@ -38,8 +38,8 @@ public class TestStreamBufferSize {
 
 	@BeforeAll
 	public static void startServer() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 
 		rootDir = new File(ROOT_PATH).getAbsoluteFile();
 		deleteAll(rootDir);

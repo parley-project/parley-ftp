@@ -35,8 +35,8 @@ public class InteropServer {
 		System.setProperty("parley.ftp.keyStorePassword", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD);
 		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
 		System.setProperty("parley.ftp.algorithm", "SunX509");
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 
 		FtpServer explicit = start(root, explicitPort, false);
 		FtpServer implicit = start(root, implicitPort, true);

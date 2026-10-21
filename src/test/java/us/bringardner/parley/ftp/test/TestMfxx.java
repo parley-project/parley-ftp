@@ -41,15 +41,15 @@ public class TestMfxx {
 		root.mkdirs();
 		File acl = new File(base, "acl.txt");
 		Files.write(acl.toPath(), (" admin , 0000 , ADMIN|SITE|READ|WRITE\n plain , 1234 , READ|WRITE\n").getBytes(StandardCharsets.UTF_8));
-		System.setProperty(FileBasedAcl.PROP_FILE_NAME, acl.getPath());
-		System.setProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileBasedAcl.class.getCanonicalName());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME, acl.getPath());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileBasedAcl.class.getCanonicalName());
 		server = RawFtp.startServer(PORT, root);
 	}
 
 	@AfterAll
 	public static void stop() throws Exception {
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		server.stop();
 	}
 

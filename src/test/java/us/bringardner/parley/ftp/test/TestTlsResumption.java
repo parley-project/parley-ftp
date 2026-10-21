@@ -102,8 +102,8 @@ public class TestTlsResumption {
 		System.setProperty("parley.ftp.keyStorePassword", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD);
 		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
 		System.setProperty("parley.ftp.algorithm", "SunX509");
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 		root = new File(FtpTestSupport.scratchDir("FtpTlsResumption")).getAbsoluteFile();
 		root.mkdirs();
 		Files.write(new File(root, "file.txt").toPath(), CONTENT);

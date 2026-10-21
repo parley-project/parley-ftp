@@ -49,8 +49,8 @@ public class TestFtpLocks {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 		sharingBefore = System.getProperty(FtpServer.SHARED_STORE_PROPERTY);
 		File scratch = new File(FtpTestSupport.scratchDir("FtpLocks"));
 		scratch.mkdirs();

@@ -38,8 +38,8 @@ public class TestStreamlined {
 
 	@BeforeAll
 	public static void start() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 		root = new File(FtpTestSupport.scratchDir("FtpStreamlined")).getAbsoluteFile();
 		root.mkdirs();
 		Files.write(new File(root, "text.txt").toPath(), "not an image".getBytes(StandardCharsets.US_ASCII));
