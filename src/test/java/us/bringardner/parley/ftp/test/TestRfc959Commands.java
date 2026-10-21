@@ -55,8 +55,8 @@ public class TestRfc959Commands {
 		System.setProperty("parley.ftp.keyStorePassword", "peekab00");
 		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
 		System.setProperty("parley.ftp.algorithm", "SunX509");
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 
 		root = new File(FtpTestSupport.scratchDir("FtpRfc959")).getAbsoluteFile();
 		root.mkdirs();

@@ -44,8 +44,8 @@ public class TestLinksAreInvisible {
 
 	@BeforeAll
 	public static void start() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 		base = new File(FtpTestSupport.scratchDir("FtpLinksInvisible")).getAbsoluteFile();
 		deleteAll(base);
 		root = new File(base, "root");

@@ -276,7 +276,7 @@ public abstract class TestFtpBaseTestClass {
 		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
 		System.setProperty("parley.ftp.algorithm", "SunX509");
 		System.setProperty("parley.ftp.protocol", "TLSv1.3");
-		System.setProperty("us.bringardner.parley.ftp.client.FtpClient.Protocol", "TLSv1.3");
+		System.setProperty("us.bringardner.parley.ftp.client.FtpClient.protocol", "TLSv1.3");
 
 		makeTestKeystore(new File(TEST_KEYSTORE));
 		
@@ -285,8 +285,8 @@ public abstract class TestFtpBaseTestClass {
 
 			if( useFileBasedAcl) {
 				//  this is for testing the server will use a different one based on the properties. 
-				System.setProperty(FileBasedAcl.PROP_FILE_NAME, "FtpTestAcl.txt");
-				System.setProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
+				System.setProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME, "FtpTestAcl.txt");
+				System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
 			} 
 			
 			//  Force a FileProxy storage

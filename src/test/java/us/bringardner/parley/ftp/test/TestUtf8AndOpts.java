@@ -44,8 +44,8 @@ public class TestUtf8AndOpts {
 
 	@BeforeAll
 	public static void start() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 		root = new File(FtpTestSupport.scratchDir("TestUtf8AndOpts")).getAbsoluteFile();
 		root.mkdirs();
 		File old = new File(root, NAME);

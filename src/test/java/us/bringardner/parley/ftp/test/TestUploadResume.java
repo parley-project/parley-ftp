@@ -60,8 +60,8 @@ public class TestUploadResume {
 
 	@BeforeAll
 	public static void startServers() throws Exception {
-		System.clearProperty(IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
 		atomicRoot = new File(FtpTestSupport.scratchDir("FtpUploadResumeAtomic")).getAbsoluteFile();
 		inPlaceRoot = new File(FtpTestSupport.scratchDir("FtpUploadResumeInPlace")).getAbsoluteFile();
 		atomicRoot.mkdirs();
