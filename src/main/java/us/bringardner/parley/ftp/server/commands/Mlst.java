@@ -135,10 +135,6 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 
 	/** Ends each fact in an MLSx entry. */
 	public static final String SEPARATOR = ";";
-	/** @deprecated misspelled, use {@link #SEPARATOR} (same value); to be removed in 2.0.0 */
-	@Deprecated
-	public static final String SEPERATOR = SEPARATOR;
-
 	static {
 		//  These are the only supported facts
 		facts.put(SIZE,(FACT_SIZE));

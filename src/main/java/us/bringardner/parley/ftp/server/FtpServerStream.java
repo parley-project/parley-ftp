@@ -172,11 +172,6 @@ public class FtpServerStream extends BaseThread {
 		return bytesTransferred;
 	}
 
-	/** @deprecated misspelled, use {@link #getBytesTransferred()}; to be removed in 2.0.0 */
-	@Deprecated
-	public long getBytesTransfered() {
-		return getBytesTransferred();
-	}
 
 	/**
 	 * Abort the transfer (ABOR): the client gets 426 then 226.
