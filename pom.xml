@@ -13,7 +13,6 @@
 	</parent>
 
 	<artifactId>parley-ftp</artifactId>
-	<version>2.0.0-SNAPSHOT</version>
 	<name>Parley FTP</name>
 	<inceptionYear>2004</inceptionYear>
 	<description>An implementation of the FTP protocol, client and server (FTP, FTPS explicit and implicit, RFC 2228 and RFC 2428), built on parley-net with files served from any parley-files FileSource. Formerly us.bringardner:bjl_net_ftp.</description>
@@ -105,26 +104,26 @@
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-io</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<!-- Used directly, and named here so this version wins over any older one brought in
 		     transitively (parley-net needs BaseThread.setVirtual, BJL-51). Was bjl_core. -->
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-core</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<!-- Was bjl_file_system -->
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-files</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<!-- Was bjl_net_framework -->
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
 			<artifactId>parley-net</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
