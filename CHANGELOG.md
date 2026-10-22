@@ -2,6 +2,11 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Removed (needs a code change)
+
+- The misspelled names deprecated in 1.0.0: `FtpClient.SEPERATOR` and `SEPERATOR_CHAR` (use `SEPARATOR`,
+  `SEPARATOR_CHAR`), `Mlst.SEPERATOR` and `FtpServerStream.getBytesTransfered()` (use `getBytesTransferred()`).
+
 ### Changed (needs a configuration change)
 
 - **Property names** (Parley 2.0.0; the old names are no longer read): `JFtp.*` is `parley.ftp.*`
