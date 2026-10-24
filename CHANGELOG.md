@@ -2,6 +2,12 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed
+
+- **`FtpServer.main` runs the server as a service** with parley-net's `ServerMain.run`: settings from the command
+  line (which wins) and `parley-ftp.properties` in Parley's administrator folder (`/etc/parley`, or the file the server's
+  `configFile` property names); it stops on SIGTERM; the settings file is also found in Parley's administrator folder.
+
 ### Removed (needs a code change)
 
 - The misspelled names deprecated in 1.0.0: `FtpClient.SEPERATOR` and `SEPERATOR_CHAR` (use `SEPARATOR`,
