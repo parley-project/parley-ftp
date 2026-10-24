@@ -30,12 +30,7 @@
 package us.bringardner.parley.ftp.server;
 
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 
 import us.bringardner.parley.core.ILogger;
 import us.bringardner.parley.files.FileSource;
@@ -46,6 +41,7 @@ import us.bringardner.parley.net.server.AbstractPrincipal;
 import us.bringardner.parley.net.server.IAccessControlList;
 import us.bringardner.parley.net.server.IPermission;
 import us.bringardner.parley.net.server.IPrincipal;
+import us.bringardner.parley.net.server.ServerMain;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.net.server.Server;
 
@@ -327,52 +323,15 @@ public class FtpServer extends Server {
 	}
 
 	public static void main(String[] args) throws Exception {
-		System.out.println("\nStarting FtpServer with "+args.length+" args");
-		for(int idx = 0; idx < args.length; idx++ ) {
-			if( args[idx].startsWith("-D")) {
-				String [] tmp = args[idx].substring(2).split("=");
-				if( tmp.length == 2) {
-					System.out.println("\t"+tmp[0]+"="+tmp[1]);
-					System.setProperty(tmp[0],tmp[1]);
-				} else {
-					System.out.println("Invalid arg = "+args[idx]);
-				}
-			} else {
-				System.out.println("\t"+args[idx]+"="+args[idx+1]);
-				System.setProperty(args[idx++],args[idx]);
+		ServerMain.run("FtpServer", args, CONFIG_PROP, "parley-ftp.properties", () -> {
+			boolean secure = System.getProperty(FTP_PREFIX+".secure", "false").toLowerCase(java.util.Locale.ROOT).equals("true");
+			int port = FTP_PORT;
+			String tmp = System.getProperty((secure ? FTPS_PREFIX : FTP_PREFIX)+".port");
+			if( tmp != null ) {
+				port = Integer.parseInt(tmp.trim());
 			}
-		}
-		
-		String tmp = System.getProperty(CONFIG_PROP);
-		if( tmp != null ) {
-			System.out.println("Looking for "+tmp);
-			File file = new File(tmp);
-			InputStream in = new FileInputStream(file);
-			Properties prop = System.getProperties();
-			
-			try {
-				prop.load(in);
-			} finally {
-				in.close();
-			}
-			
-			System.out.println("Loaded properties from "+tmp);
-			//  Anything on the command line should override the properties file
-			for(int idx = 0; idx < args.length; idx++ ) {
-				System.setProperty(args[idx++],args[idx]);
-			}
-		}
-		boolean sucure = System.getProperty(FTP_PREFIX+".secure", "false").toLowerCase(java.util.Locale.ROOT).equals("true");
-		int port = FTP_PORT;
-		tmp = System.getProperty((sucure ? FTPS_PREFIX : FTP_PREFIX)+".port");
-		if( tmp != null )  {
-			port = Integer.parseInt(tmp);
-		}
-
-		FtpServer server = new FtpServer(port, FTP_NAME,sucure);		
-		server.start();
-		System.out.println("FtpServer started on port "+port);
-		
+			return java.util.Collections.singletonList(ServerMain.service(new FtpServer(port, FTP_NAME, secure), "FtpServer"));
+		});
 	}
 
 	private void initMe()  {
