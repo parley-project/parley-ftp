@@ -299,7 +299,7 @@ public class FtpServer extends Server {
 		setPropertyPrefix(secure ? FTPS_PREFIX : FTP_PREFIX);
 		setSecure(secure);
 		setDaemon(false);
-		initMe();
+		initMe(true);
 		// INFO by default: DEBUG logs several lines per transfer, including paths and client addresses
 		getLogger().setLevel(us.bringardner.parley.core.ILogger.Level.INFO);
 	}
@@ -310,6 +310,31 @@ public class FtpServer extends Server {
 	
 	public FtpServer(boolean secure) {
 		this(FTP_PORT,FTP_NAME,secure);
+	}
+
+	/**
+	 * A server that serves a root it is given and reads its settings under a prefix of its own
+	 * (parley.mail.ftp, say), for a launcher that runs it with other servers: it makes no default
+	 * root, reads no virtual hosts and no passive ports from the system properties, and has no
+	 * anonymous access (the caller gives it an access control list).
+	 *
+	 * @param propertyPrefix the prefix of this server's settings
+	 * @param root the folder every user's root is under; made if it doesn't exist
+	 * @throws java.io.UncheckedIOException if the root can't be made
+	 * @since 2.0.0
+	 */
+	public FtpServer(int port, String name, boolean secure, String propertyPrefix, FileSource root) {
+		super(port, name);
+		setPropertyPrefix(propertyPrefix);
+		setSecure(secure);
+		setDaemon(false);
+		initMe(false);
+		getLogger().setLevel(us.bringardner.parley.core.ILogger.Level.INFO);
+		try {
+			setFtpRoot(root);
+		} catch (IOException e) {
+			throw new java.io.UncheckedIOException("Invalid FTP root "+root, e);
+		}
 	}
 	
 	public FtpServer(FileSource root, boolean secure) {
@@ -334,7 +359,8 @@ public class FtpServer extends Server {
 		});
 	}
 
-	private void initMe()  {
+	/** @param systemSettings true: the root, file source, virtual hosts and passive ports come from the system properties */
+	private void initMe(boolean systemSettings)  {
 		
 		setName("FtpServer");
 		
@@ -349,85 +375,90 @@ public class FtpServer extends Server {
 		
 		setConnectionFactory(newConnectionFactory());
 
-		//  Determine which FileSource to use
-		String tmp = System.getProperty(FILE_SOURCE_PROP);
-		if( tmp != null ) {
-			tmp = tmp.toLowerCase(java.util.Locale.ROOT);
-			setFileSourceFactory(FileSourceFactory.getFileSourceFactory(tmp));
-		} else {
-			setFileSourceFactory(FileSourceFactory.getDefaultFactory());
-		}
-		
-		
-		tmp = System.getProperty(ROOT_PROP);
-		if( tmp == null ) {
-
-			if(System.getProperty("os.name").toLowerCase(java.util.Locale.ROOT).indexOf("win") >= 0) {
-				tmp = DEFAULT_ROOT_WINDOWS;
+		if( systemSettings ) {
+			//  Determine which FileSource to use
+			String tmp = System.getProperty(FILE_SOURCE_PROP);
+			if( tmp != null ) {
+				tmp = tmp.toLowerCase(java.util.Locale.ROOT);
+				setFileSourceFactory(FileSourceFactory.getFileSourceFactory(tmp));
 			} else {
-				tmp = DEFAULT_ROOT;
+				setFileSourceFactory(FileSourceFactory.getDefaultFactory());
 			}
+		
+		
+			tmp = System.getProperty(ROOT_PROP);
+			if( tmp == null ) {
+
+				if(System.getProperty("os.name").toLowerCase(java.util.Locale.ROOT).indexOf("win") >= 0) {
+					tmp = DEFAULT_ROOT_WINDOWS;
+				} else {
+					tmp = DEFAULT_ROOT;
+				}
 	 
-		}
+			}
 		
-		try {
-			setFtpRoot(factory.createFileSource(tmp));
-		} catch (IOException e) {
-			logInfo("Error attmtping set set root "+tmp+" using "+factory.getTypeId()+" factory");
-		}
+			try {
+				setFtpRoot(factory.createFileSource(tmp));
+			} catch (IOException e) {
+				logInfo("Error attmtping set set root "+tmp+" using "+factory.getTypeId()+" factory");
+			}
 
-		tmp = System.getProperty(VIRTUAL_HOSTS_PROP);
-		if( tmp != null ) {
-			for(String entry : tmp.split(";")) {
-				entry = entry.trim();
-				if( entry.isEmpty() ) {
-					continue;
+			tmp = System.getProperty(VIRTUAL_HOSTS_PROP);
+			if( tmp != null ) {
+				for(String entry : tmp.split(";")) {
+					entry = entry.trim();
+					if( entry.isEmpty() ) {
+						continue;
+					}
+					int eq = entry.indexOf('=');
+					if( eq <= 0 ) {
+						logError(VIRTUAL_HOSTS_PROP+": expected name=root, not "+entry);
+						continue;
+					}
+					String name = entry.substring(0, eq).trim();
+					String path = entry.substring(eq+1).trim();
+					try {
+						addVirtualHost(name, factory.createFileSource(path));
+					} catch (IOException | RuntimeException e) {
+						logError(VIRTUAL_HOSTS_PROP+": can't add "+name+" at "+path, e);
+					}
 				}
-				int eq = entry.indexOf('=');
-				if( eq <= 0 ) {
-					logError(VIRTUAL_HOSTS_PROP+": expected name=root, not "+entry);
-					continue;
-				}
-				String name = entry.substring(0, eq).trim();
-				String path = entry.substring(eq+1).trim();
+			}
+		
+		
+			if( (tmp = System.getProperty(PASIVE_CONTROL_PORT_PROP)) != null ) {
 				try {
-					addVirtualHost(name, factory.createFileSource(path));
-				} catch (IOException | RuntimeException e) {
-					logError(VIRTUAL_HOSTS_PROP+": can't add "+name+" at "+path, e);
+					PassiveSocket.setControlPort(Integer.parseInt(tmp));
+				} catch (Exception e) {
+					throw new IllegalArgumentException("Can't configure passive control port='"+tmp+"'",e);
+				}
+			}
+
+		
+			if( (tmp = System.getProperty(PASIVE_CONTROL_MIN_PROP)) != null ) {
+				try {
+					PassiveSocket.setMinControlPort(Integer.parseInt(tmp));
+				} catch (Exception e) {
+					throw new IllegalArgumentException("Can't configure passive min control port='"+tmp+"'",e);
+				}
+			}
+		
+			if( (tmp = System.getProperty(PASIVE_CONTROL_MAX_PROP)) != null ) {
+				try {
+					PassiveSocket.setMaxControlPort(Integer.parseInt(tmp));
+				} catch (Exception e) {
+					throw new IllegalArgumentException("Can't configure passive max control port='"+tmp+"'",e);
 				}
 			}
 		}
 		
-		
-		if( (tmp = System.getProperty(PASIVE_CONTROL_PORT_PROP)) != null ) {
-			try {
-				PassiveSocket.setControlPort(Integer.parseInt(tmp));
-			} catch (Exception e) {
-				throw new IllegalArgumentException("Can't configure passive control port='"+tmp+"'",e);
-			}
-		}
-
-		
-		if( (tmp = System.getProperty(PASIVE_CONTROL_MIN_PROP)) != null ) {
-			try {
-				PassiveSocket.setMinControlPort(Integer.parseInt(tmp));
-			} catch (Exception e) {
-				throw new IllegalArgumentException("Can't configure passive min control port='"+tmp+"'",e);
-			}
-		}
-		
-		if( (tmp = System.getProperty(PASIVE_CONTROL_MAX_PROP)) != null ) {
-			try {
-				PassiveSocket.setMaxControlPort(Integer.parseInt(tmp));
-			} catch (Exception e) {
-				throw new IllegalArgumentException("Can't configure passive max control port='"+tmp+"'",e);
-			}
-		}
 		//  trigger access control initialization 
-		IAccessControlList acl = getAccessControl();
-		if( acl == null ) {
-			//  I'll honor the RFC 959 for ANONYMOUS and FTP users
-			setAccessControl(new AnonymousAcl());
+		if( systemSettings ) {
+			IAccessControlList acl = getAccessControl();
+			if( acl == null ) {
+				//  I'll honor the RFC 959 for ANONYMOUS and FTP users
+				setAccessControl(new AnonymousAcl());
+			}
 		}
 		
 	}
@@ -518,12 +549,47 @@ public class FtpServer extends Server {
 		releaseStores();
 	}
 
+	/** Set by a launcher: how the servers that share the roots' stores are let in (null: {@link #SHARED_STORE_PROPERTY}) */
+	private volatile us.bringardner.parley.net.lock.Sharing storeSharing;
+	/** Set by a launcher: this server's id among those that share the store (null: {@link #SERVER_ID_PROPERTY}) */
+	private volatile String serverId;
+
+	/**
+	 * @param sharing how the servers that share this server's store are let in, instead of the
+	 * {@value #SHARED_STORE_PROPERTY} system property (null: the property). Read when the server starts.
+	 * @since 2.0.0
+	 */
+	public void setStoreSharing(us.bringardner.parley.net.lock.Sharing sharing) {
+		this.storeSharing = sharing;
+	}
+
+	/**
+	 * @param serverId this server's id among those that share the store, instead of the
+	 * {@value #SERVER_ID_PROPERTY} system property (null: the property). Read when the server starts.
+	 * @since 2.0.0
+	 */
+	public void setServerId(String serverId) {
+		this.serverId = serverId;
+	}
+
+	/**
+	 * @return the address passive replies name when it isn't the one the client connected to (the
+	 * {@code externalAddress} setting: for a server behind address translation), or null
+	 * @since 2.0.0
+	 */
+	public String getExternalAddress() {
+		String ret = getProperty(propertyName("externalAddress"));
+		return ret == null || ret.trim().isEmpty() ? null : ret.trim();
+	}
+
 	private void claimStores() throws IOException {
 		java.util.List<FileSource> roots = new java.util.ArrayList<FileSource>();
 		roots.add(getFtpRoot());
 		roots.addAll(virtualHosts.values());
-		us.bringardner.parley.net.lock.Sharing sharing = us.bringardner.parley.net.lock.StoreLocks.sharing(SHARED_STORE_PROPERTY);
-		String id = us.bringardner.parley.net.lock.StoreLocks.serverId(SERVER_ID_PROPERTY, "ftp", getPort());
+		us.bringardner.parley.net.lock.Sharing sharing = storeSharing != null ? storeSharing
+				: us.bringardner.parley.net.lock.StoreLocks.sharing(SHARED_STORE_PROPERTY);
+		String id = serverId != null ? serverId
+				: us.bringardner.parley.net.lock.StoreLocks.serverId(SERVER_ID_PROPERTY, "ftp", getPort());
 		for(FileSource root : roots) {
 			us.bringardner.parley.net.lock.LockDomain d = us.bringardner.parley.net.lock.StoreLocks.get().acquire(root, sharing);
 			lockDomains.add(d);

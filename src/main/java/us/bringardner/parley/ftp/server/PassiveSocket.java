@@ -108,7 +108,10 @@ public  class PassiveSocket {
 	}
 
 	private static InetAddress advertisedAddress(FtpRequestProcessor processor, InetAddress local) {
-		String tmp = System.getProperty(FtpServer.EXTERNAL_ADDRESS_PROP);
+		String tmp = processor.getServer() instanceof FtpServer ? ((FtpServer) processor.getServer()).getExternalAddress() : null;
+		if( tmp == null ) {
+			tmp = System.getProperty(FtpServer.EXTERNAL_ADDRESS_PROP);
+		}
 		if( tmp != null ) {
 			try {
 				return InetAddress.getByName(tmp);

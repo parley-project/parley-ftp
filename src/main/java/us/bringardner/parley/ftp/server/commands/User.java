@@ -85,6 +85,11 @@ public class User  extends NoAuthReqBaseCommand {
 		}
 		
 				
+		if( processor.isTlsRequiredButMissing() ) {
+			processor.reply(REPLY_530_USER_NOT_LOGGED_IN,"Login requires TLS: use AUTH TLS first");
+			return;
+		}
+
 		// RFC 959: USER flushes any user, password, and account information already supplied
 		processor.removeTempValue(PASS);
 		processor.removeTempValue(ACCT);

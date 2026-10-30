@@ -119,6 +119,12 @@
 			<artifactId>parley-files</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<!-- The mail suite's settings (store root, users) for FtpProviders, which runs FTP beside the mail servers -->
+		<dependency>
+			<groupId>us.bringardner.parley</groupId>
+			<artifactId>parley-mail</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<!-- Was bjl_net_framework -->
 		<dependency>
 			<groupId>us.bringardner.parley</groupId>
