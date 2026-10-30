@@ -2,6 +2,21 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Added
+
+- **FTP in the mail suite**: parley-net's launcher runs `ftp` (explicit TLS, port 21) and `ftps` (implicit TLS, off
+  until it has a port) beside the mail servers (`FtpProviders`, settings `parley.mail.ftp.*` and `parley.mail.ftps.*`
+  from `parley-mail.properties`, then `parley-mail-ftp.properties`). They use the suite's users (`parley.mail.users`:
+  log in as `name@domain`, with the users file's READ, WRITE and ADMIN), its local domains (`domains` in the mail
+  queue's `queue.properties`, read again every 5 seconds) and its store (`parley.mail.root` and `parley.mail.fileSource`,
+  so a database too): each user's files are in `<store>/.ftp/<domain>/<name>` (`root` changes the folder), and the
+  store's sharing lets several servers in.
+- `requireTls` for FTP: with it set the server refuses USER and PASS until AUTH TLS (or on implicit TLS). Off for a
+  server made by `FtpServer.main`, on in the mail suite.
+- `FtpServer(port, name, secure, propertyPrefix, root)`: a server with a root it is given and settings under a prefix of
+  its own, with `setStoreSharing`, `setServerId` and `getExternalAddress` (`externalAddress`, read with the server's prefix).
+- parley-ftp needs parley-mail.
+
 ### Changed
 
 - **`FtpServer.main` runs the server as a service** with parley-net's `ServerMain.run`: settings from the command

@@ -306,6 +306,10 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		boolean ret = false;
 		String user = (String)getTempValue(USER);
 
+		if( isTlsRequiredButMissing() ) {
+			// the password never reaches the list on a connection that isn't protected
+			return false;
+		}
 
 		if( user != null && password != null ) {
 			String acct = (String)getTempValue(ACCT);
@@ -2092,6 +2096,17 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 	public boolean isChannelSecure() {
 		return channelSecure;
+	}
+
+	/**
+	 * @return true if the server refuses logins without TLS (its requireTls setting) and this
+	 * control connection isn't protected (no implicit TLS, no AUTH TLS yet)
+	 * @since 2.0.0
+	 */
+	public boolean isTlsRequiredButMissing() {
+		IServer server = getServer();
+		return server instanceof us.bringardner.parley.net.server.Server
+				&& ((us.bringardner.parley.net.server.Server) server).isRequireTls() && !isControlChannelSecure();
 	}
 	
 	public void makeChannelSecure(String sslOrTsl) throws IOException {
