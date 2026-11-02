@@ -1,0 +1,50 @@
+# The settings parley-ftp reads, for the servers' start-up check
+# (format: parley-net's KnownSettings). Add a name here when code here starts reading it.
+
+# FtpServer on its own (parley.ftp, parley.ftps) and the mail suite's ftp and ftps
+prefix parley.ftp
+prefix parley.ftps
+prefix parley.mail.ftp
+prefix parley.mail.ftps
+
+parley.ftp.configFile
+parley.mail.ftp.configFile
+
+# FtpServer on its own: one value per JVM
+parley.ftp.root
+parley.ftp.fileSource
+parley.ftp.virtualHosts
+parley.ftp.sharedStore
+parley.ftp.serverId
+parley.ftp.linger
+parley.ftp.allowForeignDataAddress
+parley.ftp.allowedLinkTargets
+parley.ftp.symlinkPolicy
+parley.ftp.storeAtOffset
+
+# the mail suite's: its folder in the mail store
+parley.mail.{ftp,ftps}.root
+
+# each FTP server's, under its prefix
+parley.{ftp,ftps}.bufferSize
+parley.{ftp,ftps}.connectTimeout
+parley.{ftp,ftps}.dataTimeout
+parley.{ftp,ftps}.externalAddress
+parley.{ftp,ftps}.passivePort
+parley.{ftp,ftps}.passiveMinPort
+parley.{ftp,ftps}.passiveMaxPort
+parley.{ftp,ftps}.requireTls
+parley.{ftp,ftps}.serverId
+parley.{ftp,ftps}.uploadMode
+parley.mail.{ftp,ftps}.bufferSize
+parley.mail.{ftp,ftps}.connectTimeout
+parley.mail.{ftp,ftps}.dataTimeout
+parley.mail.{ftp,ftps}.externalAddress
+parley.mail.{ftp,ftps}.passivePort
+parley.mail.{ftp,ftps}.passiveMinPort
+parley.mail.{ftp,ftps}.passiveMaxPort
+parley.mail.{ftp,ftps}.requireTls
+parley.mail.{ftp,ftps}.uploadMode
+
+# read by the mail suite's ftp to find the queue (parley-smtp's setting)
+parley.mail.smtp.queue
