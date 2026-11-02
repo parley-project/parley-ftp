@@ -298,8 +298,22 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	}
 
 
-	/*
-	 * Authenticate this user 
+	/**
+	 * Answer a login the access control list couldn't check (a database outage, say): 421, try
+	 * again later, and close the connection (RFC 959: 421 closes it). Not counted as a failed login.
+	 */
+	public void unavailable(us.bringardner.parley.net.server.AccessControlUnavailableException e) throws IOException {
+		logError("Can't check the login of "+getTempValue(USER)+": "+e.getMessage());
+		reply(REPLY_421_SERVICE_NOT_AVAILIBLE,"Can't check logins now, try again later");
+		stop();
+	}
+
+	/**
+	 * Authenticate this user
+	 *
+	 * @return true if the user is logged in, false if the login failed
+	 * @throws us.bringardner.parley.net.server.AccessControlUnavailableException if the access
+	 * control list can't answer now (a database outage, say): not a wrong password
 	 */
 	public boolean authenticate(String password) throws IOException{
 
@@ -317,7 +331,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				user = user+"@"+acct;
 			}
 
-			IPrincipal principal1 = getServer().authenticate(user,password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			// checkLogin, not authenticate: a list that can't answer throws instead of failing the login
+			IPrincipal principal1 = getServer().checkLogin(user,password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
 			if( principal1 != null ){
 				setPrincipal(principal1);

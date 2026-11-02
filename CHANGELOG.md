@@ -2,6 +2,13 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-02: logins when the user list can't answer, To-Do 3.5)
+
+- **A login the access control list can't check gets `421`** ("try again later") and the connection is closed, instead
+  of `530 Login incorrect`: `PASS` and `ACCT` log in through parley-net's `checkLogin`, so a database outage isn't a
+  wrong password and isn't counted as a failed login. `FtpRequestProcessor.authenticate` throws
+  `AccessControlUnavailableException` for it.
+
 ### Changed (2026-11-02: parley-net's IPrincipal split, To-Do 3.2)
 
 - **Passwords are checked by the access control list** (`IAccessControlList.verifyPassword`): the anonymous list
