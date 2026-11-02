@@ -2,6 +2,12 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-02: parley-net's IPrincipal split, To-Do 3.2)
+
+- **Passwords are checked by the access control list** (`IAccessControlList.verifyPassword`): the anonymous list
+  accepts any password for anonymous, and the mail suite's list (`SuiteAcl`) asks the shared user list, keeping the
+  user's groups on the principal it roots.
+
 ### Changed (2026-11-02: durations, To-Do 2.19)
 
 - **Times are durations** (`15s`, `10m`; a bare number is ms): `dataTimeout`, `connectTimeout` and the framework's

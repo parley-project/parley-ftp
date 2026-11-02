@@ -98,6 +98,16 @@ final class SuiteAcl implements IAccessControlList {
 		return true;
 	}
 
+	/** The user list checks the password (a Rooted view is looked up by its name there). */
+	@Override
+	public boolean verifyPassword(IPrincipal user, byte[] credentials) throws AccessControlUnavailableException {
+		if (users == null || user == null) {
+			return false;
+		}
+		IPrincipal target = user instanceof Rooted ? ((Rooted) user).target : user;
+		return users.verifyPassword(target, credentials);
+	}
+
 	@Override
 	public void authenticateUnknownUser(byte[] credentials) {
 		if (users != null) {
@@ -114,14 +124,10 @@ final class SuiteAcl implements IAccessControlList {
 			super(target.getName());
 			this.target = target;
 			setPermissions(target.getPermissions());
+			setGroups(target.getGroups());
 			Map<Object, Object> parameters = new HashMap<>(target.getParameters());
 			parameters.put(FtpRequestProcessor.PARAMETER_ROOT, root);
 			setParameters(parameters);
-		}
-
-		@Override
-		public boolean authenticate(byte[] credentials) {
-			return target.authenticate(credentials);
 		}
 	}
 }

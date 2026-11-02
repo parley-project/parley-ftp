@@ -475,11 +475,6 @@ public class FtpServer extends Server {
 			AnonymousPrincipal() {
 				super("anonymous");
 			}
-
-			@Override
-			public boolean authenticate(byte[] credentials) {
-				return true;
-			}
 		}
 
 		private final IPrincipal anonymous = new AnonymousPrincipal();
@@ -499,6 +494,12 @@ public class FtpServer extends Server {
 			
 		}
 		
+		/** Any password is accepted for anonymous (RFC 959 / RFC 1635). */
+		@Override
+		public boolean verifyPassword(IPrincipal user, byte[] credentials) {
+			return user != null && user.getName().equals("anonymous");
+		}
+
 		@Override
 		public boolean checkPermission(IPrincipal user, IPermission action) {
 			// give anonymous all but admin rights
