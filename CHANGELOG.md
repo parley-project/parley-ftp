@@ -10,6 +10,9 @@
 
 ### Added
 
+- **The settings this module reads are listed** in `META-INF/parley/settings.list`, so a Parley server's
+  start-up check (parley-net's `KnownSettings`, To-Do 2.16) knows them and warns only about a setting
+  nothing reads. A test checks the list has every name the code here reads.
 - **FTP in the mail suite**: parley-net's launcher runs `ftp` (explicit TLS, port 21) and `ftps` (implicit TLS, port
   990) beside the mail servers (`FtpProviders`, settings `parley.mail.ftp.*` and `parley.mail.ftps.*`
   from `parley-mail.properties`, then `parley-mail-ftp.properties`). They use the suite's users (`parley.mail.users`:
