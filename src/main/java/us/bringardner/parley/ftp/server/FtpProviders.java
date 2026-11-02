@@ -32,7 +32,8 @@ import us.bringardner.parley.net.server.ServerMain;
  * <li>{@code requireTls} (default true): no login before AUTH TLS (or on implicit TLS), so the mail
  * passwords never cross the network in the clear. Needs {@code parley.mail.tls.keyStore}.</li>
  * </ul>
- * Settings (after {@code parley.mail.ftp} or {@code parley.mail.ftps}): port (21; 0 is off),
+ * Each runs when parley.servers lists it; ftps is skipped with a warning while it has no TLS key store.
+ * Settings (after {@code parley.mail.ftp} or {@code parley.mail.ftps}): port (21, 990),
  * root, requireTls, serverId, externalAddress (what passive replies name, behind address
  * translation), bufferSize, dataTimeout, connectTimeout, uploadMode, and passivePort,
  * passiveMinPort, passiveMaxPort (shared by the FTP servers of the process).
@@ -61,17 +62,17 @@ public final class FtpProviders {
 	private FtpProviders() {
 	}
 
-	/** FTP (port 21, AUTH TLS): {@code ftp}, on unless parley.mail.ftp.port is 0 */
+	/** FTP (port 21, AUTH TLS): {@code ftp} */
 	public static final class Ftp extends FtpProvider {
 		public Ftp() {
 			super("ftp", "FTP", FTP_PREFIX, false, FTP_PORT);
 		}
 	}
 
-	/** FTP with implicit TLS (port 990): {@code ftps}, on when parley.mail.ftps.port is set (and not 0) */
+	/** FTP with implicit TLS (port 990): {@code ftps}; it needs a TLS key store */
 	public static final class Ftps extends FtpProvider {
 		public Ftps() {
-			super("ftps", "FTP with implicit TLS", FTPS_PREFIX, true, 0);
+			super("ftps", "FTP with implicit TLS", FTPS_PREFIX, true, FTPS_PORT);
 		}
 	}
 
@@ -102,18 +103,11 @@ public final class FtpProviders {
 
 		private final String prefix;
 		private final boolean secure;
-		private final int defaultPort;
 
-		FtpProvider(String id, String description, String prefix, boolean secure, int defaultPort) {
-			super(id, description, SETTINGS_FILE, CONFIG_PROP);
+		FtpProvider(String id, String description, String prefix, boolean secure, int standardPort) {
+			super(id, description, SETTINGS_FILE, CONFIG_PROP, prefix, standardPort, secure);
 			this.prefix = prefix;
 			this.secure = secure;
-			this.defaultPort = defaultPort;
-		}
-
-		@Override
-		public int port(Properties configuration) {
-			return intProperty(configuration, prefix + ".port", defaultPort);
 		}
 
 		@Override
