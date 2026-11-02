@@ -94,10 +94,10 @@ public class FtpServer extends Server {
 	/** Default size (bytes) of the buffer used to copy data-channel transfers. */
 	public static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
 	public static final String BUFFER_SIZE_PROP = FTP_PREFIX+".bufferSize";
-	/** Default data-connection inactivity timeout (ms) */
+	/** Default data-connection inactivity timeout (ms); the setting is a duration (10m) */
 	public static final int DEFAULT_DATA_TIMEOUT = 10 * 60 * 1000;
 	public static final String DATA_TIMEOUT_PROP = FTP_PREFIX+".dataTimeout";
-	/** Default timeout (ms) for connecting to the client in active mode (PORT/EPRT) */
+	/** Default timeout (ms) for connecting to the client in active mode (PORT/EPRT); the setting is a duration (15s) */
 	public static final int DEFAULT_CONNECT_TIMEOUT = 15 * 1000;
 	public static final String CONNECT_TIMEOUT_PROP = FTP_PREFIX+".connectTimeout";
 	/**
@@ -177,8 +177,8 @@ public class FtpServer extends Server {
 	public static final String LINGER_PROP = FTP_PREFIX+".linger";
 
 	private volatile int bufferSize = Integer.getInteger(BUFFER_SIZE_PROP, DEFAULT_BUFFER_SIZE);
-	private volatile int dataTimeout = Integer.getInteger(DATA_TIMEOUT_PROP, DEFAULT_DATA_TIMEOUT);
-	private volatile int connectTimeout = Integer.getInteger(CONNECT_TIMEOUT_PROP, DEFAULT_CONNECT_TIMEOUT);
+	private volatile int dataTimeout = FtpProviders.durationProperty(System.getProperties(), DATA_TIMEOUT_PROP, DEFAULT_DATA_TIMEOUT);
+	private volatile int connectTimeout = FtpProviders.durationProperty(System.getProperties(), CONNECT_TIMEOUT_PROP, DEFAULT_CONNECT_TIMEOUT);
 	private volatile boolean allowForeignDataAddress = Boolean.getBoolean(ALLOW_FOREIGN_DATA_ADDRESS_PROP);
 	private volatile SymlinkPolicy symlinkPolicy = SymlinkPolicy.parse(System.getProperty(SYMLINK_POLICY_PROP, "strict"));
 	private volatile UploadMode uploadMode = UploadMode.parse(System.getProperty(UPLOAD_MODE_PROP, "atomic"));
