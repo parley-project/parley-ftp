@@ -228,7 +228,7 @@ public abstract class TestFtpBaseTestClass {
 
 			if( useFileBasedAcl) {
 				IPrincipal p = acl.getPrincipal(user);
-				p.authenticate(password.getBytes());
+				assertTrue(acl.verifyPassword(p, password.getBytes()));
 				
 				userRoot = (String)p.getParameter(FtpRequestProcessor.PARAMETER_ROOT);
 				
