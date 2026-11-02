@@ -22,7 +22,9 @@ import org.junit.jupiter.api.Test;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
+import us.bringardner.parley.net.server.AccessControlUnavailableException;
 import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.IPrincipal;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
@@ -217,6 +219,64 @@ public class TestLoginReplies {
 			assertEquals(2, failuresUntilClosed(2));
 		} finally {
 			server.setMaxLoginAttempts(3);
+		}
+	}
+
+	/** A user list that can't answer (a database outage): 421 and the connection closes, not 530 (To-Do 3.5) */
+	@Test
+	public void aListThatCantAnswerGets421() throws Exception {
+		server.setAccessControl(new FileBasedAcl() {
+			@Override
+			public IPrincipal findPrincipal(String user) throws AccessControlUnavailableException {
+				throw new AccessControlUnavailableException("the database is down");
+			}
+		});
+		try {
+			try (Control c = new Control()) {
+				assertEquals(331, c.send("USER plain"));
+				assertEquals(421, c.send("PASS 1234"));
+				assertEquals(null, readOrNull(c), "421 closes the connection");
+			}
+			try (Control c = new Control()) {
+				assertEquals(331, c.send("USER tony"));
+				assertEquals(421, c.send("PASS 5678"), "PASS's own check can't answer either");
+			}
+		} finally {
+			server.setAccessControl(null); // the file's list again, made from the property
+		}
+		try (Control c = new Control()) {
+			assertEquals(331, c.send("USER plain"));
+			assertEquals(230, c.send("PASS 1234"), "logins work again once the list answers");
+		}
+	}
+
+	/** An ACCT whose login can't be checked gets 421 too */
+	@Test
+	public void anAcctThatCantBeCheckedGets421() throws Exception {
+		try (Control c = new Control()) {
+			assertEquals(331, c.send("USER tony"));
+			assertEquals(530, c.send("PASS 5678"));
+			server.setAccessControl(new FileBasedAcl() {
+				@Override
+				public IPrincipal findPrincipal(String user) throws AccessControlUnavailableException {
+					throw new AccessControlUnavailableException("the database is down");
+				}
+			});
+			try {
+				assertEquals(421, c.send("ACCT sales"));
+			} finally {
+				server.setAccessControl(null);
+			}
+		}
+	}
+
+	private static String readOrNull(Control c) {
+		try {
+			c.out.write("NOOP\r\n");
+			c.out.flush();
+			return c.in.readLine();
+		} catch (IOException e) {
+			return null;
 		}
 	}
 }

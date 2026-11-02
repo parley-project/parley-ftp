@@ -31,6 +31,7 @@ package us.bringardner.parley.ftp.server.commands;
 
 import java.io.IOException;
 
+import us.bringardner.parley.net.server.AccessControlUnavailableException;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 
@@ -99,7 +100,15 @@ public class Acct  extends NoAuthReqBaseCommand {
 			processor.reply(REPLY_503_BAD_SEQ_OF_COMMANDS,"Login with USER and PASS first");
 			return;
 		}
-		if(  processor.authenticate(pw) ){
+		boolean ok;
+		try {
+			ok = processor.authenticate(pw);
+		} catch (AccessControlUnavailableException ex) {
+			// the user list can't answer now (a database outage): not a wrong password
+			processor.unavailable(ex);
+			return;
+		}
+		if(  ok ){
 			processor.reply(REPLY_230_USER_LOGGED_IN,"user authenticated");
 		} else {
 			processor.loginFailedDelay();

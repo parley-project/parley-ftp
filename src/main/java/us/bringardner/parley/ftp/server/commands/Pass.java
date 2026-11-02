@@ -31,6 +31,7 @@ package us.bringardner.parley.ftp.server.commands;
 
 import java.io.IOException;
 
+import us.bringardner.parley.net.server.AccessControlUnavailableException;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 
@@ -94,6 +95,9 @@ public class Pass extends NoAuthReqBaseCommand {
                         processor.stop();
                     }
 				}
+			} catch(AccessControlUnavailableException ex) {
+				// the user list can't answer now (a database outage): not a wrong password
+				processor.unavailable(ex);
 			} catch(Exception ex) {
 				//  May throw security; the details are logged, not sent to the client
 				processor.logError("Login failed", ex);
