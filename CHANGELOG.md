@@ -2,10 +2,16 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-01: parley.servers says which servers run, To-Do 2.12)
+
+- **The mail suite's `ftps` runs on 990 when `parley.servers` lists it** and it has a TLS key store (skipped with a
+  warning while it has none); `parley.mail.ftps.port` is only its port, and port 0 no longer turns a server off.
+  `FtpServer.main` (the separate parley-ftp service) still chooses implicit TLS with `parley.ftp.secure` (To-Do 11.13).
+
 ### Added
 
-- **FTP in the mail suite**: parley-net's launcher runs `ftp` (explicit TLS, port 21) and `ftps` (implicit TLS, off
-  until it has a port) beside the mail servers (`FtpProviders`, settings `parley.mail.ftp.*` and `parley.mail.ftps.*`
+- **FTP in the mail suite**: parley-net's launcher runs `ftp` (explicit TLS, port 21) and `ftps` (implicit TLS, port
+  990) beside the mail servers (`FtpProviders`, settings `parley.mail.ftp.*` and `parley.mail.ftps.*`
   from `parley-mail.properties`, then `parley-mail-ftp.properties`). They use the suite's users (`parley.mail.users`:
   log in as `name@domain`, with the users file's READ, WRITE and ADMIN), its local domains (`domains` in the mail
   queue's `queue.properties`, read again every 5 seconds) and its store (`parley.mail.root` and `parley.mail.fileSource`,
