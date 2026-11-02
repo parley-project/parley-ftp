@@ -2,6 +2,11 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-02: durations, To-Do 2.19)
+
+- **Times are durations** (`15s`, `10m`; a bare number is ms): `dataTimeout`, `connectTimeout` and the framework's
+  `loginFailureDelay` and `loginTimeLimit`.
+
 ### Changed (2026-11-01: parley.servers says which servers run, To-Do 2.12)
 
 - **The mail suite's `ftps` runs on 990 when `parley.servers` lists it** and it has a TLS key store (skipped with a

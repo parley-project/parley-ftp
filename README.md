@@ -30,13 +30,14 @@ This compiles, runs the tests and runs SpotBugs. The build fails on any new Spot
 ## Server configuration
 
 Each setting can be passed as a system property or set with the matching `FtpServer` setter.
+Times are durations: a whole number with `ms`, `s`, `m`, `h` or `d` (`15s`, `10m`); a number alone is milliseconds.
 
 | Property | Default | Meaning |
 |---|---|---|
 | `parley.ftp.port` | 21 | Control port (used by `FtpServer.main`) |
 | `parley.ftp.root` | `/ftp` (`C:/ftp` on Windows) | FTP root directory |
-| `parley.ftp.dataTimeout` | 600000 ms | A transfer that moves no data for this long is aborted with a 426 reply. This is also how long PASV waits for the client to connect. `setDataTimeout()` |
-| `parley.ftp.connectTimeout` | 15000 ms | Connect timeout for active mode (PORT/EPRT). `setConnectTimeout()` |
+| `parley.ftp.dataTimeout` | `10m` | A transfer that moves no data for this long is aborted with a 426 reply. This is also how long PASV waits for the client to connect. `setDataTimeout()` |
+| `parley.ftp.connectTimeout` | `15s` | Connect timeout for active mode (PORT/EPRT). `setConnectTimeout()` |
 | `parley.ftp.bufferSize` | 65536 bytes | Transfer buffer size. `setBufferSize()` |
 | `parley.ftp.passiveMinPort` / `parley.ftp.passiveMaxPort` | 10333 / 65333 | Passive (PASV/EPSV) port range; busy ports are skipped |
 | `parley.ftp.externalAddress` | control connection address | Address advertised in PASV replies (for NAT) |
@@ -46,7 +47,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
 | `parley.ftp.uploadMode` | `atomic` | How `STOR` puts an upload in place: `atomic` or `inPlace` (see [Uploads and resuming](#uploads-and-resuming)). `setUploadMode()` |
 | `parley.ftp.storeAtOffset` | false | `REST n` then `STOR` writes in place from `n` (random access); see [Writing at an offset](#writing-at-an-offset). `setStoreAtOffset()` |
 | `parley.ftp.virtualHosts` | none | Virtual hosts for `HOST` (RFC 7151): `name=root;name=root` (see below). `addVirtualHost()` |
-| `parley.ftp.loginFailureDelay` | 1000 ms | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
+| `parley.ftp.loginFailureDelay` | `1s` | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
 | `parley.ftp.linger` | off | SO_LINGER (seconds) for data connections |
 | `parley.ftp.secure` | false | `main` starts a server with implicit TLS (its port is `parley.ftps.port`) |
 | `parley.ftp.*` | | The server's own settings use its prefix: the key store (`keyStoreName`, `keyStorePassword`, `keyStoreType`), the limits of parley-core's `AbstractCoreServer` (`maxConnections`, `maxLoginAttempts`, ...) and the access control list (`authenticationProvider`, `userFile`). A server with implicit TLS uses `parley.ftps`. |
@@ -133,7 +134,7 @@ Each setting can be passed as a system property or set with the matching `FtpSer
     and `PROT` stay, so data connections are protected as before. After the reply to `CCC` (and to `REIN`), TLS is
     shut down both ways as RFC 4217 section 12.3 shows: the server sends close_notify and reads the client's. A client
     that sends none should wait 2 seconds before its next command, or that command is lost.
-- **Failed logins** wait `parley.ftp.loginFailureDelay` ms (default 1000) before the reply, and a connection is closed after 3 failures.
+- **Failed logins** wait `parley.ftp.loginFailureDelay` (default `1s`) before the reply, and a connection is closed after 3 failures.
 
 ## Uploads and resuming
 
