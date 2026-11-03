@@ -154,25 +154,8 @@ public final class FtpProviders {
 				server.logInfo("No TLS key store (" + AbstractMailServer.MAIL_TLS_KEY_STORE_PROP + "): no one can log in to " + server.getName()
 						+ " while " + server.propertyName("requireTls") + " is true");
 			}
-			server.setBufferSize(intProperty(c, server.propertyName("bufferSize"), FtpServer.DEFAULT_BUFFER_SIZE));
-			server.setDataTimeout(durationProperty(c, server.propertyName("dataTimeout"), FtpServer.DEFAULT_DATA_TIMEOUT));
-			server.setConnectTimeout(durationProperty(c, server.propertyName("connectTimeout"), FtpServer.DEFAULT_CONNECT_TIMEOUT));
-			String mode = c.getProperty(server.propertyName("uploadMode"));
-			if (mode != null && !mode.trim().isEmpty()) {
-				server.setUploadMode(FtpServer.UploadMode.parse(mode));
-			}
-			int passive = intProperty(c, server.propertyName("passivePort"), 0);
-			if (passive > 0) {
-				PassiveSocket.setControlPort(passive);
-			}
-			int min = intProperty(c, server.propertyName("passiveMinPort"), 0);
-			int max = intProperty(c, server.propertyName("passiveMaxPort"), 0);
-			if (min > 0) {
-				PassiveSocket.setMinControlPort(min);
-			}
-			if (max > 0) {
-				PassiveSocket.setMaxControlPort(max);
-			}
+			// the transfer settings (bufferSize, the timeouts, uploadMode, the passive ports, linger ...)
+			// the server read from this configuration when it was made (FtpServer.readSettings)
 		}
 
 		private static String required(Properties c, String name) throws IOException {
@@ -190,20 +173,6 @@ public final class FtpProviders {
 				acl.initialize(file);
 				return acl;
 			});
-		}
-	}
-
-	/** A duration setting in ms (parley-core's Durations: 30s, 10m; a bare number is ms), or the default when it isn't set or isn't one */
-	static int durationProperty(Properties configuration, String name, int defaultValue) {
-		String v = configuration.getProperty(name);
-		if (v == null || v.trim().isEmpty()) {
-			return defaultValue;
-		}
-		try {
-			return us.bringardner.parley.core.util.Durations.toIntMillis(us.bringardner.parley.core.util.Durations.parse(v));
-		} catch (IllegalArgumentException e) {
-			System.err.println("Invalid " + name + ": " + e.getMessage() + ". Using " + us.bringardner.parley.core.util.Durations.format(defaultValue));
-			return defaultValue;
 		}
 	}
 }

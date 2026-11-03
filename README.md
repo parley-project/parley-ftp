@@ -29,17 +29,20 @@ This compiles, runs the tests and runs SpotBugs. The build fails on any new Spot
 
 ## Server configuration
 
-Each setting can be passed as a system property or set with the matching `FtpServer` setter.
+Each setting can be passed as a system property or set with the matching `FtpServer` setter. The names below are
+`FtpServer.main`'s (prefix `parley.ftp`); every server reads them under its own prefix, so a server with implicit TLS
+made in code reads `parley.ftps.*` and the mail suite's servers read `parley.mail.ftp.*` and `parley.mail.ftps.*` from
+their own configuration. Two servers in one JVM never share a value.
 Times are durations: a whole number with `ms`, `s`, `m`, `h` or `d` (`15s`, `10m`); a number alone is milliseconds.
 
 | Property | Default | Meaning |
 |---|---|---|
-| `parley.ftp.port` | 21 | Control port (used by `FtpServer.main`) |
+| `parley.ftp.port` | 21 | Control port (used by `FtpServer.main`, which runs FTP with explicit TLS, `AUTH TLS`; implicit TLS is the mail suite's `ftps`) |
 | `parley.ftp.root` | `/ftp` (`C:/ftp` on Windows) | FTP root directory |
 | `parley.ftp.dataTimeout` | `10m` | A transfer that moves no data for this long is aborted with a 426 reply. This is also how long PASV waits for the client to connect. `setDataTimeout()` |
 | `parley.ftp.connectTimeout` | `15s` | Connect timeout for active mode (PORT/EPRT). `setConnectTimeout()` |
 | `parley.ftp.bufferSize` | 65536 bytes | Transfer buffer size. `setBufferSize()` |
-| `parley.ftp.passiveMinPort` / `parley.ftp.passiveMaxPort` | 10333 / 65333 | Passive (PASV/EPSV) port range; busy ports are skipped |
+| `parley.ftp.passiveMinPort` / `parley.ftp.passiveMaxPort` | 10333 / 65333 | Passive (PASV/EPSV) port range, the server's own; busy ports are skipped. `setPassivePortRange()` |
 | `parley.ftp.externalAddress` | control connection address | Address advertised in PASV replies (for NAT) |
 | `parley.ftp.allowForeignDataAddress` | false | Allow PORT/EPRT to other hosts or ports below 1024, and PASV connections from other hosts (needed only for FXP). `setAllowForeignDataAddress()` |
 | `parley.ftp.symlinkPolicy` | `strict` | How symbolic links inside a user's root are treated: `strict`, `allowedTargets` or `follow` (see below). `setSymlinkPolicy()` |
@@ -48,8 +51,7 @@ Times are durations: a whole number with `ms`, `s`, `m`, `h` or `d` (`15s`, `10m
 | `parley.ftp.storeAtOffset` | false | `REST n` then `STOR` writes in place from `n` (random access); see [Writing at an offset](#writing-at-an-offset). `setStoreAtOffset()` |
 | `parley.ftp.virtualHosts` | none | Virtual hosts for `HOST` (RFC 7151): `name=root;name=root` (see below). `addVirtualHost()` |
 | `parley.ftp.loginFailureDelay` | `1s` | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
-| `parley.ftp.linger` | off | SO_LINGER (seconds) for data connections |
-| `parley.ftp.secure` | false | `main` starts a server with implicit TLS (its port is `parley.ftps.port`) |
+| `parley.ftp.linger` | off | SO_LINGER (seconds) for data connections. `setLinger()` |
 | `parley.ftp.*` | | The server's own settings use its prefix: the key store (`keyStoreName`, `keyStorePassword`, `keyStoreType`), the limits of parley-core's `AbstractCoreServer` (`maxConnections`, `maxLoginAttempts`, ...) and the access control list (`authenticationProvider`, `userFile`). A server with implicit TLS uses `parley.ftps`. |
 
 ### Behaviour notes

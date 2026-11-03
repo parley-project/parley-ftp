@@ -1529,24 +1529,15 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		return total;
 	}
 
+	/**
+	 * @return SO_LINGER (seconds) for this session's data connections, -1 for off: the server's
+	 * linger setting unless {@link #setLinger(int)} set one. SO_LINGER is off by default: with it on,
+	 * close() blocks the transfer thread until the peer acknowledges all data, up to the linger time.
+	 * A normal close still delivers all queued data in the background.
+	 */
 	public int getLinger() {
 		if( this.linger  ==  -2) {
-
-			this.linger = -1;			
-			/*
-			 * SO_LINGER is off by default. With linger on, close() blocks the transfer thread
-			 * until the peer acknowledges all data, up to the linger time (this used to default
-			 * to the activity timeout, i.e. 10 minutes). A normal close still delivers all
-			 * queued data in the background.
-			 */
-			String tmp = System.getProperty(FtpServer.LINGER_PROP);
-			if( tmp != null ) {
-				try {
-					this.linger = Integer.parseInt(tmp);
-				} catch(NumberFormatException ex) {
-					logError(FtpServer.LINGER_PROP+" is not a number: "+tmp);
-				}
-			}
+			return getServer() instanceof FtpServer ? ((FtpServer) getServer()).getLinger() : -1;
 		}
 		return this.linger;
 	}
