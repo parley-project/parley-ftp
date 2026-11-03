@@ -320,7 +320,7 @@ public class FtpServer extends Server {
 
 	/**
 	 * A server that serves a root it is given and reads its settings under a prefix of its own
-	 * (parley.mail.ftp, say), for a launcher that runs it with other servers: it makes no default
+	 * (an application's, say), for a launcher that runs it with other servers: it makes no default
 	 * root, reads no file system or virtual hosts, and has no anonymous access (the caller gives it
 	 * an access control list).
 	 *
@@ -356,13 +356,13 @@ public class FtpServer extends Server {
 
 	/**
 	 * Runs one FTP server (prefix parley.ftp, port parley.ftp.port, default 21) with explicit TLS
-	 * (AUTH TLS). Implicit TLS is the mail suite's ftps server (list ftps in parley.servers).
+	 * (AUTH TLS). A server with implicit TLS is made in code (secure true), with a prefix of its own.
 	 */
 	public static void main(String[] args) throws Exception {
 		ServerMain.run("FtpServer", args, CONFIG_PROP, "parley-ftp.properties", () -> {
 			if( System.getProperty(FTP_PREFIX+".secure") != null ) {
 				System.err.println(FTP_PREFIX+".secure is no longer read: FtpServer.main runs FTP with explicit TLS (AUTH TLS); "
-						+"for implicit TLS run the mail suite's ftps server (ftps in parley.servers)");
+						+"a server with implicit TLS is made in code (secure true)");
 			}
 			int port = FTP_PORT;
 			String tmp = System.getProperty(FTP_PREFIX+".port");
@@ -374,7 +374,7 @@ public class FtpServer extends Server {
 	}
 
 	/**
-	 * Reads this server's settings under its prefix (parley.ftp.bufferSize, parley.mail.ftps.uploadMode,
+	 * Reads this server's settings under its prefix (parley.ftp.bufferSize, parley.ftps.uploadMode,
 	 * ...): from its configuration when it was made with one (BaseObject.makeWith), otherwise from the
 	 * system properties, as for a server alone in its JVM. Called once its prefix is set.
 	 */

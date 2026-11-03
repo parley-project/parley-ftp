@@ -2,6 +2,14 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-03: the mail suite's FTP servers moved to parley-mail)
+
+- **parley-ftp no longer knows the mail suite**: `FtpProviders` (the launcher's `ftp` and `ftps`), `SuiteAcl` and
+  `StoreDomains` moved to parley-mail (`us.bringardner.parley.mail.ftp`), the application that runs FTP beside its
+  mail servers, with their settings in its settings list. parley-ftp no longer depends on parley-mail and registers no
+  `ServerProvider`: an application that runs `FtpServer` in a launcher brings its own provider and access control
+  list. The provider ids, settings and behavior of the suite's servers are unchanged.
+
 ### Changed (2026-11-02: each server's own settings, To-Do 11.13)
 
 - **Every setting is the server's own, read under its prefix** from its configuration (or from the system properties

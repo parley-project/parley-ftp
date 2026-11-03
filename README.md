@@ -31,13 +31,13 @@ This compiles, runs the tests and runs SpotBugs. The build fails on any new Spot
 
 Each setting can be passed as a system property or set with the matching `FtpServer` setter. The names below are
 `FtpServer.main`'s (prefix `parley.ftp`); every server reads them under its own prefix, so a server with implicit TLS
-made in code reads `parley.ftps.*` and the mail suite's servers read `parley.mail.ftp.*` and `parley.mail.ftps.*` from
-their own configuration. Two servers in one JVM never share a value.
+made in code reads `parley.ftps.*`, and a server an application makes with a prefix of its own reads its settings under
+that prefix, from its own configuration. Two servers in one JVM never share a value.
 Times are durations: a whole number with `ms`, `s`, `m`, `h` or `d` (`15s`, `10m`); a number alone is milliseconds.
 
 | Property | Default | Meaning |
 |---|---|---|
-| `parley.ftp.port` | 21 | Control port (used by `FtpServer.main`, which runs FTP with explicit TLS, `AUTH TLS`; implicit TLS is the mail suite's `ftps`) |
+| `parley.ftp.port` | 21 | Control port (used by `FtpServer.main`, which runs FTP with explicit TLS, `AUTH TLS`; a server with implicit TLS is made in code) |
 | `parley.ftp.root` | `/ftp` (`C:/ftp` on Windows) | FTP root directory |
 | `parley.ftp.dataTimeout` | `10m` | A transfer that moves no data for this long is aborted with a 426 reply. This is also how long PASV waits for the client to connect. `setDataTimeout()` |
 | `parley.ftp.connectTimeout` | `15s` | Connect timeout for active mode (PORT/EPRT). `setConnectTimeout()` |
