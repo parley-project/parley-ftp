@@ -25,7 +25,7 @@ package us.bringardner.parley.ftp.server;
 /**
  * The ports one server's passive (PASV / EPSV) data connections are opened on: a range, tried in
  * turn so that successive connections don't all try the same busy port first. Each FtpServer has
- * its own, so two FTP servers in one JVM (the mail suite's ftp and ftps) can have different ranges.
+ * its own, so two FTP servers in one JVM (an FTP and an FTPS server, say) can have different ranges.
  */
 final class PassivePorts {
 

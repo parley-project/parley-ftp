@@ -1,14 +1,12 @@
 # The settings parley-ftp reads, for the servers' start-up check
 # (format: parley-net's KnownSettings). Add a name here when code here starts reading it.
 
-# FtpServer on its own (parley.ftp, parley.ftps) and the mail suite's ftp and ftps
+# FtpServer on its own (parley.ftp, parley.ftps); a server made with another prefix declares its
+# names in its own module's list (the mail suite's ftp and ftps: parley-mail's)
 prefix parley.ftp
 prefix parley.ftps
-prefix parley.mail.ftp
-prefix parley.mail.ftps
 
 parley.ftp.configFile
-parley.mail.ftp.configFile
 
 # FtpServer on its own: one value per JVM
 parley.ftp.root
@@ -16,9 +14,6 @@ parley.ftp.fileSource
 parley.ftp.virtualHosts
 parley.ftp.sharedStore
 parley.ftp.serverId
-
-# the mail suite's: its folder in the mail store
-parley.mail.{ftp,ftps}.root
 
 # each FTP server's, under its prefix
 parley.{ftp,ftps}.allowForeignDataAddress
@@ -36,20 +31,3 @@ parley.{ftp,ftps}.serverId
 parley.{ftp,ftps}.storeAtOffset
 parley.{ftp,ftps}.symlinkPolicy
 parley.{ftp,ftps}.uploadMode
-parley.mail.{ftp,ftps}.allowForeignDataAddress
-parley.mail.{ftp,ftps}.allowedLinkTargets
-parley.mail.{ftp,ftps}.bufferSize
-parley.mail.{ftp,ftps}.connectTimeout
-parley.mail.{ftp,ftps}.dataTimeout
-parley.mail.{ftp,ftps}.externalAddress
-parley.mail.{ftp,ftps}.linger
-parley.mail.{ftp,ftps}.passivePort
-parley.mail.{ftp,ftps}.passiveMinPort
-parley.mail.{ftp,ftps}.passiveMaxPort
-parley.mail.{ftp,ftps}.requireTls
-parley.mail.{ftp,ftps}.storeAtOffset
-parley.mail.{ftp,ftps}.symlinkPolicy
-parley.mail.{ftp,ftps}.uploadMode
-
-# read by the mail suite's ftp to find the queue (parley-smtp's setting)
-parley.mail.smtp.queue
