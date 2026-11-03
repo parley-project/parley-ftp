@@ -1034,7 +1034,9 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			super.run();	
 
 		} catch (Throwable e) {
-			if (!((e instanceof SocketException) && e.toString().toLowerCase(java.util.Locale.ROOT).contains("closed") )) {
+			if (isTlsHandshakeFailure(e)) {
+				logTlsHandshakeFailure(e);
+			} else if (!((e instanceof SocketException) && e.toString().toLowerCase(java.util.Locale.ROOT).contains("closed") )) {
 				logError("An error occured Initializing client.  Closing the channel.",e);					
 			}
 			
