@@ -176,13 +176,18 @@ public class FtpServer extends Server {
 	/** SO_LINGER (seconds) for data connections; off by default. */
 	public static final String LINGER_PROP = FTP_PREFIX+".linger";
 
-	private volatile int bufferSize = Integer.getInteger(BUFFER_SIZE_PROP, DEFAULT_BUFFER_SIZE);
-	private volatile int dataTimeout = FtpProviders.durationProperty(System.getProperties(), DATA_TIMEOUT_PROP, DEFAULT_DATA_TIMEOUT);
-	private volatile int connectTimeout = FtpProviders.durationProperty(System.getProperties(), CONNECT_TIMEOUT_PROP, DEFAULT_CONNECT_TIMEOUT);
-	private volatile boolean allowForeignDataAddress = Boolean.getBoolean(ALLOW_FOREIGN_DATA_ADDRESS_PROP);
-	private volatile SymlinkPolicy symlinkPolicy = SymlinkPolicy.parse(System.getProperty(SYMLINK_POLICY_PROP, "strict"));
-	private volatile UploadMode uploadMode = UploadMode.parse(System.getProperty(UPLOAD_MODE_PROP, "atomic"));
-	private volatile boolean storeAtOffset = Boolean.getBoolean(STORE_AT_OFFSET_PROP);
+	//  Defaults: readSettings() reads each one under the server's prefix when it is made
+	private volatile int bufferSize = DEFAULT_BUFFER_SIZE;
+	private volatile int dataTimeout = DEFAULT_DATA_TIMEOUT;
+	private volatile int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
+	private volatile boolean allowForeignDataAddress = false;
+	private volatile SymlinkPolicy symlinkPolicy = SymlinkPolicy.STRICT;
+	private volatile UploadMode uploadMode = UploadMode.ATOMIC;
+	private volatile boolean storeAtOffset = false;
+	/** SO_LINGER (seconds) for data connections; -1: off */
+	private volatile int linger = -1;
+	/** The ports this server's passive data connections are opened on */
+	private final PassivePorts passivePorts = new PassivePorts();
 
 	/** How many unfinished uploads are remembered (the oldest are forgotten first). */
 	static final int MAX_UNFINISHED_UPLOADS = 1000;
@@ -261,7 +266,7 @@ public class FtpServer extends Server {
 		Long at = unfinishedUploads.get(path);
 		return at != null && at.longValue() == length;
 	}
-	private volatile java.util.List<String> allowedLinkTargets = parseTargets(System.getProperty(ALLOWED_LINK_TARGETS_PROP, ""));
+	private volatile java.util.List<String> allowedLinkTargets = java.util.Collections.emptyList();
 	private FileSource ftpRoot;
 	/** SPSV identifiers waiting for their SPDT connection */
 	private final java.util.Map<String, FtpRequestProcessor.SinglePort> singlePorts = new java.util.concurrent.ConcurrentHashMap<String, FtpRequestProcessor.SinglePort>();
@@ -297,6 +302,7 @@ public class FtpServer extends Server {
 	public FtpServer(int port, String name,  boolean secure) {
 		super(port, name);
 		setPropertyPrefix(secure ? FTPS_PREFIX : FTP_PREFIX);
+		readSettings();
 		setSecure(secure);
 		setDaemon(false);
 		initMe(true);
@@ -315,8 +321,8 @@ public class FtpServer extends Server {
 	/**
 	 * A server that serves a root it is given and reads its settings under a prefix of its own
 	 * (parley.mail.ftp, say), for a launcher that runs it with other servers: it makes no default
-	 * root, reads no virtual hosts and no passive ports from the system properties, and has no
-	 * anonymous access (the caller gives it an access control list).
+	 * root, reads no file system or virtual hosts, and has no anonymous access (the caller gives it
+	 * an access control list).
 	 *
 	 * @param propertyPrefix the prefix of this server's settings
 	 * @param root the folder every user's root is under; made if it doesn't exist
@@ -326,6 +332,7 @@ public class FtpServer extends Server {
 	public FtpServer(int port, String name, boolean secure, String propertyPrefix, FileSource root) {
 		super(port, name);
 		setPropertyPrefix(propertyPrefix);
+		readSettings();
 		setSecure(secure);
 		setDaemon(false);
 		initMe(false);
@@ -347,19 +354,60 @@ public class FtpServer extends Server {
 		}
 	}
 
+	/**
+	 * Runs one FTP server (prefix parley.ftp, port parley.ftp.port, default 21) with explicit TLS
+	 * (AUTH TLS). Implicit TLS is the mail suite's ftps server (list ftps in parley.servers).
+	 */
 	public static void main(String[] args) throws Exception {
 		ServerMain.run("FtpServer", args, CONFIG_PROP, "parley-ftp.properties", () -> {
-			boolean secure = System.getProperty(FTP_PREFIX+".secure", "false").toLowerCase(java.util.Locale.ROOT).equals("true");
+			if( System.getProperty(FTP_PREFIX+".secure") != null ) {
+				System.err.println(FTP_PREFIX+".secure is no longer read: FtpServer.main runs FTP with explicit TLS (AUTH TLS); "
+						+"for implicit TLS run the mail suite's ftps server (ftps in parley.servers)");
+			}
 			int port = FTP_PORT;
-			String tmp = System.getProperty((secure ? FTPS_PREFIX : FTP_PREFIX)+".port");
+			String tmp = System.getProperty(FTP_PREFIX+".port");
 			if( tmp != null ) {
 				port = Integer.parseInt(tmp.trim());
 			}
-			return java.util.Collections.singletonList(ServerMain.service(new FtpServer(port, FTP_NAME, secure), "FtpServer"));
+			return java.util.Collections.singletonList(ServerMain.service(new FtpServer(port, FTP_NAME, false), "FtpServer"));
 		});
 	}
 
-	/** @param systemSettings true: the root, file source, virtual hosts and passive ports come from the system properties */
+	/**
+	 * Reads this server's settings under its prefix (parley.ftp.bufferSize, parley.mail.ftps.uploadMode,
+	 * ...): from its configuration when it was made with one (BaseObject.makeWith), otherwise from the
+	 * system properties, as for a server alone in its JVM. Called once its prefix is set.
+	 */
+	private void readSettings() {
+		int size = getIntProperty(propertyName("bufferSize"), DEFAULT_BUFFER_SIZE);
+		bufferSize = size > 0 ? size : DEFAULT_BUFFER_SIZE;
+		long timeout = getDuration(propertyName("dataTimeout"), DEFAULT_DATA_TIMEOUT);
+		dataTimeout = timeout > 0 && timeout <= Integer.MAX_VALUE ? (int) timeout : DEFAULT_DATA_TIMEOUT;
+		timeout = getDuration(propertyName("connectTimeout"), DEFAULT_CONNECT_TIMEOUT);
+		connectTimeout = timeout > 0 && timeout <= Integer.MAX_VALUE ? (int) timeout : DEFAULT_CONNECT_TIMEOUT;
+		allowForeignDataAddress = getBooleanProperty(propertyName("allowForeignDataAddress"), false);
+		String tmp = getProperty(propertyName("symlinkPolicy"));
+		symlinkPolicy = tmp == null || tmp.trim().isEmpty() ? SymlinkPolicy.STRICT : SymlinkPolicy.parse(tmp);
+		tmp = getProperty(propertyName("allowedLinkTargets"));
+		allowedLinkTargets = parseTargets(tmp == null ? "" : tmp);
+		tmp = getProperty(propertyName("uploadMode"));
+		uploadMode = tmp == null || tmp.trim().isEmpty() ? UploadMode.ATOMIC : UploadMode.parse(tmp);
+		storeAtOffset = getBooleanProperty(propertyName("storeAtOffset"), false);
+		linger = getIntProperty(propertyName("linger"), -1);
+		int min = getIntProperty(propertyName("passiveMinPort"), PassivePorts.DEFAULT_MIN);
+		int max = getIntProperty(propertyName("passiveMaxPort"), PassivePorts.DEFAULT_MAX);
+		try {
+			passivePorts.setRange(min, max);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Invalid "+propertyName("passiveMinPort")+" / "+propertyName("passiveMaxPort")+": "+e.getMessage(), e);
+		}
+		int first = getIntProperty(propertyName("passivePort"), 0);
+		if( first > 0 ) {
+			passivePorts.startAt(first);
+		}
+	}
+
+	/** @param systemSettings true: the root, file source and virtual hosts come from the system properties */
 	private void initMe(boolean systemSettings)  {
 		
 		setName("FtpServer");
@@ -422,32 +470,6 @@ public class FtpServer extends Server {
 					} catch (IOException | RuntimeException e) {
 						logError(VIRTUAL_HOSTS_PROP+": can't add "+name+" at "+path, e);
 					}
-				}
-			}
-		
-		
-			if( (tmp = System.getProperty(PASIVE_CONTROL_PORT_PROP)) != null ) {
-				try {
-					PassiveSocket.setControlPort(Integer.parseInt(tmp));
-				} catch (Exception e) {
-					throw new IllegalArgumentException("Can't configure passive control port='"+tmp+"'",e);
-				}
-			}
-
-		
-			if( (tmp = System.getProperty(PASIVE_CONTROL_MIN_PROP)) != null ) {
-				try {
-					PassiveSocket.setMinControlPort(Integer.parseInt(tmp));
-				} catch (Exception e) {
-					throw new IllegalArgumentException("Can't configure passive min control port='"+tmp+"'",e);
-				}
-			}
-		
-			if( (tmp = System.getProperty(PASIVE_CONTROL_MAX_PROP)) != null ) {
-				try {
-					PassiveSocket.setMaxControlPort(Integer.parseInt(tmp));
-				} catch (Exception e) {
-					throw new IllegalArgumentException("Can't configure passive max control port='"+tmp+"'",e);
 				}
 			}
 		}
@@ -786,6 +808,60 @@ public class FtpServer extends Server {
 			}
 		}
 		this.allowedLinkTargets = java.util.Collections.unmodifiableList(copy);
+	}
+
+	/**
+	 * @return the lowest port of this server's passive (PASV/EPSV) data connections (the
+	 * passiveMinPort setting, default 10333)
+	 * @since 2.0.0
+	 */
+	public int getPassiveMinPort() {
+		return passivePorts.getMin();
+	}
+
+	/**
+	 * @return the highest port of this server's passive (PASV/EPSV) data connections (the
+	 * passiveMaxPort setting, default 65333)
+	 * @since 2.0.0
+	 */
+	public int getPassiveMaxPort() {
+		return passivePorts.getMax();
+	}
+
+	/**
+	 * The ports this server's passive (PASV/EPSV) data connections are opened on; busy ports are
+	 * skipped. Each server has its own range. Takes effect on the next PASV or EPSV.
+	 *
+	 * @param min the lowest port
+	 * @param max the highest port
+	 * @throws IllegalArgumentException for a range that is empty or not within 1-65535
+	 * @since 2.0.0
+	 */
+	public void setPassivePortRange(int min, int max) {
+		passivePorts.setRange(min, max);
+	}
+
+	PassivePorts getPassivePorts() {
+		return passivePorts;
+	}
+
+	/**
+	 * @return SO_LINGER (seconds) for data connections, or -1 when it is off (the linger setting;
+	 * off by default)
+	 * @since 2.0.0
+	 */
+	public int getLinger() {
+		return linger;
+	}
+
+	/**
+	 * @param linger SO_LINGER (seconds) for data connections, or -1 for off (the default). With
+	 * linger on, closing a data connection waits until the client has all the data, up to this time.
+	 * Applies to data connections opened after this call.
+	 * @since 2.0.0
+	 */
+	public void setLinger(int linger) {
+		this.linger = linger;
 	}
 
 	private static java.util.List<String> parseTargets(String value) {

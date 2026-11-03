@@ -424,20 +424,18 @@ public class TestTransferReliability {
 
 	@Test
 	public void pasvSkipsBusyPortsInRange() throws Exception {
-		int oldMin = us.bringardner.parley.ftp.server.PassiveSocket.getMinControlPort();
-		int oldMax = us.bringardner.parley.ftp.server.PassiveSocket.getMaxControlPort();
+		int oldMin = server.getPassiveMinPort();
+		int oldMax = server.getPassiveMaxPort();
 		try (java.net.ServerSocket busy = new java.net.ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"));
 				Session s = new Session()) {
 			int base = busy.getLocalPort();
-			us.bringardner.parley.ftp.server.PassiveSocket.setMaxControlPort(base + 2);
-			us.bringardner.parley.ftp.server.PassiveSocket.setMinControlPort(base);
+			server.setPassivePortRange(base, base + 2);
 			for (int i = 0; i < 6; i++) {
 				int port = s.pasvPort();
 				assertTrue(port == base + 1 || port == base + 2, "port " + port + " outside " + base + "-" + (base + 2) + " or busy");
 			}
 		} finally {
-			us.bringardner.parley.ftp.server.PassiveSocket.setMinControlPort(oldMin);
-			us.bringardner.parley.ftp.server.PassiveSocket.setMaxControlPort(oldMax);
+			server.setPassivePortRange(oldMin, oldMax);
 		}
 	}
 

@@ -2,6 +2,21 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-02: each server's own settings, To-Do 11.13)
+
+- **Every setting is the server's own, read under its prefix** from its configuration (or from the system properties
+  for a server alone in its JVM): `allowForeignDataAddress`, `symlinkPolicy`, `allowedLinkTargets`, `storeAtOffset`,
+  `linger` and `uploadMode` were read JVM-wide as `parley.ftp.*` even by the mail suite's servers, which now read
+  `parley.mail.ftp.*` and `parley.mail.ftps.*` like their other settings. A server with implicit TLS made in code
+  reads `parley.ftps.*`. `externalAddress` no longer falls back to the system property `parley.ftp.externalAddress`.
+- **Each server has its own passive port range** (`passiveMinPort`, `passiveMaxPort`, `passivePort`): it was one
+  range per JVM, so the suite's ftp and ftps shared whichever was set last. `FtpServer.setPassivePortRange`,
+  `getPassiveMinPort` and `getPassiveMaxPort` replace `PassiveSocket`'s static `setMinControlPort`,
+  `setMaxControlPort`, `getMinControlPort`, `getMaxControlPort` and `getControlPort`; `FtpServer.getLinger` and
+  `setLinger` are new.
+- **`FtpServer.main` runs FTP with explicit TLS only**: `parley.ftp.secure` is no longer read (a warning says so if it
+  is set). Implicit TLS is the mail suite's `ftps` server, listed in `parley.servers`.
+
 ### Changed (2026-11-02: logins when the user list can't answer, To-Do 3.5)
 
 - **A login the access control list can't check gets `421`** ("try again later") and the connection is closed, instead
@@ -24,7 +39,8 @@
 
 - **The mail suite's `ftps` runs on 990 when `parley.servers` lists it** and it has a TLS key store (skipped with a
   warning while it has none); `parley.mail.ftps.port` is only its port, and port 0 no longer turns a server off.
-  `FtpServer.main` (the separate parley-ftp service) still chooses implicit TLS with `parley.ftp.secure` (To-Do 11.13).
+  `FtpServer.main` (the separate parley-ftp service) still chose implicit TLS with `parley.ftp.secure` (dropped with
+  To-Do 11.13, above).
 
 ### Added
 

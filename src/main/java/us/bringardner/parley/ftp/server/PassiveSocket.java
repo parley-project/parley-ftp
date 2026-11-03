@@ -53,11 +53,8 @@ public  class PassiveSocket {
 	/** Kept for compatibility, no longer used. */
 	public static final int MAX_ERRORS = 4;
 
-	private static int minControlPort = 10333;
-	private static int maxControlPort = 65333;
-
-	/** The next port to try (rotates through [minControlPort, maxControlPort]). */
-	private static int controlPort = minControlPort;
+	/** The ports for a processor whose server isn't an FtpServer (each FtpServer has its own) */
+	private static final PassivePorts OTHER_SERVERS = new PassivePorts();
 
 	private final FtpRequestProcessor processor;
 	private final InetAddress advertisedAddress;
@@ -73,7 +70,7 @@ public  class PassiveSocket {
 	private boolean closed = false;
 
 	/**
-	 * Bind a listening socket on a free port in the configured range.
+	 * Bind a listening socket on a free port in the server's passive port range.
 	 *
 	 * @param processor the control connection that owns this data connection
 	 * @return a bound PassiveSocket
@@ -83,15 +80,14 @@ public  class PassiveSocket {
 		InetAddress local = processor.getConnection().getSocket().getLocalAddress();
 		ServerSocketFactory factory = processor.getServerSocketFactory();
 
-		int min, max;
-		synchronized (PassiveSocket.class) {
-			min = minControlPort;
-			max = maxControlPort;
-		}
-		int attempts = max - min + 1;
+		PassivePorts ports = processor.getServer() instanceof FtpServer
+				? ((FtpServer) processor.getServer()).getPassivePorts() : OTHER_SERVERS;
+		int min = ports.getMin();
+		int max = ports.getMax();
+		int attempts = ports.size();
 		IOException last = null;
 		for(int i = 0; i < attempts; i++) {
-			int port = nextControlPort();
+			int port = ports.next();
 			ServerSocket svr = null;
 			try {
 				svr = factory.createServerSocket(port, 1, local);
@@ -109,9 +105,6 @@ public  class PassiveSocket {
 
 	private static InetAddress advertisedAddress(FtpRequestProcessor processor, InetAddress local) {
 		String tmp = processor.getServer() instanceof FtpServer ? ((FtpServer) processor.getServer()).getExternalAddress() : null;
-		if( tmp == null ) {
-			tmp = System.getProperty(FtpServer.EXTERNAL_ADDRESS_PROP);
-		}
 		if( tmp != null ) {
 			try {
 				return InetAddress.getByName(tmp);
@@ -204,53 +197,6 @@ public  class PassiveSocket {
 			return dataSocket;
 		} finally {
 			lock.unlock();
-		}
-	}
-
-	public static synchronized int getMinControlPort() {
-		return minControlPort;
-	}
-
-	public static synchronized void setMinControlPort(int minControlPort) {
-		PassiveSocket.minControlPort = minControlPort;
-		if( controlPort < minControlPort) {
-			controlPort = minControlPort;
-		}
-	}
-
-	public static synchronized int getMaxControlPort() {
-		return maxControlPort;
-	}
-
-	public static synchronized void setMaxControlPort(int maxControlPort) {
-		PassiveSocket.maxControlPort = maxControlPort;
-		if( controlPort > maxControlPort) {
-			controlPort = minControlPort;
-		}
-	}
-
-	/**
-	 * @return the next port to try, always within [minControlPort, maxControlPort].
-	 */
-	public static synchronized int getControlPort() {
-		return nextControlPort();
-	}
-
-	private static synchronized int nextControlPort() {
-		if( controlPort < minControlPort || controlPort > maxControlPort ) {
-			controlPort = minControlPort;
-		}
-		int ret = controlPort;
-		controlPort = ret >= maxControlPort ? minControlPort : ret + 1;
-		return ret;
-	}
-
-	static synchronized void setControlPort(int newCtrPort) {
-		controlPort = newCtrPort;
-		if(controlPort < minControlPort) {
-			minControlPort = controlPort;
-		} else if( controlPort > maxControlPort) {
-			maxControlPort = controlPort;
 		}
 	}
 
