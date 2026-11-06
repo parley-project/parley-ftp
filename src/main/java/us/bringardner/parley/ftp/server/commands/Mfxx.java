@@ -34,7 +34,7 @@ import us.bringardner.parley.files.FileSourceGroup;
 import us.bringardner.parley.files.FileSourceUser;
 import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.net.server.IPermission;
+import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -142,8 +142,7 @@ public class Mfxx extends BaseCommand implements FeatCommand {
 					processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Invalid "+name+" "+v);
 					return;
 				}
-				if( !processor.isAuthorized(ADMIN_PERMISSION) ) {
-					processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied: "+name+" needs an administrator");
+				if( !processor.requirePermission(ADMIN_PERMISSION, REPLY_550_ACTION_NOT_TAKEN,"Permission denied: "+name+" needs an administrator") ) {
 					return;
 				}
 				values.put(name, v);
@@ -258,7 +257,7 @@ public class Mfxx extends BaseCommand implements FeatCommand {
 	}
 
 	@Override
-	public IPermission getPermission() {
+	public ParleyPermission getPermission() {
 		return WRITE_PERMISSION;
 	}
 }

@@ -32,7 +32,7 @@ package us.bringardner.parley.ftp.server.commands;
 
 import java.io.IOException;
 
-import us.bringardner.parley.net.server.IPermission;
+import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
@@ -184,7 +184,7 @@ http://www.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-16.txt
 	}
 
 	@Override
-	public IPermission getPermission() {
+	public ParleyPermission getPermission() {
 		return WRITE_PERMISSION;
 	}
 

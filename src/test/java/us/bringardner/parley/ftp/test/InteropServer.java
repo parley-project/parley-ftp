@@ -7,8 +7,9 @@ import java.nio.charset.StandardCharsets;
 
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 
 /**
@@ -35,8 +36,8 @@ public class InteropServer {
 		System.setProperty("parley.ftp.keyStorePassword", TestFtpBaseTestClass.TEST_KEYSTORE_PASSWORD);
 		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
 		System.setProperty("parley.ftp.algorithm", "SunX509");
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 
 		FtpServer explicit = start(root, explicitPort, false);
 		FtpServer implicit = start(root, implicitPort, true);

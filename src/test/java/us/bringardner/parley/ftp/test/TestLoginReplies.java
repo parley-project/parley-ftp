@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Test;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.net.server.AccessControlUnavailableException;
-import us.bringardner.parley.net.server.FileBasedAcl;
-import us.bringardner.parley.net.server.IPrincipal;
+import us.bringardner.parley.iam.AuthenticationResult;
+import us.bringardner.parley.iam.Credential;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
@@ -49,8 +49,8 @@ public class TestLoginReplies {
 				" #name , credentials, permissions\n"
 				+ " plain      , 1234 , READ\n"
 				+ " tony@sales , 5678 , READ\n").getBytes(StandardCharsets.UTF_8));
-		System.setProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME, acl.getPath());
-		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileBasedAcl.class.getCanonicalName());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME, acl.getPath());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileUserRegistry.class.getCanonicalName());
 
 		FileSource fs = FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath());
 		server = new FtpServer();
@@ -69,7 +69,7 @@ public class TestLoginReplies {
 
 	@AfterAll
 	public static void stopServer() throws Exception {
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		if (server != null) {
 			server.stop();
@@ -225,12 +225,7 @@ public class TestLoginReplies {
 	/** A user list that can't answer (a database outage): 421 and the connection closes, not 530 (To-Do 3.5) */
 	@Test
 	public void aListThatCantAnswerGets421() throws Exception {
-		server.setAccessControl(new FileBasedAcl() {
-			@Override
-			public IPrincipal findPrincipal(String user) throws AccessControlUnavailableException {
-				throw new AccessControlUnavailableException("the database is down");
-			}
-		});
+		server.setUserRegistry(new DownRegistry());
 		try {
 			try (Control c = new Control()) {
 				assertEquals(331, c.send("USER plain"));
@@ -242,7 +237,7 @@ public class TestLoginReplies {
 				assertEquals(421, c.send("PASS 5678"), "PASS's own check can't answer either");
 			}
 		} finally {
-			server.setAccessControl(null); // the file's list again, made from the property
+			server.setUserRegistry(null); // the file's registry again, made from the property
 		}
 		try (Control c = new Control()) {
 			assertEquals(331, c.send("USER plain"));
@@ -256,17 +251,20 @@ public class TestLoginReplies {
 		try (Control c = new Control()) {
 			assertEquals(331, c.send("USER tony"));
 			assertEquals(530, c.send("PASS 5678"));
-			server.setAccessControl(new FileBasedAcl() {
-				@Override
-				public IPrincipal findPrincipal(String user) throws AccessControlUnavailableException {
-					throw new AccessControlUnavailableException("the database is down");
-				}
-			});
+			server.setUserRegistry(new DownRegistry());
 			try {
 				assertEquals(421, c.send("ACCT sales"));
 			} finally {
-				server.setAccessControl(null);
+				server.setUserRegistry(null);
 			}
+		}
+	}
+
+	/** A registry whose database is down: every login is UNAVAILABLE */
+	private static final class DownRegistry extends FileUserRegistry {
+		@Override
+		public AuthenticationResult authenticate(Credential credential) {
+			return AuthenticationResult.unavailable("the database is down");
 		}
 	}
 

@@ -3,7 +3,7 @@
 An implementation of the FTP protocol (client and server), part of **Parley**, a family of Java
 libraries for implementing internet protocols.
 
-Requires Java 11 or later and Maven 3.6.3 or later. Depends on `parley-files` and `parley-net`
+Requires Java 11 or later and Maven 3.6.3 or later. Depends on `parley-files`, `parley-net` and `parley-iam`
 (which bring in `parley-core` and `parley-io`).
 
 ```xml
@@ -52,7 +52,7 @@ Times are durations: a whole number with `ms`, `s`, `m`, `h` or `d` (`15s`, `10m
 | `parley.ftp.virtualHosts` | none | Virtual hosts for `HOST` (RFC 7151): `name=root;name=root` (see below). `addVirtualHost()` |
 | `parley.ftp.loginFailureDelay` | `1s` | Delay before replying to a failed PASS/ACCT. `setLoginFailureDelay()` |
 | `parley.ftp.linger` | off | SO_LINGER (seconds) for data connections. `setLinger()` |
-| `parley.ftp.*` | | The server's own settings use its prefix: the key store (`keyStoreName`, `keyStorePassword`, `keyStoreType`), the limits of parley-core's `AbstractCoreServer` (`maxConnections`, `maxLoginAttempts`, ...) and the access control list (`authenticationProvider`, `userFile`). A server with implicit TLS uses `parley.ftps`. |
+| `parley.ftp.*` | | The server's own settings use its prefix: the key store (`keyStoreName`, `keyStorePassword`, `keyStoreType`), the limits of parley-core's `AbstractCoreServer` (`maxConnections`, `maxLoginAttempts`, ...) and the user registry (`authenticationProvider`, and its own settings, such as parley-net's `FileUserRegistry`'s `userFile`; see [Users and logins](#users-and-logins)). A server with implicit TLS uses `parley.ftps`. |
 
 ### Behaviour notes
 
@@ -137,6 +137,30 @@ Times are durations: a whole number with `ms`, `s`, `m`, `h` or `d` (`15s`, `10m
     shut down both ways as RFC 4217 section 12.3 shows: the server sends close_notify and reads the client's. A client
     that sends none should wait 2 seconds before its next command, or that command is lost.
 - **Failed logins** wait `parley.ftp.loginFailureDelay` (default `1s`) before the reply, and a connection is closed after 3 failures.
+
+## Users and logins
+
+Who may log in, and what they may do, comes from a parley-iam `UserRegistry`, named with
+`parley.ftp.authenticationProvider` or given with `setUserRegistry()`. A server with no registry refuses every login
+(the error names the setting); there is no built-in user.
+
+- **Logging in:** `USER` then `PASS` (or `ACCT`, which logs in as `user@account`) sends a password to the registry.
+  A registry that can't answer now (a database outage) gets `421` and the connection is closed; it isn't counted as a
+  failed login.
+- **Permissions** are checked on the server as a whole: `read` (listing, downloading), `write` (uploading, making,
+  renaming, deleting) and `admin` (`SITE`, and changing a file's owner or group with `MFF`). The registry decides who
+  holds them. A registry that can't answer a permission check gets `421` too.
+- **A user's root and starting directory** come from the principal's attributes `userRoot` and `defaultDir`, when the
+  registry gives them (paths in the server's file system, made on the first login); otherwise the user's root is the
+  server's.
+- **Anonymous FTP** (RFC 1635) is `AnonymousUserRegistry`: `anonymous` or `ftp` with any password, the server's root,
+  every permission except `admin`:
+
+  ```
+  parley.ftp.authenticationProvider=us.bringardner.parley.ftp.server.AnonymousUserRegistry
+  ```
+
+  parley-net's `FileUserRegistry` (a user file) is the usual registry for named users.
 
 ## Uploads and resuming
 

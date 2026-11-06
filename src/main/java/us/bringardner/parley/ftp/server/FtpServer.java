@@ -37,10 +37,6 @@ import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.IProcessor;
 import us.bringardner.parley.net.IProcessorFactory;
-import us.bringardner.parley.net.server.AbstractPrincipal;
-import us.bringardner.parley.net.server.IAccessControlList;
-import us.bringardner.parley.net.server.IPermission;
-import us.bringardner.parley.net.server.IPrincipal;
 import us.bringardner.parley.net.server.ServerMain;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.net.server.Server;
@@ -321,8 +317,8 @@ public class FtpServer extends Server {
 	/**
 	 * A server that serves a root it is given and reads its settings under a prefix of its own
 	 * (an application's, say), for a launcher that runs it with other servers: it makes no default
-	 * root, reads no file system or virtual hosts, and has no anonymous access (the caller gives it
-	 * an access control list).
+	 * root, and reads no file system or virtual hosts (the caller gives it a user registry, or names
+	 * one in its settings).
 	 *
 	 * @param propertyPrefix the prefix of this server's settings
 	 * @param root the folder every user's root is under; made if it doesn't exist
@@ -474,63 +470,9 @@ public class FtpServer extends Server {
 			}
 		}
 		
-		//  trigger access control initialization 
-		if( systemSettings ) {
-			IAccessControlList acl = getAccessControl();
-			if( acl == null ) {
-				//  I'll honor the RFC 959 for ANONYMOUS and FTP users
-				setAccessControl(new AnonymousAcl());
-			}
-		}
-		
 	}
 	
 	
-	/**
-	 * Access control used when none is configured: RFC 959 anonymous access ("anonymous" or
-	 * "ftp", any password) with every permission except the administrator's.
-	 */
-	private static final class AnonymousAcl implements IAccessControlList {
-		
-		/** The anonymous user: any password is accepted (RFC 959 / RFC 1635). */
-		private static final class AnonymousPrincipal extends AbstractPrincipal {
-			AnonymousPrincipal() {
-				super("anonymous");
-			}
-		}
-
-		private final IPrincipal anonymous = new AnonymousPrincipal();
-
-		@Override
-		public void initialize(IServer server) throws IOException {
-			anonymous.setParameter(FtpRequestProcessor.PARAMETER_ROOT, "/anonymous");
-		}
-		
-		@Override
-		public IPrincipal getPrincipal(String user) {
-			if( !(user.equalsIgnoreCase("anonymous") || user.equalsIgnoreCase("ftp"))) {
-				return null;
-			}
-			
-			return anonymous;						
-			
-		}
-		
-		/** Any password is accepted for anonymous (RFC 959 / RFC 1635). */
-		@Override
-		public boolean verifyPassword(IPrincipal user, byte[] credentials) {
-			return user != null && user.getName().equals("anonymous");
-		}
-
-		@Override
-		public boolean checkPermission(IPrincipal user, IPermission action) {
-			// give anonymous all but admin rights
-			boolean ret = user.getName().equals("anonymous") && !FtpCommand.ADMIN_PERMISSION.equals(action);
-			
-			return ret;
-		}
-	}
-
 	/** The roots this server has claimed while it runs: their domains and claims. */
 	private final java.util.List<us.bringardner.parley.net.lock.LockDomain> lockDomains = new java.util.ArrayList<>();
 	private final java.util.List<us.bringardner.parley.net.lock.StoreClaim> storeClaims = new java.util.ArrayList<>();

@@ -46,7 +46,7 @@ import us.bringardner.parley.core.ILogger;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.client.FtpClient.Permissions;
@@ -116,8 +116,8 @@ public class TestPermissions {
 				root.mkdirs();
 			}
 
-			System.setProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME, "FtpTestAcl.txt");
-			System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
+			System.setProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME, "FtpTestAcl.txt");
+			System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileUserRegistry.class.getCanonicalName());
 			
 			ftpServer = new FtpServer();
 			ftpServer.setSecure(false);
