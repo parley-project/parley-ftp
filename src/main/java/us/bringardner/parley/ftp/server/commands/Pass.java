@@ -31,7 +31,7 @@ package us.bringardner.parley.ftp.server.commands;
 
 import java.io.IOException;
 
-import us.bringardner.parley.net.server.AccessControlUnavailableException;
+import us.bringardner.parley.iam.AuthenticationResult;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 
@@ -81,23 +81,22 @@ public class Pass extends NoAuthReqBaseCommand {
 				String line = context.getCommandLine();
 				int idx = line.indexOf(' ');
 				String pw = idx < 0 ? "" : line.substring(idx+1);
-				if(  processor.authenticate(pw) ){
+				AuthenticationResult result = processor.authenticate(pw);
+				if( result.getStatus() == AuthenticationResult.Status.AUTHENTICATED ){
 					processor.reply(REPLY_230_USER_LOGGED_IN,"password ok");
+				} else if( result.getStatus() == AuthenticationResult.Status.UNAVAILABLE ) {
+					// the user registry can't answer now (a database outage): not a wrong password
+					processor.unavailable(result.getReason());
 				} else {
 					// RFC 959: 530 Not logged in. (It was 332 "need account", which says the
 					// password was accepted and only an account is missing; the server can't
 					// know that.) The password is kept for one ACCT, which the RFC allows at
 					// any time and which retries the login as user@account (BJL-4).
+					// The session has counted the failure and waited; after too many it closes
+					// the connection once this reply is sent.
 					processor.setTempValue(PASS, pw);
-					processor.loginFailedDelay();
 					processor.reply(REPLY_530_USER_NOT_LOGGED_IN,"Login incorrect");
-                    if( processor.loginFailed() ) {
-                        processor.stop();
-                    }
 				}
-			} catch(AccessControlUnavailableException ex) {
-				// the user list can't answer now (a database outage): not a wrong password
-				processor.unavailable(ex);
 			} catch(Exception ex) {
 				//  May throw security; the details are logged, not sent to the client
 				processor.logError("Login failed", ex);

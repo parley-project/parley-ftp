@@ -18,9 +18,10 @@ import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.FTP;
 import us.bringardner.parley.ftp.client.ClientFtpResponse;
 import us.bringardner.parley.ftp.client.FtpClient;
+import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.ftp.server.commands.Site;
-import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 
 /**
@@ -38,8 +39,8 @@ public class TestSiteChmod {
 
 	@BeforeAll
 	public static void startServer() throws Exception {
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 
 		rootDir = new File(ROOT_PATH).getAbsoluteFile();
 		deleteAll(rootDir);

@@ -27,7 +27,7 @@ import java.io.IOException;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.net.server.IPermission;
+import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -105,7 +105,7 @@ public class Rmda extends BaseCommand implements FeatCommand {
 	}
 
 	@Override
-	public IPermission getPermission() {
+	public ParleyPermission getPermission() {
 		return WRITE_PERMISSION;
 	}
 }

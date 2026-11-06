@@ -20,8 +20,9 @@ import org.junit.jupiter.api.Test;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.client.FtpClient;
+import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
-import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 
 /**
@@ -56,8 +57,8 @@ public class TestStoreAtOffset {
 
 	@BeforeAll
 	public static void startServers() throws Exception {
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 		onRoot = new File(FtpTestSupport.scratchDir("FtpStoreAtOffsetOn")).getAbsoluteFile();
 		offRoot = new File(FtpTestSupport.scratchDir("FtpStoreAtOffsetOff")).getAbsoluteFile();
 		onRoot.mkdirs();

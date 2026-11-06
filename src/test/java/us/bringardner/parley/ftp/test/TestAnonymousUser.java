@@ -1,6 +1,7 @@
 package us.bringardner.parley.ftp.test;
 
 import java.io.IOException;
+import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 
 import org.junit.jupiter.api.AfterAll;
@@ -13,9 +14,9 @@ public class TestAnonymousUser extends TestFtpBaseTestClass {
 	@BeforeAll
 	public  static void startFtpServer() throws IOException  {
 		TestFtpBaseTestClass.useFileBasedAcl=false;
-		// Other test classes configure a file based ACL through system properties; clear it so
-		// this class gets the built in anonymous ACL regardless of test execution order.
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
+		// Other test classes configure a file based registry through system properties; this
+		// class uses anonymous FTP's registry regardless of test execution order.
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
 		TestFtpBaseTestClass.implicitSecure = false;
 		
 		TestFtpBaseTestClass._client = null;

@@ -117,8 +117,7 @@ public class Site  extends BaseCommand {
 		}
 		
 		// All others required admin rights
-		if( !processor.isAuthorized(ADMIN_PERMISSION)) {
-			processor.reply(REPLY_534_REQUEST_DENIED_FOR_POLICY_RESONS,"Permission denied for command '"+cmd+"'");
+		if( !processor.requirePermission(ADMIN_PERMISSION, REPLY_534_REQUEST_DENIED_FOR_POLICY_RESONS,"Permission denied for command '"+cmd+"'")) {
 			return;
 		}
 

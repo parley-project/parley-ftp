@@ -47,10 +47,14 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 
 import us.bringardner.parley.core.ILogger;
+import us.bringardner.parley.iam.AuthenticationResult;
+import us.bringardner.parley.iam.AuthorizationResult;
+import us.bringardner.parley.iam.ParleyPermission;
+import us.bringardner.parley.iam.ParleyPrincipal;
+import us.bringardner.parley.iam.PasswordCredential;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.AbstractCommandProcessor;
-import us.bringardner.parley.net.server.IPrincipal;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.FTP;
 import us.bringardner.parley.io.IoUtils;
@@ -201,7 +205,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	private int pbsz=-1;
 	/** Data channel protection level set by PROT, null until PROT is sent (see isDataChannelSecure) */
 	private String protLevel = null;
-	private int loginAttempts=0;
 	private int linger = -2;
 	public transient StreamController transferInProcess = new StreamController();
 
@@ -299,85 +302,134 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 
 	/**
-	 * Answer a login the access control list couldn't check (a database outage, say): 421, try
+	 * Answer a login the user registry couldn't check (a database outage, say): 421, try
 	 * again later, and close the connection (RFC 959: 421 closes it). Not counted as a failed login.
+	 *
+	 * @param reason why, for the log
 	 */
-	public void unavailable(us.bringardner.parley.net.server.AccessControlUnavailableException e) throws IOException {
-		logError("Can't check the login of "+getTempValue(USER)+": "+e.getMessage());
+	public void unavailable(String reason) throws IOException {
+		logError("Can't check the login of "+getTempValue(USER)+": "+reason);
 		reply(REPLY_421_SERVICE_NOT_AVAILIBLE,"Can't check logins now, try again later");
 		stop();
 	}
 
 	/**
-	 * Authenticate this user
+	 * Log in as the user given with USER (as user@account after ACCT) with this password. The
+	 * server's user registry checks it; a refused login is counted, and answered late, by the
+	 * session (parley-net's login limits). When it is good, the user's root ({@value #PARAMETER_ROOT})
+	 * and starting directory ({@value #PARAMETER_DEFAULT_DIRECTORY}) attributes, when the
+	 * registry gives them, are made if missing and used.
 	 *
-	 * @return true if the user is logged in, false if the login failed
-	 * @throws us.bringardner.parley.net.server.AccessControlUnavailableException if the access
-	 * control list can't answer now (a database outage, say): not a wrong password
+	 * @return AUTHENTICATED when the user is logged in; REFUSED for a wrong password, an
+	 * unknown user, no USER yet, or a connection that must use TLS and doesn't; UNAVAILABLE when
+	 * the registry can't answer now (not a wrong password)
+	 * @throws IllegalStateException when the server has no user registry
 	 */
-	public boolean authenticate(String password) throws IOException{
+	public AuthenticationResult authenticate(String password) throws IOException{
 
-		boolean ret = false;
 		String user = (String)getTempValue(USER);
 
 		if( isTlsRequiredButMissing() ) {
-			// the password never reaches the list on a connection that isn't protected
-			return false;
+			// the password never reaches the registry on a connection that isn't protected
+			return AuthenticationResult.refused("TLS is required");
 		}
 
-		if( user != null && password != null ) {
-			String acct = (String)getTempValue(ACCT);
-			if( acct != null ) {
-				user = user+"@"+acct;
+		if( user == null || password == null ) {
+			return AuthenticationResult.refused("no USER");
+		}
+		String acct = (String)getTempValue(ACCT);
+		if( acct != null ) {
+			user = user+"@"+acct;
+		}
+
+		PasswordCredential credential = new PasswordCredential(user, password.toCharArray(), getRequester());
+		AuthenticationResult result;
+		try {
+			result = authenticate(credential);
+		} finally {
+			credential.clear();
+		}
+
+		ParleyPrincipal principal = result.getPrincipal();
+		if( result.getStatus() == AuthenticationResult.Status.AUTHENTICATED && principal != null ){
+			Object path = principal.getAttribute(PARAMETER_ROOT);
+
+			if( path != null) {
+				FileSource dir = createNewFile(path.toString());
+				if( dir.isFile() ) {
+					//  It MUST exists.
+					// unique situation where we want to crate the directory in not exists
+					throw new IOException("cannot set user root to a file ="+dir);
+				}
+				if( !dir.exists()) {
+					if( !dir.mkdirs()) {
+						throw new IOException("cannot create user root ="+dir);
+					}
+				}
+
+				setFtpRoot(dir);
 			}
 
-			// checkLogin, not authenticate: a list that can't answer throws instead of failing the login
-			IPrincipal principal1 = getServer().checkLogin(user,password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			path = principal.getAttribute(PARAMETER_DEFAULT_DIRECTORY);
 
-			if( principal1 != null ){
-				setPrincipal(principal1);
-
-				ret = true;
-				String path = (String) principal1.getParameter(PARAMETER_ROOT);
-
-
-				if( path != null) {
-					FileSource dir = createNewFile(path);
-					if( dir.isFile() ) {
-						//  It MUST exists.
-						// unique situation where we want to crate the directory in not exists
-						throw new IOException("cannot set user root to a file ="+dir);							
-					}
-					if( !dir.exists()) {
-						if( !dir.mkdirs()) {
-							throw new IOException("cannot create user root ="+dir);
-						}
-					}
-
-					setFtpRoot(dir);
+			if( path != null ) {
+				FileSource dir = createNewFile(path.toString());
+				if( dir.isFile() ) {
+					//  It MUST exists.
+					// unique situation where we want to crate the directory in not exists
+					throw new IOException("cannot set user directory to a file ="+dir);
 				}
-
-				path = (String) principal1.getParameter(PARAMETER_DEFAULT_DIRECTORY);
-
-				if( path != null ) {
-					FileSource dir = createNewFile(path);
-					if( dir.isFile() ) {
-						//  It MUST exists.
-						// unique situation where we want to crate the directory in not exists
-						throw new IOException("cannot set user directory to a file ="+dir);
+				if( !dir.exists()) {
+					if( !dir.mkdirs()) {
+						throw new IOException("cannot create user directory ="+dir);
 					}
-					if( !dir.exists()) {
-						if( !dir.mkdirs()) {
-							throw new IOException("cannot create user directory ="+dir);
-						}
-					}
-					setCurrentDir(dir);
 				}
-
+				setCurrentDir(dir);
 			}
 		}
 
-		return ret;
+		return result;
+	}
+
+	/**
+	 * A command's own permission check (one that depends on its arguments, so the command
+	 * processor's check before the command can't do it). When the registry can't answer now,
+	 * the session is answered 421 and closed ({@link #replyPermissionUnavailable}).
+	 *
+	 * @param needed the permission needed, on the server as a whole
+	 * @param deniedCode the reply when the session doesn't hold it
+	 * @param deniedText the text of that reply
+	 * @return true when allowed; false when a reply has been sent
+	 */
+	public boolean requirePermission(ParleyPermission needed, int deniedCode, String deniedText) throws IOException {
+		AuthorizationResult result = checkPermission(needed, null);
+		switch (result.getStatus()) {
+			case ALLOWED:
+				return true;
+			case UNAVAILABLE:
+				permissionUnavailable(needed.getName(), result.getReason());
+				return false;
+			default:
+				reply(deniedCode, deniedText);
+				return false;
+		}
+	}
+
+	/**
+	 * The user registry can't answer a permission check now: 421 and close (RFC 959: 421 can
+	 * answer any command, and closes the connection). Not "not authorized" (parley-iam rule 6).
+	 */
+	@Override
+	protected void replyPermissionUnavailable(us.bringardner.parley.net.server.ICommand command) throws IOException {
+		// the command processor has logged why
+		reply(REPLY_421_SERVICE_NOT_AVAILIBLE,"Can't check permissions now, try again later");
+		stop();
+	}
+
+	private void permissionUnavailable(String what, String reason) throws IOException {
+		logError(what+" not checked: "+reason);
+		reply(REPLY_421_SERVICE_NOT_AVAILIBLE,"Can't check permissions now, try again later");
+		stop();
 	}
 
 
@@ -1147,7 +1199,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		resetDataConnection();
 		passive = false;
 		tempStorage.clear();
-		setPrincipal(null);
+		logout();
 		// RFC 7151 section 3.2.1: a new HOST is needed
 		virtualHost = null;
 		representationType = TYPE_ASCII;
@@ -2286,20 +2338,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		return Math.max(con.getLastReadTime(), con.getLastWriteTime());
 	}
 
-	/**
-	 * Count a failed login.
-	 *
-	 * @return true if that was one too many (the server's maxLoginAttempts) and the
-	 * connection should be closed
-	 */
-	public boolean loginFailed() {
-		return ((FtpServer) getServer()).isTooManyLoginFailures(incLoginAttempts());
-	}
-
-	public int incLoginAttempts() {
-
-		return ++loginAttempts;
-	}
 
 	/* (non-Javadoc)
 	 * @see us.bringardner.parley.net.server.ICommandProcessor#translateResponseCode(int)
