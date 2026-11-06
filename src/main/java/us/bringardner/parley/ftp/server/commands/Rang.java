@@ -26,7 +26,7 @@ import java.io.IOException;
 
 import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.net.server.IPermission;
+import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -162,7 +162,7 @@ public class Rang extends BaseCommand implements FeatCommand {
 	}
 
 	@Override
-	public IPermission getPermission() {
+	public ParleyPermission getPermission() {
 		// RETR needs read; STOR checks its own write permission
 		return READ_PERMISSION;
 	}

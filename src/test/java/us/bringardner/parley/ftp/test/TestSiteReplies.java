@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.server.FtpServer;
 
@@ -50,8 +50,8 @@ public class TestSiteReplies {
 				" #name , credentials, permissions\n"
 				+ " admin , 0000 , ADMIN|SITE|READ|WRITE\n"
 				+ " plain , 1234 , READ\n").getBytes(StandardCharsets.UTF_8));
-		System.setProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME, acl.getPath());
-		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileBasedAcl.class.getCanonicalName());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME, acl.getPath());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileUserRegistry.class.getCanonicalName());
 
 		FileSource fs = FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath());
 		server = new FtpServer();
@@ -70,7 +70,7 @@ public class TestSiteReplies {
 
 	@AfterAll
 	public static void stopServer() throws Exception {
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		if (server != null) {
 			server.stop();

@@ -61,13 +61,17 @@ import us.bringardner.parley.core.ILogger;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.net.server.FileBasedAcl;
-import us.bringardner.parley.net.server.IAccessControlList;
-import us.bringardner.parley.net.server.IPrincipal;
+import us.bringardner.parley.net.server.FileUserRegistry;
+import us.bringardner.parley.iam.AuthenticationResult;
+import us.bringardner.parley.iam.ParleyPrincipal;
+import us.bringardner.parley.iam.PasswordCredential;
+import us.bringardner.parley.iam.Requester;
+import us.bringardner.parley.iam.UserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.FTP;
 import us.bringardner.parley.ftp.client.ClientFtpResponse;
 import us.bringardner.parley.ftp.client.FtpClient;
+import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.FtpServer;
 import java.nio.file.Files;
@@ -91,7 +95,7 @@ public abstract class TestFtpBaseTestClass {
 
 	public static FtpClient _client;
 
-	private static IAccessControlList acl;
+	private static UserRegistry acl;
 	protected static String user = "admin";
 	protected static String password = "0000";
 	private static String userRoot = null;
@@ -227,10 +231,11 @@ public abstract class TestFtpBaseTestClass {
 			assertTrue(ok,"FtpClient can't connect to server");
 
 			if( useFileBasedAcl) {
-				IPrincipal p = acl.getPrincipal(user);
-				assertTrue(acl.verifyPassword(p, password.getBytes()));
+				ParleyPrincipal p = acl.findPrincipal(user);
+				AuthenticationResult checked = acl.authenticate(new PasswordCredential(user, password.toCharArray(), Requester.withoutAddress("test")));
+				assertEquals(AuthenticationResult.Status.AUTHENTICATED, checked.getStatus(), checked.getReason());
 				
-				userRoot = (String)p.getParameter(FtpRequestProcessor.PARAMETER_ROOT);
+				userRoot = (String)p.getAttribute(FtpRequestProcessor.PARAMETER_ROOT);
 				
 				if( userRoot != null ) {
 					FileSource file = FileSourceFactory.getDefaultFactory().createFileSource(userRoot);
@@ -239,7 +244,7 @@ public abstract class TestFtpBaseTestClass {
 					}
 				}
 
-				userDir = (String) p.getParameter(FtpRequestProcessor.PARAMETER_DEFAULT_DIRECTORY);
+				userDir = (String) p.getAttribute(FtpRequestProcessor.PARAMETER_DEFAULT_DIRECTORY);
 				if( userDir != null ) {
 					String userDir1 = _client.getCurrentDir();
 					assertEquals(userDir, userDir1,"User dir is wrong");
@@ -285,9 +290,13 @@ public abstract class TestFtpBaseTestClass {
 
 			if( useFileBasedAcl) {
 				//  this is for testing the server will use a different one based on the properties. 
-				System.setProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME, "FtpTestAcl.txt");
-				System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileBasedAcl.class.getCanonicalName());
-			} 
+				System.setProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME, "FtpTestAcl.txt");
+				System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY	, FileUserRegistry.class.getCanonicalName());
+			} else {
+				// anonymous FTP is a registry like any other (no built-in users)
+				System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
+				System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+			}
 			
 			//  Force a FileProxy storage
 			root = FileSourceFactory.getDefaultFactory().createFileSource(rootPath);
@@ -302,7 +311,7 @@ public abstract class TestFtpBaseTestClass {
 			ftpServer.setFtpRoot(root);			
 			ftpServer.setPort(ftpPort2);
 			ftpServer.getLogger().setLevel(serverLogLevel);
-			acl = ftpServer.getAccessControl();
+			acl = ftpServer.getUserRegistry();
 			
 			
 			ftpServer.start();

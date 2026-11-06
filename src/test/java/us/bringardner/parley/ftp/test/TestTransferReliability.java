@@ -31,8 +31,9 @@ import org.junit.jupiter.api.Test;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 
 /**
@@ -58,8 +59,8 @@ public class TestTransferReliability {
 	@BeforeAll
 	public static void startServer() throws Exception {
 		// Other test classes leave a file based ACL configured; this class uses the built in anonymous ACL.
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 
 		rootDir = new File(ROOT_PATH).getAbsoluteFile();
 		deleteAll(rootDir);

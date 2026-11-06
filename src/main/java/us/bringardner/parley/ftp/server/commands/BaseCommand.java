@@ -37,7 +37,7 @@ import java.nio.charset.StandardCharsets;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.net.server.AbstractCommand;
 import us.bringardner.parley.net.server.ICommandProcessor;
-import us.bringardner.parley.net.server.IPermission;
+import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.FTP;
 import us.bringardner.parley.ftp.server.FtpCommand;
@@ -175,7 +175,7 @@ public abstract class BaseCommand extends AbstractCommand implements FtpCommand 
 	
 	
 	@Override
-	public IPermission getPermission() {
+	public ParleyPermission getPermission() {
 		return READ_PERMISSION;
 	}
 	
