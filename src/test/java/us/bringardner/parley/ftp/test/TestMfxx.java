@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
-import us.bringardner.parley.net.server.FileBasedAcl;
+import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 
 /**
@@ -41,14 +41,14 @@ public class TestMfxx {
 		root.mkdirs();
 		File acl = new File(base, "acl.txt");
 		Files.write(acl.toPath(), (" admin , 0000 , ADMIN|SITE|READ|WRITE\n plain , 1234 , READ|WRITE\n").getBytes(StandardCharsets.UTF_8));
-		System.setProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME, acl.getPath());
-		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileBasedAcl.class.getCanonicalName());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME, acl.getPath());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, FileUserRegistry.class.getCanonicalName());
 		server = RawFtp.startServer(PORT, root);
 	}
 
 	@AfterAll
 	public static void stop() throws Exception {
-		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileBasedAcl.PROP_FILE_NAME);
+		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 		System.clearProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY);
 		server.stop();
 	}

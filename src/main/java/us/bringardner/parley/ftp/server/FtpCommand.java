@@ -23,19 +23,23 @@ package us.bringardner.parley.ftp.server;
 
 import java.io.IOException;
 
+import us.bringardner.parley.iam.BasicParleyPermission;
+import us.bringardner.parley.iam.ParleyPermission;
+import us.bringardner.parley.iam.StandardPermissions;
 import us.bringardner.parley.net.server.ICommand;
-import us.bringardner.parley.net.server.IPermission;
 import us.bringardner.parley.net.server.IRequestContext;
-import us.bringardner.parley.net.server.Permission;
 
 /**
  * @author Tony Bringardner
  *
  */
 public interface FtpCommand extends ICommand {
-	public static IPermission READ_PERMISSION = new Permission("READ");
-	public static IPermission WRITE_PERMISSION = new Permission("WRITE");
-	public static IPermission ADMIN_PERMISSION = new Permission("ADMIN");
+	/** read on the server as a whole: listing, downloading, moving around */
+	public static final ParleyPermission READ_PERMISSION = new BasicParleyPermission(StandardPermissions.READ, null);
+	/** write on the server as a whole: uploading, making, renaming and deleting */
+	public static final ParleyPermission WRITE_PERMISSION = new BasicParleyPermission(StandardPermissions.WRITE, null);
+	/** admin on the server as a whole: SITE, and changing a file's owner or group */
+	public static final ParleyPermission ADMIN_PERMISSION = new BasicParleyPermission(StandardPermissions.ADMIN, null);
 	
 	public void execute(FtpRequestProcessor processor, IRequestContext commandLine) throws IOException ;
 	

@@ -31,7 +31,7 @@ package us.bringardner.parley.ftp.server.commands;
 
 import java.io.IOException;
 
-import us.bringardner.parley.net.server.AccessControlUnavailableException;
+import us.bringardner.parley.iam.AuthenticationResult;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 
@@ -100,22 +100,15 @@ public class Acct  extends NoAuthReqBaseCommand {
 			processor.reply(REPLY_503_BAD_SEQ_OF_COMMANDS,"Login with USER and PASS first");
 			return;
 		}
-		boolean ok;
-		try {
-			ok = processor.authenticate(pw);
-		} catch (AccessControlUnavailableException ex) {
-			// the user list can't answer now (a database outage): not a wrong password
-			processor.unavailable(ex);
-			return;
-		}
-		if(  ok ){
+		AuthenticationResult result = processor.authenticate(pw);
+		if( result.getStatus() == AuthenticationResult.Status.UNAVAILABLE ) {
+			// the user registry can't answer now (a database outage): not a wrong password
+			processor.unavailable(result.getReason());
+		} else if( result.getStatus() == AuthenticationResult.Status.AUTHENTICATED ){
 			processor.reply(REPLY_230_USER_LOGGED_IN,"user authenticated");
 		} else {
-			processor.loginFailedDelay();
+			// the session has counted the failure and waited (parley-net's login limits)
 			processor.reply(REPLY_530_USER_NOT_LOGGED_IN,"user not authenticated");
-			if( processor.loginFailed() ) {
-				processor.stop();
-			}
 		}
 		
 	}

@@ -125,6 +125,12 @@
 			<artifactId>parley-net</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<!-- Used directly: users, logins and permissions (UserRegistry, ParleyPermission) -->
+		<dependency>
+			<groupId>us.bringardner.parley</groupId>
+			<artifactId>parley-iam</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

@@ -32,7 +32,7 @@ package us.bringardner.parley.ftp.server.commands;
 import java.io.IOException;
 
 import us.bringardner.parley.files.FileSource;
-import us.bringardner.parley.net.server.IPermission;
+import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 
@@ -72,7 +72,7 @@ public class Pwd extends BaseCommand {
 	}
 
 	@Override
-	public IPermission getPermission() {
+	public ParleyPermission getPermission() {
 		return READ_PERMISSION;
 	}
 }

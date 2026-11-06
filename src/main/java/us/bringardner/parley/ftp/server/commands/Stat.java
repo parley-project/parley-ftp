@@ -28,7 +28,7 @@ import java.util.ArrayList;
 
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.net.server.IPrincipal;
+import us.bringardner.parley.iam.ParleyPrincipal;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -66,8 +66,7 @@ public class Stat extends NoAuthReqBaseCommand {
 	}
 
 	private void statPath(FtpRequestProcessor processor, String path) throws IOException {
-		if( !processor.isAuthorized(READ_PERMISSION) ) {
-			processor.reply(REPLY_530_USER_NOT_LOGGED_IN,"Log in with USER and PASS first");
+		if( !processor.requirePermission(READ_PERMISSION, REPLY_530_USER_NOT_LOGGED_IN,"Log in with USER and PASS first") ) {
 			return;
 		}
 		FileSource f = processor.createNewFile(path);
@@ -114,7 +113,7 @@ public class Stat extends NoAuthReqBaseCommand {
 		if( processor.getVirtualHost() != null ) {
 			lines.add(" Virtual host: "+processor.getVirtualHost());
 		}
-		IPrincipal user = processor.getPrincipal();
+		ParleyPrincipal user = processor.getPrincipal();
 		lines.add(user == null ? " Not logged in" : " Logged in as "+user.getName());
 		lines.add(" TYPE: "+(processor.isImageMode() ? "BINARY" : "ASCII")+", STRU: File, MODE: Stream");
 		String data;

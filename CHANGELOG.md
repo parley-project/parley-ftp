@@ -2,6 +2,25 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-06: users, logins and permissions come from parley-iam)
+
+- **parley-ftp uses parley-iam and the new parley-net**: the server's user registry (`authenticationProvider`, a
+  parley-iam `UserRegistry`) checks passwords and answers permission checks. `FtpCommand.READ_PERMISSION`,
+  `WRITE_PERMISSION` and `ADMIN_PERMISSION` are `ParleyPermission`s (`read`, `write`, `admin`), and every command's
+  `getPermission()` returns one.
+- **No built-in anonymous access**: a server with no registry refuses every login instead of letting `anonymous` and
+  `ftp` in. Anonymous FTP is the new `AnonymousUserRegistry`, configured like any other registry; it behaves as the
+  built-in list did (any password, the server's root, everything but `admin`).
+- **`FtpRequestProcessor.authenticate(String)` returns an `AuthenticationResult`** (it returned a boolean and threw
+  `AccessControlUnavailableException` when the list couldn't answer; that is now the UNAVAILABLE result).
+  `unavailable(String reason)` replaces `unavailable(AccessControlUnavailableException)`. The `userRoot` and
+  `defaultDir` attributes are read from the principal as the parameters were.
+- **Failed logins are counted by parley-net** (the session's login limits: the delay before the `530` and the close
+  after `maxLoginAttempts`). Removed: `FtpRequestProcessor.loginFailed()` and `incLoginAttempts()`.
+- **`FtpRequestProcessor.requirePermission(permission, code, text)`**: a command's own permission check (`SITE`,
+  `MFF`, `STAT` with a path). A registry that can't answer a permission check gets `421` and the connection is closed,
+  never "permission denied".
+
 ### Changed (2026-11-03: the mail suite's FTP servers moved to parley-mail)
 
 - **parley-ftp no longer knows the mail suite**: `FtpProviders` (the launcher's `ftp` and `ftps`), `SuiteAcl` and
