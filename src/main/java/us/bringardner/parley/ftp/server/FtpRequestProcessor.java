@@ -932,20 +932,14 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		return tempStorage.remove(key);
 	}
 
-	/**
-	 * Serializes replies from the session and its transfer thread. A lock, not synchronized:
-	 * a reply can block on a slow client, and on Java 21-23 a virtual thread blocked inside a
-	 * monitor pins its carrier thread (BJL-52).
-	 */
-	private final java.util.concurrent.locks.ReentrantLock replyLock = new java.util.concurrent.locks.ReentrantLock();
-
 	@Override
 	public void reply(String text) throws IOException {
-		replyLock.lock();
+		java.util.concurrent.locks.ReentrantLock outputLock = getOutputLock();
+		outputLock.lock();
 		try {
 			super.reply(hideRealPaths(text));
 		} finally {
-			replyLock.unlock();
+			outputLock.unlock();
 		}
 	}
 
@@ -956,7 +950,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 */
 	@Override
 	public void reply(java.util.List<String> lines) throws IOException {
-		replyLock.lock();
+		java.util.concurrent.locks.ReentrantLock outputLock = getOutputLock();
+		outputLock.lock();
 		try {
 			java.util.List<String> safe = new java.util.ArrayList<String>(lines.size());
 			for (String line : lines) {
@@ -964,7 +959,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			}
 			super.reply(safe);
 		} finally {
-			replyLock.unlock();
+			outputLock.unlock();
 		}
 	}
 
@@ -973,11 +968,12 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * client supplied itself, such as the path an administrator gave to SITE root.
 	 */
 	public void replyAsIs(int responseCode, String text) throws IOException {
-		replyLock.lock();
+		java.util.concurrent.locks.ReentrantLock outputLock = getOutputLock();
+		outputLock.lock();
 		try {
 			super.reply(translateResponseCode(responseCode)+" "+text);
 		} finally {
-			replyLock.unlock();
+			outputLock.unlock();
 		}
 	}
 
@@ -1071,7 +1067,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 */
 	@Override
 	public void reply(int responseCode, String text) throws IOException {
-		replyLock.lock();
+		java.util.concurrent.locks.ReentrantLock outputLock = getOutputLock();
+		outputLock.lock();
 		try {
 			String t = text == null ? "" : text;
 			if( t.indexOf('\n') < 0 && t.indexOf('\r') < 0 ) {
@@ -1102,7 +1099,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 			// one flush for the whole reply (BJL-35)
 			reply(out);
 		} finally {
-			replyLock.unlock();
+			outputLock.unlock();
 		}
 	}
 
