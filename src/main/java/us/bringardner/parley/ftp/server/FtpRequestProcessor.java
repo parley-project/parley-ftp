@@ -461,6 +461,36 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		stop();
 	}
 
+	/**
+	 * A command failed with an unexpected error (logged by the command loop): RFC 959's 451,
+	 * "Requested action aborted: local error in processing". The session goes on.
+	 */
+	@Override
+	protected void replyCommandFailed(String command) throws IOException {
+		reply(REPLY_451_ACTION_ABORTED_LOCAL_ERROR, (command == null ? "The command" : command)+" failed: local error in processing");
+	}
+
+	/**
+	 * The server is closing this session on its own: RFC 959's 421, "Service not available,
+	 * closing control connection", which may answer any command.
+	 */
+	@Override
+	public void replyClosing(us.bringardner.parley.net.server.CloseReason reason) throws IOException {
+		String why;
+		switch (reason) {
+			case IDLE:
+				why = "Idle for too long, closing";
+				break;
+			case LOGIN_TIME_LIMIT:
+				why = "Not logged in in time, closing";
+				break;
+			default:
+				why = "The server is shutting down";
+				break;
+		}
+		reply(REPLY_421_SERVICE_NOT_AVAILIBLE, why);
+	}
+
 	private void permissionUnavailable(String what, String reason) throws IOException {
 		logError(what+" not checked: "+reason);
 		reply(REPLY_421_SERVICE_NOT_AVAILIBLE,"Can't check permissions now, try again later");
