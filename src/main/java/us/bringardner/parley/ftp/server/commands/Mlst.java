@@ -108,7 +108,7 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
         create     -- Creation time
         type       -- Entry type
         unique     -- Unique id of file/directory
-        perm       -- File permissions, whether READ_PERMISSION, write, execute is
+        perm       -- File permissions, whether read, write, execute is
                       allowed for the login id.
         media-type -- MIME media-type of file contents per IANA registry.
 

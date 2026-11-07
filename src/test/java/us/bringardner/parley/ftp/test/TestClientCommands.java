@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.ftp.client.FtpClient;
-import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
@@ -42,7 +41,7 @@ public class TestClientCommands {
 		System.setProperty("parley.ftp.keyStorePassword", "peekab00");
 		System.setProperty("parley.ftp.keyStoreType", "PKCS12");
 		System.setProperty("parley.ftp.algorithm", "SunX509");
-		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, WritableAnonymousUserRegistry.class.getName());
 		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 		root = new File(FtpTestSupport.scratchDir("FtpClientCommands")).getAbsoluteFile();
 		new File(root, "sub").mkdirs();

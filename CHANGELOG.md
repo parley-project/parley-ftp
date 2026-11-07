@@ -2,6 +2,16 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-07: anonymous FTP is read only)
+
+- **`AnonymousUserRegistry` gives anonymous `read` only** (design doc Q13): anonymous can list, download and change
+  directory; `STOR`, `APPE`, `DELE`, `MKD`, `RMD`, `RNFR`, `RNTO` and `SITE CHMOD` get `550`. The new constructor
+  `AnonymousUserRegistry(String... permissions)` gives anonymous the permissions named (for uploads, `read` and
+  `write`); `admin` is refused even when listed. The no-argument constructor, which the `authenticationProvider`
+  setting uses, is `read` only. `getPermissions()` gives the names held.
+- Comment fixes: "already" and "read" had been turned into `READ_PERMISSION` in the `ABOR`, `STOR`, `USER`, `SIZE`
+  and `MLST` comments.
+
 ### Changed (2026-11-06: users, logins and permissions come from parley-iam)
 
 - **parley-ftp uses parley-iam and the new parley-net**: the server's user registry (`authenticationProvider`, a
@@ -10,7 +20,7 @@
   `getPermission()` returns one.
 - **No built-in anonymous access**: a server with no registry refuses every login instead of letting `anonymous` and
   `ftp` in. Anonymous FTP is the new `AnonymousUserRegistry`, configured like any other registry; it behaves as the
-  built-in list did (any password, the server's root, everything but `admin`).
+  built-in list did (any password, the server's root, everything but `admin`); since 2026-11-07, `read` only (above).
 - **`FtpRequestProcessor.authenticate(String)` returns an `AuthenticationResult`** (it returned a boolean and threw
   `AccessControlUnavailableException` when the list couldn't answer; that is now the UNAVAILABLE result).
   `unavailable(String reason)` replaces `unavailable(AccessControlUnavailableException)`. The `userRoot` and

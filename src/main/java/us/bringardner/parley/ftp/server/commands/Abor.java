@@ -64,7 +64,7 @@ public class Abor extends NoAuthReqBaseCommand {
             connection must be closed.
 
             There are two cases for the server upon receipt of this
-            command: (1) the FTP service command was alREAD_PERMISSIONy completed,
+            command: (1) the FTP service command was already completed,
             or (2) the FTP service command is still in progress.
             
             In the first case, the server closes the data connection

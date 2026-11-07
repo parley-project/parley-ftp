@@ -71,7 +71,7 @@ public class Size extends BaseCommand implements FeatCommand {
    mode and type.  This command is normally used in conjunction with the
    RESTART (REST) command when STORing a file to a remote server in
    STREAM mode, to determine the restart point.  The server-PI might
-   need to READ_PERMISSION the partially transferred file, do any appropriate
+   need to read the partially transferred file, do any appropriate
    conversion, and count the number of octets that would be generated
    when sending the file in order to correctly respond to this command.
    Estimates of the file transfer size MUST NOT be returned, only
