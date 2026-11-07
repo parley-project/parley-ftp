@@ -28,18 +28,18 @@ import java.util.Locale;
 
 import us.bringardner.parley.iam.AuthenticationResult;
 import us.bringardner.parley.iam.AuthorizationResult;
-import us.bringardner.parley.iam.BasicParleyPrincipal;
 import us.bringardner.parley.iam.Credential;
 import us.bringardner.parley.iam.EntityId;
 import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.iam.ParleyPrincipal;
-import us.bringardner.parley.iam.PasswordCredential;
 import us.bringardner.parley.iam.ProtectedResource;
 import us.bringardner.parley.iam.Requester;
-import us.bringardner.parley.iam.StandardPermissions;
 import us.bringardner.parley.iam.StoredCredential;
 import us.bringardner.parley.iam.StoredCredentialType;
 import us.bringardner.parley.iam.UserRegistry;
+import us.bringardner.parley.iam.credential.PasswordCredential;
+import us.bringardner.parley.iam.permission.StandardPermissions;
+import us.bringardner.parley.iam.principal.BasicParleyPrincipal;
 
 /**
  * A {@link UserRegistry} with one user, anonymous FTP (RFC 1635): the user names
