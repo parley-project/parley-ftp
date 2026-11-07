@@ -120,7 +120,7 @@ public class TestUploadResume {
 		Thread.sleep(300);
 	}
 
-	/** @return "done 226", or "refused 450 ..." (the transfer wasn't started) */
+	/** @return "done 226", or "refused 554 ..." (the transfer wasn't started) */
 	private static String store(Session s, String command, String name, String content) throws Exception {
 		try (Socket data = s.pasv()) {
 			s.send(command + " " + name);
@@ -160,7 +160,7 @@ public class TestUploadResume {
 			assertEquals("550", code(s, "SIZE new.bin"));
 			assertEquals("350", code(s, "REST 10"));
 			String reply = store(s, "STOR", "new.bin", "the rest");
-			assertTrue(reply.startsWith("refused 450"), reply);
+			assertTrue(reply.startsWith("refused 554"), reply);
 			assertEquals("[]", names(atomicRoot));
 			// starting again works
 			assertEquals("done 226", store(s, "STOR", "new.bin", "0123456789the rest"));
@@ -183,7 +183,7 @@ public class TestUploadResume {
 			assertTrue(size.text.trim().endsWith("18"), "SIZE gives the old file's length: " + size);
 			assertEquals("350", code(s, "REST 18"));
 			String reply = store(s, "STOR", "old.bin", "<<tail of the new file>>");
-			assertTrue(reply.startsWith("refused 450"), reply);
+			assertTrue(reply.startsWith("refused 554"), reply);
 			assertEquals("OLDOLDOLDOLDOLDOLD", read(old), "and it is not a mixture of the two");
 			// the file can be stored again, in full
 			assertEquals("done 226", store(s, "STOR", "old.bin", "all new"));
@@ -197,9 +197,9 @@ public class TestUploadResume {
 		Files.write(f.toPath(), "complete".getBytes(StandardCharsets.UTF_8));
 		try (Session s = new Session(ATOMIC_PORT)) {
 			assertEquals("350", code(s, "REST 8"));
-			assertTrue(store(s, "STOR", "complete.bin", "+more").startsWith("refused 450"));
+			assertTrue(store(s, "STOR", "complete.bin", "+more").startsWith("refused 554"));
 			assertEquals("350", code(s, "REST 3"));
-			assertTrue(store(s, "STOR", "complete.bin", "+more").startsWith("refused 450"));
+			assertTrue(store(s, "STOR", "complete.bin", "+more").startsWith("refused 554"));
 		}
 		assertEquals("complete", read(f));
 	}
@@ -233,7 +233,7 @@ public class TestUploadResume {
 
 			// it is complete now: REST can't add to it again
 			assertEquals("350", code(s, "REST 20"));
-			assertTrue(store(s, "STOR", "big.bin", "more").startsWith("refused 450"));
+			assertTrue(store(s, "STOR", "big.bin", "more").startsWith("refused 554"));
 			assertEquals("0123456789ABCDEFGHIJ", read(f));
 		}
 	}
@@ -270,7 +270,7 @@ public class TestUploadResume {
 			// someone else adds to it, so it is no longer where the upload stopped
 			Files.write(f.toPath(), "12345678".getBytes(StandardCharsets.UTF_8));
 			assertEquals("350", code(s, "REST 8"));
-			assertTrue(store(s, "STOR", "changed.bin", "x").startsWith("refused 450"));
+			assertTrue(store(s, "STOR", "changed.bin", "x").startsWith("refused 554"));
 			assertEquals("12345678", read(f));
 		}
 	}
