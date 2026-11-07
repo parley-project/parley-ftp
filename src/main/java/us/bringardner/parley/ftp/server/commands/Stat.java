@@ -66,7 +66,7 @@ public class Stat extends NoAuthReqBaseCommand {
 	}
 
 	private void statPath(FtpRequestProcessor processor, String path) throws IOException {
-		if( !processor.requirePermission(READ_PERMISSION, REPLY_530_USER_NOT_LOGGED_IN,"Log in with USER and PASS first") ) {
+		if( !processor.requirePermission(getName(), READ_PERMISSION) ) {
 			return;
 		}
 		FileSource f = processor.createNewFile(path);

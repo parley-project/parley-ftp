@@ -34,14 +34,14 @@ import java.io.IOException;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.PassiveSocket;
-import us.bringardner.parley.ftp.server.commands.BaseCommand;
+import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
 
 
 /**
  * @author Tony Bringardner
  *
  */
-public class Epsv extends BaseCommand {
+public class Epsv extends LoginOnlyCommand {
 
     private static final long serialVersionUID = 1L;
 

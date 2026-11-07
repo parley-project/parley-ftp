@@ -31,7 +31,6 @@ package us.bringardner.parley.ftp.server.commands;
 
 import java.io.IOException;
 
-import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 
@@ -39,7 +38,7 @@ import us.bringardner.parley.ftp.server.FtpRequestProcessor;
  * @author Tony Bringardner
  *
  */
-public class Mode extends BaseCommand implements us.bringardner.parley.ftp.server.FeatCommand {
+public class Mode extends LoginOnlyCommand implements us.bringardner.parley.ftp.server.FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -103,9 +102,5 @@ public class Mode extends BaseCommand implements us.bringardner.parley.ftp.serve
 	}
 
 	
-	@Override
-	public ParleyPermission getPermission() {
-		return READ_PERMISSION;
-	}
 
 }

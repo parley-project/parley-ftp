@@ -243,7 +243,6 @@ public interface FTP {
 
 	public static final int REPLY_230_USER_LOGGED_IN = 230;// User logged in, proceed.
 	public static final int REPLY_530_USER_NOT_LOGGED_IN = 530; // Not logged in.
-	public static final int REPLY_533_USER_NOT_AUTHORIZED = 533; // IN not defined in RFC 595 so I created one
 	public static final int REPLY_331_USER_NAME_OK_NEED_PASS = 331; // User name okay, need password.
 	public static final int REPLY_332_NEED_ACCOUNT = 332; // Need account for login.
 	public static final int REPLY_532_NEED_ACCOUNT_TO_STORE_FILES =532;// Need account for storing files.

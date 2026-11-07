@@ -40,7 +40,7 @@ import us.bringardner.parley.ftp.server.FtpRequestProcessor;
  * @author Tony Bringardner
  *
  */
-public class Site  extends BaseCommand {
+public class Site  extends LoginOnlyCommand {
 
 	
 
@@ -101,12 +101,17 @@ public class Site  extends BaseCommand {
 
 
 		//processor.logDebug("Site step1 command='"+cmd+"' args = "+commandLine);
+		// changing a file's mode or time is writing; the rest need an administrator
 		if(cmd.equalsIgnoreCase(CMD_LAST_MOD_DATE)) {
-			setMdificationDate(processor, context);
+			if( processor.requirePermission(getName()+" "+cmd, WRITE_PERMISSION) ) {
+				setMdificationDate(processor, context);
+			}
 			return;
 		}
 		if( cmd.equalsIgnoreCase(CMD_CHMOD)) {
-			chmod(processor,context);
+			if( processor.requirePermission(getName()+" "+cmd, WRITE_PERMISSION) ) {
+				chmod(processor,context);
+			}
 			return;
 		}  
 
@@ -117,7 +122,7 @@ public class Site  extends BaseCommand {
 		}
 		
 		// All others required admin rights
-		if( !processor.requirePermission(ADMIN_PERMISSION, REPLY_534_REQUEST_DENIED_FOR_POLICY_RESONS,"Permission denied for command '"+cmd+"'")) {
+		if( !processor.requirePermission(getName()+" "+cmd, ADMIN_PERMISSION)) {
 			return;
 		}
 

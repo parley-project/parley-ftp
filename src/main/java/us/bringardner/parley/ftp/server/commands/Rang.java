@@ -26,7 +26,6 @@ import java.io.IOException;
 
 import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -54,7 +53,7 @@ import us.bringardner.parley.net.server.IRequestContext;
  *
  * @since 1.1.0
  */
-public class Rang extends BaseCommand implements FeatCommand {
+public class Rang extends LoginOnlyCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -161,9 +160,4 @@ public class Rang extends BaseCommand implements FeatCommand {
 		return RANG+" STREAM";
 	}
 
-	@Override
-	public ParleyPermission getPermission() {
-		// RETR needs read; STOR checks its own write permission
-		return READ_PERMISSION;
-	}
 }

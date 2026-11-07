@@ -69,8 +69,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 	public static final int TYPE_ASCII	 = 0;
 	public static final int TYPE_IMAGE	 = 1;
-	public static final String UNRECOGNIZED_COMMAND="UNRECOGNIZED_COMMAND";
-	public static final String NOT_AUTHORIZED_COMMAND="NOT_AUTH_COMMAND";
 
 
 	public static final String PARAMETER_ROOT = "userRoot";
@@ -393,15 +391,15 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 
 	/**
 	 * A command's own permission check (one that depends on its arguments, so the command
-	 * processor's check before the command can't do it). When the registry can't answer now,
+	 * processor's check before the command can't do it). A refusal is answered and logged the same
+	 * way as the dispatcher's ({@link #refuse(String, String)}). When the registry can't answer now,
 	 * the session is answered 421 and closed ({@link #replyPermissionUnavailable}).
 	 *
+	 * @param command the command, for the reply and the log (e.g. "SITE CHMOD")
 	 * @param needed the permission needed, on the server as a whole
-	 * @param deniedCode the reply when the session doesn't hold it
-	 * @param deniedText the text of that reply
 	 * @return true when allowed; false when a reply has been sent
 	 */
-	public boolean requirePermission(ParleyPermission needed, int deniedCode, String deniedText) throws IOException {
+	public boolean requirePermission(String command, ParleyPermission needed) throws IOException {
 		AuthorizationResult result = checkPermission(needed, null);
 		switch (result.getStatus()) {
 			case ALLOWED:
@@ -410,9 +408,47 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				permissionUnavailable(needed.getName(), result.getReason());
 				return false;
 			default:
-				reply(deniedCode, deniedText);
+				refuse(command, reportMissingPermission(command, needed));
 				return false;
 		}
+	}
+
+	/**
+	 * The dispatcher's refusal of a command the session may not run: 530 when nobody is logged in,
+	 * 550 when the user lacks the permission. RFC 959 has no "forbidden" reply; 550 is "requested
+	 * action not taken ... no access", and clients handle it after any command.
+	 */
+	@Override
+	protected void replyNotAuthorized(us.bringardner.parley.net.server.ICommand command, String reason) throws IOException {
+		refuse(command.getName(), reason);
+	}
+
+	/**
+	 * Refuse a command: "530 COMMAND refused: nobody is logged in", or "550 COMMAND refused:
+	 * tony doesn't have the write permission".
+	 *
+	 * @param command the command refused
+	 * @param reason from {@link #reportMissingPermission(String, ParleyPermission)}
+	 */
+	public void refuse(String command, String reason) throws IOException {
+		int code = getPrincipal() == null ? REPLY_530_USER_NOT_LOGGED_IN : REPLY_550_ACTION_NOT_TAKEN;
+		reply(code, command+" refused: "+reason);
+	}
+
+	/**
+	 * Refuse a command that needs a login when nobody is logged in (530), logged like the
+	 * dispatcher's refusals.
+	 * @param command the command refused
+	 */
+	public void refuseNotLoggedIn(String command) throws IOException {
+		// nobody is logged in, so the permission isn't named
+		refuse(command, reportMissingPermission(command, null));
+	}
+
+	/** RFC 959: 421 closes the control connection. */
+	@Override
+	protected void replyTooManyLoginFailures() throws IOException {
+		reply(REPLY_421_SERVICE_NOT_AVAILIBLE, "Too many failed logins, closing");
 	}
 
 	/**

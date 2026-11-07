@@ -40,7 +40,7 @@ import us.bringardner.parley.ftp.server.PassiveSocket;
  * @author Tony Bringardner
  *
  */
-public class Pasv extends BaseCommand {
+public class Pasv extends LoginOnlyCommand {
 
     private static final long serialVersionUID = 1L;
 

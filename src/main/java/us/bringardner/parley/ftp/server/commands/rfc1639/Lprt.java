@@ -28,7 +28,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.ftp.server.commands.BaseCommand;
+import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -38,7 +38,7 @@ import us.bringardner.parley.net.server.IRequestContext;
  *
  * @since 1.1.0
  */
-public class Lprt extends BaseCommand {
+public class Lprt extends LoginOnlyCommand {
 
 	private static final long serialVersionUID = 1L;
 

@@ -38,7 +38,7 @@ import us.bringardner.parley.ftp.server.FtpRequestProcessor;
  * @author Tony Bringardner
  *
  */
-public class Stru  extends BaseCommand {
+public class Stru  extends LoginOnlyCommand {
 
 	private static final long serialVersionUID = 1L;
 

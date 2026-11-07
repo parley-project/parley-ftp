@@ -74,8 +74,11 @@ public class Pass extends NoAuthReqBaseCommand {
 			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Not enough parameters");
 			return;
 		}
-		
-			
+		if( processor.getTempValue(USER) == null ) {
+			// RFC 959: PASS must follow USER
+			processor.reply(REPLY_503_BAD_SEQ_OF_COMMANDS,"Send USER first");
+			return;
+		}
 			try {
 				// The password is everything after "PASS " (it may contain spaces)
 				String line = context.getCommandLine();

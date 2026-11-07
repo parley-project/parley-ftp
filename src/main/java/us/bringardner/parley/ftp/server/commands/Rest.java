@@ -32,7 +32,6 @@ package us.bringardner.parley.ftp.server.commands;
 
 import java.io.IOException;
 
-import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
@@ -42,7 +41,7 @@ import us.bringardner.parley.ftp.server.FtpRequestProcessor;
  * @author Tony Bringardner
  *
  */
-public class Rest extends BaseCommand implements FeatCommand {
+public class Rest extends LoginOnlyCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -183,9 +182,5 @@ http://www.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-16.txt
 		return REST+" STREAM";
 	}
 
-	@Override
-	public ParleyPermission getPermission() {
-		return WRITE_PERMISSION;
-	}
 
 }
