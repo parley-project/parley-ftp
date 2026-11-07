@@ -79,22 +79,23 @@ public class Mkd  extends BaseCommand {
 		//  Target will be null is path is illegal
 		FileSource target = processor.createNewFile(commandLine);
 		if( target == null ) {
-			processor.reply(REPLY_550_ACTION_NOT_TAKEN," Invalid name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Invalid name");
 			return;
 		}
 		commandLine = processor.getVirtualPath(target);
 		
 		if( target.exists()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED, commandLine+" can not be created");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN, commandLine+" already exists");
 			return;
 		} 
 
 		
 		
 		if( target.mkdirs() ) {
-			processor.reply(REPLY_257_PATHNAME_CREATED,commandLine+" was created.");
+			// RFC 959 Appendix II: 257 "PATHNAME" created
+			processor.reply(REPLY_257_PATHNAME_CREATED,FtpRequestProcessor.quotePath(commandLine)+" created");
 		} else {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED,commandLine+" could not be created.");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,commandLine+" could not be created");
 		}
 	}
 

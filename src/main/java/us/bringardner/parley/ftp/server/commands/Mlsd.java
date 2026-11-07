@@ -191,9 +191,15 @@ public class Mlsd  extends BaseCommand  implements FeatCommand {
 
 
 		if( dir == null || !dir.exists()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			// RFC 3659 section 7.2.1
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such directory");
 			return;
-		} 
+		}
+		if( !dir.isDirectory() ) {
+			// RFC 3659 section 7.1: MLSD of anything but a directory is 501, with no data connection
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,processor.getVirtualPath(dir)+" is not a directory; use MLST");
+			return;
+		}
 
 		FileSource [] list = null;
 

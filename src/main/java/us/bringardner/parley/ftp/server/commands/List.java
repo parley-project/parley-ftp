@@ -176,7 +176,7 @@ public class List  extends BaseCommand {
 			
 		
 		if( dir == null || !dir.exists()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_450_FILE_ACTION_FAILED,"No such file or directory");
 			return;
 		} 
 		

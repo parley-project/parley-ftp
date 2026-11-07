@@ -951,6 +951,16 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	}
 
 	/**
+	 * A path as RFC 959 Appendix II quotes it in a 257 reply: in double quotes, with each double
+	 * quote in it doubled ("/a""b" for /a"b).
+	 * @param path the path the client sees
+	 * @return the quoted path
+	 */
+	public static String quotePath(String path) {
+		return "\""+path.replace("\"", "\"\"")+"\"";
+	}
+
+	/**
 	 * Replace the server's real path of the user's root in reply text with the path the client
 	 * sees ("/srv/ftp/tony/a.txt" becomes "/a.txt"). Every reply goes through here, so error
 	 * messages that quote a path (an exception's message, for example) don't reveal where the
@@ -1503,12 +1513,17 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	public void deliverStream(FileSource local, String ftpFileName) throws IOException{
 		InputStream in = null;
 
+		// RFC 959: RETR answers 550 for a file it can't have (450 is for one that is busy)
 		if( !local.exists() ) {
-			reply(REPLY_450_FILE_ACTION_FAILED,"File does not exist, "+ftpFileName);
+			reply(REPLY_550_ACTION_NOT_TAKEN,"No such file: "+ftpFileName.trim());
+			return;
+		}
+		if( local.isDirectory() ) {
+			reply(REPLY_550_ACTION_NOT_TAKEN,getVirtualPath(local)+" is not a file");
 			return;
 		}
 		if( !local.canRead() ) {
-			reply(REPLY_450_FILE_ACTION_FAILED,"Read access denied for "+ftpFileName);
+			reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied: "+ftpFileName.trim());
 			return;
 		}
 
@@ -1548,8 +1563,9 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				}
 			}
 		} catch(Exception ex) {
+			// the details are logged, not sent
 			logError("Error creating stream",ex);
-			reply(REPLY_450_FILE_ACTION_FAILED,"Can't create stream, "+ex);
+			reply(REPLY_451_ACTION_ABORTED_LOCAL_ERROR,"Local error; can't read "+ftpFileName.trim());
 			return;
 		}
 

@@ -149,7 +149,7 @@ public class Mdtm  extends BaseCommand  implements FeatCommand {
 		int idx = commandLine.indexOf(' ');
 	
 		if( idx <=0 ){
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM," path required.");
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"MDTM needs a path");
 			return;
 		}
 		
@@ -158,7 +158,8 @@ public class Mdtm  extends BaseCommand  implements FeatCommand {
 			
 		
 		if( target == null || !target.exists() || target.isDirectory()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			// RFC 3659 section 3.2
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such file");
 			return;
 		} 
 				
