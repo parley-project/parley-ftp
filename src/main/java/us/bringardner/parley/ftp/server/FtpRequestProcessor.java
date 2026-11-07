@@ -54,6 +54,7 @@ import us.bringardner.parley.iam.ParleyPrincipal;
 import us.bringardner.parley.iam.PasswordCredential;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
+import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.net.server.AbstractCommandProcessor;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.FTP;
@@ -466,7 +467,8 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * "Requested action aborted: local error in processing". The session goes on.
 	 */
 	@Override
-	protected void replyCommandFailed(String command) throws IOException {
+	protected void replyCommandFailed(IRequestContext request) throws IOException {
+		String command = request.getFirstToken();
 		reply(REPLY_451_ACTION_ABORTED_LOCAL_ERROR, (command == null ? "The command" : command)+" failed: local error in processing");
 	}
 
@@ -1144,42 +1146,35 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		super.logDebug(msg, error);
 	}
 
-	/* Process an FTP Request
-	 * @see java.lang.Runnable#run()
+	/**
+	 * Set the session's file system and FTP root from the server (a login may change the root),
+	 * then greet: RFC 959's 220 "Service ready for new user" (was 200, which curl rejects).
 	 */
-	public void run() {
+	@Override
+	protected void sendGreeting() throws IOException {
+		setFactory(((FtpServer)getServer()).getFileSourceFactory());
+		setFtpRoot(((FtpServer)getServer()).getFtpRoot());
+		reply(us.bringardner.parley.ftp.FTP.REPLY_220_READY_NEW_USER,getServer().getName()+" Ready");
+	}
+
+	/**
+	 * RFC 959: an unexpected close on the control connection has the effect of an ABOR.
+	 * The server stops a running transfer when the session ends (BJL-60); release any
+	 * passive listener / data socket here so no ports or files are left open, and the store lock.
+	 * The control connection is closed first, so a transfer stopped here doesn't answer on it.
+	 */
+	@Override
+	protected void sessionEnded() {
 		try {
-
-			/*
-			 * Set the FTP root from the server.  This may be changed
-			 * after authentication.
-			 */   
-			setFactory(((FtpServer)getServer()).getFileSourceFactory());
-			setFtpRoot(((FtpServer)getServer()).getFtpRoot());
-			// RFC 959: the greeting is 220 "Service ready for new user" (was 200, which curl rejects)
-			reply(us.bringardner.parley.ftp.FTP.REPLY_220_READY_NEW_USER,getServer().getName()+" Ready");
-			super.run();	
-
-		} catch (Throwable e) {
-			if (isTlsHandshakeFailure(e)) {
-				logTlsHandshakeFailure(e);
-			} else if (!((e instanceof SocketException) && e.toString().toLowerCase(java.util.Locale.ROOT).contains("closed") )) {
-				logError("An error occured Initializing client.  Closing the channel.",e);					
-			}
-			
-		} finally {
-			/*
-			 * RFC 959: an unexpected close on the control connection has the effect of an ABOR.
-			 * The server stops a running transfer when the session ends (BJL-60); release any
-			 * passive listener / data socket here so no ports or files are left open.
-			 */
-			resetDataConnection();
-			if( sessionDomain != null ) {
-				us.bringardner.parley.net.lock.StoreLocks.get().release(sessionDomain);
-				sessionDomain = null;
-			}
+			getConnection().close();
+		} catch (IOException | RuntimeException e) {
+			logDebug("Closing the control connection: " + e);
 		}
-
+		resetDataConnection();
+		if( sessionDomain != null ) {
+			us.bringardner.parley.net.lock.StoreLocks.get().release(sessionDomain);
+			sessionDomain = null;
+		}
 	}
 
 
