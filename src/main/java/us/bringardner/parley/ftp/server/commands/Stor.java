@@ -64,7 +64,7 @@ public class Stor  extends BaseCommand {
             pathname exists at the server site, then its contents shall
             be replaced by the data being transferred.  A new file is
             created at the server site if the file specified in the
-            pathname does not alREAD_PERMISSIONy exist.
+            pathname does not already exist.
 
 
                   125, 150

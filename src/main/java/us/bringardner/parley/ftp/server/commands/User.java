@@ -64,7 +64,7 @@ public class User  extends NoAuthReqBaseCommand {
             some servers.  Servers may allow a new USER command to be
             entered at any point in order to change the access control
             and/or accounting information.  This has the effect of
-            flushing any user, password, and account information alREAD_PERMISSIONy
+            flushing any user, password, and account information already
             supplied and beginning the login sequence again.  All
             transfer parameters are unchanged and any file transfer in
             progress is completed under the old access control

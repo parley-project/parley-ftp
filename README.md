@@ -181,15 +181,30 @@ Don't put an `anonymous` or `ftp` user in the user file unless you mean it: that
 file gives it.
 
 **To allow only anonymous logins,** use `AnonymousUserRegistry`. It accepts `anonymous` and `ftp` with any password
-and refuses everyone else; anonymous gets the server's root and every permission except `admin`, so it can upload,
-rename and delete as well as download:
+and refuses everyone else. Anonymous gets the server's root and the `read` permission only: it can list, download and
+change directory, and every upload, rename and delete is refused with `550`:
 
 ```
 parley.ftp.authenticationProvider=us.bringardner.parley.ftp.server.AnonymousUserRegistry
 ```
 
-To give anonymous less (read only, say), override `checkPermission` in a subclass of `AnonymousUserRegistry`, and
-name the subclass in `parley.ftp.authenticationProvider`.
+To let anonymous upload as well, give the server the permissions anonymous should hold; `admin` is refused even when
+it is listed:
+
+```java
+server.setUserRegistry(new AnonymousUserRegistry(StandardPermissions.READ, StandardPermissions.WRITE));
+```
+
+The `authenticationProvider` setting can only make a registry with no arguments, so to do the same through the
+setting, name a subclass whose constructor passes the permissions on:
+
+```java
+public class UploadingAnonymousUserRegistry extends AnonymousUserRegistry {
+    public UploadingAnonymousUserRegistry() {
+        super(StandardPermissions.READ, StandardPermissions.WRITE);
+    }
+}
+```
 
 **To allow anonymous and named users,** give the server a registry that sends anonymous and ftp to
 `AnonymousUserRegistry` and everyone else to the user file. parley-iam has no ready-made one; this is all it takes:

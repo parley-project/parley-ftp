@@ -27,7 +27,6 @@ import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
-import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 
 /**
@@ -45,7 +44,7 @@ public class TestUtf8AndOpts {
 
 	@BeforeAll
 	public static void start() throws Exception {
-		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, WritableAnonymousUserRegistry.class.getName());
 		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 		root = new File(FtpTestSupport.scratchDir("TestUtf8AndOpts")).getAbsoluteFile();
 		root.mkdirs();

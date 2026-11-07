@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSourceFactory;
-import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.ftp.server.FtpServer.SymlinkPolicy;
 import us.bringardner.parley.ftp.test.TestTransferReliability.Session;
@@ -45,7 +44,7 @@ public class TestLinksAreInvisible {
 
 	@BeforeAll
 	public static void start() throws Exception {
-		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, AnonymousUserRegistry.class.getName());
+		System.setProperty(FtpServer.FTP_PREFIX+"."+IServer.AUTHENTICATION_PROVIDER_PROPERTY, WritableAnonymousUserRegistry.class.getName());
 		System.clearProperty(FtpServer.FTP_PREFIX+"."+FileUserRegistry.PROP_FILE_NAME);
 		base = new File(FtpTestSupport.scratchDir("FtpLinksInvisible")).getAbsoluteFile();
 		deleteAll(base);

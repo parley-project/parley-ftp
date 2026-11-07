@@ -24,7 +24,11 @@
  */
 package us.bringardner.parley.ftp.server;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
 
 import us.bringardner.parley.iam.AuthenticationResult;
 import us.bringardner.parley.iam.AuthorizationResult;
@@ -45,9 +49,16 @@ import us.bringardner.parley.iam.principal.BasicParleyPrincipal;
  * A {@link UserRegistry} with one user, anonymous FTP (RFC 1635): the user names
  * {@code anonymous} and {@code ftp} (any case) log in as the principal {@code anonymous}
  * with any password (by custom the client's e-mail address). It has no attributes, so its
- * root is the server's (or the virtual host's), and it holds every permission on the server
- * except {@code admin}; nobody logged in holds nothing. For a root of its own, use a registry
+ * root is the server's (or the virtual host's). For a root of its own, use a registry
  * that gives the principal a {@link FtpRequestProcessor#PARAMETER_ROOT} attribute.
+ * <p>
+ * Anonymous holds the permissions given to the constructor, on the server as a whole; nobody
+ * logged in holds nothing, and {@code admin} is always refused. The no-argument constructor,
+ * which the {@code authenticationProvider} setting uses, gives {@code read} only: anonymous can
+ * list, download and change directory, and every upload, rename and delete is refused. An
+ * application that wants anonymous uploads gives the server
+ * {@code new AnonymousUserRegistry(StandardPermissions.READ, StandardPermissions.WRITE)}, or names
+ * a subclass whose no-argument constructor calls that one.
  * <p>
  * A server uses it only when it is configured, like any other registry:
  * <pre>
@@ -68,6 +79,37 @@ public class AnonymousUserRegistry implements UserRegistry {
 	public static final String METHOD = "anonymous";
 
 	private final ParleyPrincipal anonymous = BasicParleyPrincipal.user(EntityId.of("user:"+ANONYMOUS), ANONYMOUS);
+
+	/** The permission names anonymous holds, in lower case */
+	private final Set<String> permissions;
+
+	/** Anonymous holds {@code read} only. */
+	public AnonymousUserRegistry() {
+		this(StandardPermissions.READ);
+	}
+
+	/**
+	 * Anonymous holds these permissions on the server as a whole ({@code admin} is refused even
+	 * when it is listed).
+	 *
+	 * @param permissions the permission names, such as {@link StandardPermissions#READ} and
+	 * {@link StandardPermissions#WRITE}; case doesn't matter
+	 * @throws NullPointerException when the array or one of its names is null
+	 */
+	public AnonymousUserRegistry(String... permissions) {
+		Objects.requireNonNull(permissions, "permissions");
+		Set<String> names = new HashSet<>();
+		for(String name : permissions) {
+			Objects.requireNonNull(name, "a permission name");
+			names.add(name.toLowerCase(Locale.ROOT));
+		}
+		this.permissions = Collections.unmodifiableSet(names);
+	}
+
+	/** @return the permission names anonymous holds, in lower case (admin is refused even if here) */
+	public Set<String> getPermissions() {
+		return permissions;
+	}
 
 	/** @return true for anonymous and ftp, in any case */
 	private static boolean isAnonymous(String name) {
@@ -113,8 +155,8 @@ public class AnonymousUserRegistry implements UserRegistry {
 	}
 
 	/**
-	 * Allowed when anonymous is logged in and the permission is on the server as a whole and
-	 * isn't {@code admin}.
+	 * Allowed when anonymous is logged in, the permission is on the server as a whole, it is one
+	 * that anonymous holds, and it isn't {@code admin}.
 	 */
 	@Override
 	public AuthorizationResult checkPermission(Requester requester, ParleyPermission needed,
@@ -131,6 +173,9 @@ public class AnonymousUserRegistry implements UserRegistry {
 		}
 		if( needed.getName().equalsIgnoreCase(StandardPermissions.ADMIN) ) {
 			return AuthorizationResult.denied("anonymous isn't an administrator");
+		}
+		if( !permissions.contains(needed.getName().toLowerCase(Locale.ROOT)) ) {
+			return AuthorizationResult.denied("anonymous doesn't hold "+needed.getName());
 		}
 		return AuthorizationResult.allowed("anonymous holds "+needed.getName());
 	}
