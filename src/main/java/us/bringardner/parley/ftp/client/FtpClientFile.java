@@ -434,7 +434,8 @@ public class FtpClientFile extends BaseObject {
 				return false;
 			}
 			ClientFtpResponse res = client().executeCommand(FTP.SITE,"modDate "+lastModifiedTime+" "+getAbsolutePath());
-			if( res._getResponseCode() == FTP.REPLY_213_FILE_STATUS) {
+			// 200 (SITE's reply in RFC 959), or 213 from Parley servers before 2.0.0
+			if( res.isPositiveComplet() ) {
 				this.lastModified = lastModifiedTime;
 				return true;
 			}
