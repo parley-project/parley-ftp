@@ -41,7 +41,7 @@ import us.bringardner.parley.net.server.IRequestContext;
  *
  * @since 1.1.0
  */
-public class Spsv extends BaseCommand implements FeatCommand {
+public class Spsv extends LoginOnlyCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -51,6 +51,9 @@ public class Spsv extends BaseCommand implements FeatCommand {
 
 	@Override
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		if( refusedAfterEpsvAll(processor) ) {
+			return;
+		}
 		if( processor.isDataChannelSecure() != processor.isSecure() ) {
 			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"SPSV can't give the data connection the protection set (PROT "
 					+processor.getProtLevel()+"); use EPSV");

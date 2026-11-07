@@ -63,7 +63,8 @@ public class Syst  extends NoAuthReqBaseCommand {
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
-		processor.reply(REPLY_215_NAME,System.getProperty("os.name")+" " +processor.getServer().getName());
+		// LIST is in ls -l form on every system, so the type is UNIX (L8: 8-bit bytes)
+		processor.reply(REPLY_215_NAME,"UNIX Type: L8");
 	}
 
 }

@@ -94,17 +94,13 @@ public class User  extends NoAuthReqBaseCommand {
 		processor.removeTempValue(PASS);
 		processor.removeTempValue(ACCT);
 		String user = context.getNextToken();
-		if( context.hasNext()) {
-			String nxt = context.getNextToken();
-			System.out.println("nxt="+nxt);
-		}
+		/*
+		 * Whether anonymous may log in is the user registry's policy: it accepts "anonymous" or
+		 * "ftp" with any password, or refuses the PASS (530) like any other login.
+		 */
 		if( user.equalsIgnoreCase(FTP_USER) || user.equalsIgnoreCase(ANONYMOUS) ) {
-			if(!processor.isAllowAnonymous()){
-				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Anonymous login is not supported.  Please use a valid user ID.");
-			} else {
-				processor.setTempValue(USER,user);
-				processor.reply(REPLY_331_USER_NAME_OK_NEED_PASS,"Anonymous login use email address as password");
-			}
+			processor.setTempValue(USER,user);
+			processor.reply(REPLY_331_USER_NAME_OK_NEED_PASS,"Anonymous login use email address as password");
 		} else {
 			processor.setTempValue(USER,user);
 			processor.reply(REPLY_331_USER_NAME_OK_NEED_PASS,"give password for "+user);

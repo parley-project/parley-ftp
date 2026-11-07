@@ -239,11 +239,11 @@ public interface FTP {
 	public static final int REPLY_227_ENTERING_PASSIVE_MODE = 227; // Entering Passive Mode (h1,h2,h3,h4,p1,p2).
 	public static final int REPLY_228_ENTERING_LONG_PASSIVE_MODE = 228; // Entering Long Passive Mode (RFC 1639).
 	public static final int REPLY_229_ENTERING_EXTENDED_PASSIVE_MODE = 229; // Entering Extended Passive Mode (|||port|). RFC 2428
-	public static final int REPLY_522_NETWORK_PROTOCOL_NOT_SUPPORTED = 522; // Network protocol not supported. RFC 2428
+	public static final int REPLY_522_NETWORK_PROTOCOL_NOT_SUPPORTED = 522;
+	public static final int REPLY_522_DATA_TLS_FAILED = 522; // TLS on the data connection failed or was unacceptable. RFC 4217 section 10.2 // Network protocol not supported. RFC 2428
 
 	public static final int REPLY_230_USER_LOGGED_IN = 230;// User logged in, proceed.
 	public static final int REPLY_530_USER_NOT_LOGGED_IN = 530; // Not logged in.
-	public static final int REPLY_533_USER_NOT_AUTHORIZED = 533; // IN not defined in RFC 595 so I created one
 	public static final int REPLY_331_USER_NAME_OK_NEED_PASS = 331; // User name okay, need password.
 	public static final int REPLY_332_NEED_ACCOUNT = 332; // Need account for login.
 	public static final int REPLY_532_NEED_ACCOUNT_TO_STORE_FILES =532;// Need account for storing files.

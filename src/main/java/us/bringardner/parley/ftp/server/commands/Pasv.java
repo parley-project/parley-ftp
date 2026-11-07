@@ -40,7 +40,7 @@ import us.bringardner.parley.ftp.server.PassiveSocket;
  * @author Tony Bringardner
  *
  */
-public class Pasv extends BaseCommand {
+public class Pasv extends LoginOnlyCommand {
 
     private static final long serialVersionUID = 1L;
 
@@ -67,6 +67,9 @@ public class Pasv extends BaseCommand {
      * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
      */
     public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		if( refusedAfterEpsvAll(processor) ) {
+			return;
+		}
         // Closes any previous passive/active data connection
         processor.setPasvSocket(null);
         PassiveSocket pasvSocket;
@@ -80,7 +83,8 @@ public class Pasv extends BaseCommand {
         }
         if( !pasvSocket.isIpv4() ) {
             pasvSocket.abor();
-            processor.reply(REPLY_425_CANT_OPEN_DATA_CON,"PASV requires IPv4, use EPSV");
+            // PASV can only give an IPv4 address; RFC 959 lists 502 for PASV, not 425
+            processor.reply(REPLY_502_NOT_IMPLEMENTED,"PASV can't give an IPv6 address, use EPSV");
             return;
         }
         processor.setPasvSocket(pasvSocket);

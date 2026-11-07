@@ -409,7 +409,7 @@ public class TestLinksAreInvisible {
 		try (Session s = new Session(PORT)) {
 			assertEquals("350", code(s, "REST 12"));
 			String reply = store(s, "STOR", "ln-file", "ABC");
-			assertTrue(reply.startsWith("refused 450"), reply);
+			assertTrue(reply.startsWith("refused 554"), reply);
 			assertSaysNothingAboutLinks(reply);
 		}
 		assertTrue(isLink(new File(root, "ln-file")), "still a link");
@@ -424,7 +424,7 @@ public class TestLinksAreInvisible {
 		long originalTime = new File(shared, "doc.txt").lastModified();
 		try (Session s = new Session(PORT)) {
 			assertEquals("200", code(s, "SITE CHMOD 640 ln-file"));
-			assertEquals("213", code(s, "SITE modDate 1600000000000 shared-file"));
+			assertEquals("200", code(s, "SITE modDate 1600000000000 shared-file"));
 		}
 		assertRegularFile(new File(root, "ln-file"), "real content");
 		assertEquals("rw-r-----", mode(new File(root, "ln-file")));
@@ -441,8 +441,8 @@ public class TestLinksAreInvisible {
 		String modeBefore = mode(realdir);
 		long timeBefore = realdir.lastModified();
 		try (Session s = new Session(PORT)) {
-			assertEquals("450", code(s, "SITE CHMOD 700 ln-dir"));
-			assertEquals("450", code(s, "SITE modDate 1600000000000 ln-dir"));
+			assertEquals("550", code(s, "SITE CHMOD 700 ln-dir"));
+			assertEquals("550", code(s, "SITE modDate 1600000000000 ln-dir"));
 		}
 		assertTrue(isLink(new File(root, "ln-dir")), "still a link");
 		assertEquals(modeBefore, mode(realdir), "the directory it leads to is unchanged");
@@ -493,7 +493,7 @@ public class TestLinksAreInvisible {
 		Files.createSymbolicLink(new File(holder, "inside-link").toPath(), new File(root, "real.txt").toPath());
 		holder.setWritable(false);
 		try (Session s = new Session(PORT)) {
-			assertEquals("450", code(s, "DELE holder/inside-link"));
+			assertEquals("550", code(s, "DELE holder/inside-link"));
 			assertEquals("350", code(s, "RNFR holder/inside-link"));
 			assertEquals("550", code(s, "RNTO holder/other"));
 			assertTrue(refused(s, "STOR", "holder/inside-link").startsWith("5"), "an upload can't replace it");
@@ -512,7 +512,7 @@ public class TestLinksAreInvisible {
 			s.put("real.txt", "replaced".getBytes(StandardCharsets.UTF_8));
 			s.put("ln-dir/inner.txt", "inner replaced".getBytes(StandardCharsets.UTF_8));
 			assertEquals("200", code(s, "SITE CHMOD 640 real.txt"));
-			assertEquals("213", code(s, "SITE modDate 1600000000000 ln-dir/inner.txt"));
+			assertEquals("200", code(s, "SITE modDate 1600000000000 ln-dir/inner.txt"));
 		}
 		assertEquals("replaced", read(new File(root, "real.txt")));
 		assertEquals("inner replaced", read(new File(root, "realdir/inner.txt")));

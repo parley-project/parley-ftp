@@ -32,6 +32,7 @@ package us.bringardner.parley.ftp.server.commands.rfc2228;
 import java.io.IOException;
 
 import us.bringardner.parley.net.server.IRequestContext;
+import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.commands.NoAuthReqBaseCommand;
 
@@ -39,7 +40,7 @@ import us.bringardner.parley.ftp.server.commands.NoAuthReqBaseCommand;
  * @author Tony Bringardner
  *
  */
-public class Auth extends NoAuthReqBaseCommand {
+public class Auth extends NoAuthReqBaseCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -108,11 +109,9 @@ public class Auth extends NoAuthReqBaseCommand {
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
 		String commandLine = context.getCommandLine();
-		String [] args = commandLine.split(" ");
-		processor.reset();
-		
+		String [] args = commandLine.trim().split(" +");
 		if( args.length != 2 ) {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM," Wrong number of parameters.  Expected 1, got "+(args.length-1));
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Syntax: AUTH TLS");
 			return;
 		}
 		// RFC 2228: the mechanism name is case-insensitive. TLS-C and TLS-P are
@@ -124,20 +123,40 @@ public class Auth extends NoAuthReqBaseCommand {
 			mech = "SSL";
 		}
 		if( !(mech.equals("SSL") || mech.equals("TLS") ) ){
-			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM," Unsupported secutity mechanizm, "+mech);
+			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"Unsupported security mechanism "+mech+"; use TLS");
 			return;
 		}
-		
+		if( processor.isControlChannelSecure() ) {
+			// already TLS (AUTH before, or implicit TLS): RFC 2228 lists 534 for a policy refusal
+			processor.reply(REPLY_534_REQUEST_DENIED_FOR_POLICY_RESONS,"The control connection is already protected");
+			return;
+		}
+		if( !processor.isTlsAvailable() ) {
+			// no key or certificate: RFC 2228 lists 431 for a resource security needs that isn't there
+			processor.reply(REPLY_431_NEED_UNAVILIBLE_RESOURCE_TO_PROCESS,"TLS isn't available on this server");
+			return;
+		}
+		// RFC 4217: AUTH resets the session's security state and the user must log in again
+		processor.reset();
+		processor.reply(REPLY_234_SECURITY_DATA_EXCHANGE_COMPLETE,getName()+" Accepted");
 		try {
-			
-			processor.reply(REPLY_234_SECURITY_DATA_EXCHANGE_COMPLETE,getName()+" Accepted");
 			processor.makeChannelSecure(mech);
 		} catch (Exception ex) {
-			//processor.logError("Can't negotiate a secure channel.",ex);
-			processor.reply(REPLY_431_NEED_UNAVILIBLE_RESOURCE_TO_PROCESS," Can't negotiate a secure channel. ("+ex+")");
+			/*
+			 * RFC 4217 section 10.1: a handshake that fails part way leaves the control connection
+			 * in an unknown state, and the server should simply drop it. A reply sent now would go
+			 * out in the clear after a 234.
+			 */
+			processor.closeAfterTlsFailure(ex);
 		} 
 
 
 	}
 
+
+	@Override
+	public String getFeatResponse(FtpRequestProcessor processor) {
+		// RFC 4217 section 6: FEAT lists AUTH, PBSZ and PROT when TLS can be used
+		return processor.isTlsAvailable() ? "AUTH TLS" : null;
+	}
 }

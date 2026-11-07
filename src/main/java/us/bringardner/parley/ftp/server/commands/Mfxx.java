@@ -142,7 +142,7 @@ public class Mfxx extends BaseCommand implements FeatCommand {
 					processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Invalid "+name+" "+v);
 					return;
 				}
-				if( !processor.requirePermission(ADMIN_PERMISSION, REPLY_550_ACTION_NOT_TAKEN,"Permission denied: "+name+" needs an administrator") ) {
+				if( !processor.requirePermission(getName()+" "+name, ADMIN_PERMISSION) ) {
 					return;
 				}
 				values.put(name, v);

@@ -40,7 +40,7 @@ import us.bringardner.parley.ftp.server.FtpRequestProcessor;
  * @author Tony Bringardner
  *
  */
-public class Site  extends BaseCommand {
+public class Site  extends LoginOnlyCommand {
 
 	
 
@@ -57,7 +57,7 @@ public class Site  extends BaseCommand {
 	public Site() {
 		super(SITE);
 		String help = 
-				"\nAvailible commands:\n"
+				"\nAvailable commands:\n"
 				+ "SITE "+CMD_LAST_MOD_DATE+" timeInMillis path\n"
 				+ "\tChange a files last modification date\n"
 				
@@ -101,12 +101,17 @@ public class Site  extends BaseCommand {
 
 
 		//processor.logDebug("Site step1 command='"+cmd+"' args = "+commandLine);
+		// changing a file's mode or time is writing; the rest need an administrator
 		if(cmd.equalsIgnoreCase(CMD_LAST_MOD_DATE)) {
-			setMdificationDate(processor, context);
+			if( processor.requirePermission(getName()+" "+cmd, WRITE_PERMISSION) ) {
+				setMdificationDate(processor, context);
+			}
 			return;
 		}
 		if( cmd.equalsIgnoreCase(CMD_CHMOD)) {
-			chmod(processor,context);
+			if( processor.requirePermission(getName()+" "+cmd, WRITE_PERMISSION) ) {
+				chmod(processor,context);
+			}
 			return;
 		}  
 
@@ -117,7 +122,7 @@ public class Site  extends BaseCommand {
 		}
 		
 		// All others required admin rights
-		if( !processor.requirePermission(ADMIN_PERMISSION, REPLY_534_REQUEST_DENIED_FOR_POLICY_RESONS,"Permission denied for command '"+cmd+"'")) {
+		if( !processor.requirePermission(getName()+" "+cmd, ADMIN_PERMISSION)) {
 			return;
 		}
 
@@ -157,7 +162,7 @@ public class Site  extends BaseCommand {
 
 		FileSource target = processor.createNewFile(path);
 		if( target == null || !target.exists() ){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant file name ='"+path+"'");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such file: "+path);
 			return;
 		} 
 
@@ -165,14 +170,14 @@ public class Site  extends BaseCommand {
 			// A change to a link's mode is a write: the link is replaced by a regular copy that gets
 			// it, and what it led to is not changed. A directory isn't copied, so it is refused.
 			if( target.isDirectory() ) {
-				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied");
 				return;
 			}
 			try {
 				target = processor.replaceLinkWithCopy(target);
 			} catch (IOException e) {
 				processor.logError("Can't replace link "+target, e);
-				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied");
 				return;
 			}
 		}
@@ -197,11 +202,11 @@ public class Site  extends BaseCommand {
 				}
 			}
 			if( !done ) {
-				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied");
 				return;
 			}
 		} catch (IOException | RuntimeException e) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Can't change permissions '"+e+"'");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't change the permissions of "+path);
 			return;
 		}
 
@@ -290,12 +295,12 @@ public class Site  extends BaseCommand {
 
 
 		if( target == null || !target.exists() ){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant file name ='"+path+"'");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such file: "+path);
 			return;
 		} 
 
 		if(!target.canWrite() || (processor.isLink(target) && target.isDirectory())) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied");
 			return;
 		}
 		if( processor.isLink(target) ) {
@@ -304,7 +309,7 @@ public class Site  extends BaseCommand {
 				target = processor.replaceLinkWithCopy(target);
 			} catch (IOException e) {
 				processor.logError("Can't replace link "+target, e);
-				processor.reply(REPLY_450_FILE_ACTION_FAILED," Permission denied.");
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Permission denied");
 				return;
 			}
 		}
@@ -312,11 +317,11 @@ public class Site  extends BaseCommand {
 		try {
 			target.setLastModifiedTime(time);	
 		} catch (Exception e) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Could not change last mod time for '"+path+"'");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't change the time of "+path);
 			return;
 		}
 
-		processor.reply(REPLY_213_FILE_STATUS,Mlst.formatTime(target.lastModified()));
+		processor.reply(REPLY_200_OK,"Modify="+Mlst.formatTime(target.lastModified())+" "+path);
 
 	}
 }

@@ -143,7 +143,8 @@ public class TestSiteChmod {
 		try {
 			ClientFtpResponse r = chmod(c, "644", "/nothing-here.txt");
 			assertFalse(r.isPositiveComplet());
-			assertTrue(String.valueOf(r).contains("non existant"), String.valueOf(r));
+			assertEquals(550, r._getResponseCode(), String.valueOf(r));
+			assertTrue(String.valueOf(r).contains("No such file"), String.valueOf(r));
 		} finally {
 			c.close();
 		}

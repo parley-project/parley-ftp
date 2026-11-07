@@ -70,7 +70,18 @@ public class Help extends NoAuthReqBaseCommand {
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
 		if( !context.hasNext()) {
-			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Not enough parameters.\nUsage: HELP COMMAND");
+			// RFC 959: HELP without an argument is general help
+			StringBuilder text = new StringBuilder("The commands recognized are:\n");
+			int onLine = 0;
+			for (String name : FtpCommandFactory.getCommandNames()) {
+				text.append(onLine == 0 ? " " : "").append(String.format("%-6s", name));
+				if( ++onLine == 8 ) {
+					text.append('\n');
+					onLine = 0;
+				}
+			}
+			text.append("\nHELP command gives help on one command");
+			processor.reply(REPLY_214_HELP,text.toString());
 			return;
 		}
 		String name = context.getNextToken();
@@ -82,7 +93,7 @@ public class Help extends NoAuthReqBaseCommand {
 		FtpCommandFactory cf = (FtpCommandFactory) f;
 		ICommand cmd = cf.getCommand(name);
 		if( cmd == null ) {
-			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"Command "+name+" is not recignized");
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Unknown command "+name);
 			return;
 		}
 

@@ -77,7 +77,7 @@ public class Cdup extends BaseCommand {
 			String display = processor.getVirtualPath(processor.getCurrentDir());
 			processor.reply(REPLY_250_FILE_ACTION_OK,"Current dir is "+display);
 		} else {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED,"Parrent is not availible");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Already at the root");
 		}
 	}
 

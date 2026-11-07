@@ -72,7 +72,8 @@ public class Quit extends NoAuthReqBaseCommand {
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
         try {
-            processor.reply(REPLY_OK,"Closing");
+            // RFC 959: 221 Service closing control connection
+            processor.reply(REPLY_221_CLOSING_CONTROL,"Goodbye");
         } catch(SocketException ex) {
             //  Must likely because the client closed it's connection.  Ignore.
         }

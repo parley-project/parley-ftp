@@ -68,7 +68,7 @@ public class Pwd extends BaseCommand {
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
 		FileSource dir = processor.getCurrentDir();
 		String dirName = processor.getVirtualPath(dir);
-		processor.reply(REPLY_257_PATHNAME_CREATED,"\""+dirName+"\" is the current directory");
+		processor.reply(REPLY_257_PATHNAME_CREATED,FtpRequestProcessor.quotePath(dirName)+" is the current directory");
 	}
 
 	@Override
