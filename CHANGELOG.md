@@ -2,6 +2,11 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-07: FEAT and TLS)
+
+- **FEAT lists `AUTH TLS` only while the control connection is clear**: on implicit TLS, or after `AUTH TLS`, `AUTH`
+  is refused with `534`, so FEAT no longer offers it. `PBSZ` and `PROT` are still listed.
+
 ### Changed (2026-11-06: users, logins and permissions come from parley-iam)
 
 - **parley-ftp uses parley-iam and the new parley-net**: the server's user registry (`authenticationProvider`, a

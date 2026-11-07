@@ -156,7 +156,9 @@ public class Auth extends NoAuthReqBaseCommand implements FeatCommand {
 
 	@Override
 	public String getFeatResponse(FtpRequestProcessor processor) {
-		// RFC 4217 section 6: FEAT lists AUTH, PBSZ and PROT when TLS can be used
-		return processor.isTlsAvailable() ? "AUTH TLS" : null;
+		// RFC 4217 section 6: FEAT lists AUTH, PBSZ and PROT when TLS can be used. AUTH TLS is left
+		// out once the control connection is protected (implicit TLS, or after AUTH TLS): AUTH would
+		// be refused with 534 then, so FEAT doesn't offer it.
+		return processor.isTlsAvailable() && !processor.isControlChannelSecure() ? "AUTH TLS" : null;
 	}
 }
