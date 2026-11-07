@@ -1232,6 +1232,19 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	 * that was TLS from the start (implicit TLS) stays TLS.
 	 * @since 1.1.0
 	 */
+	/** True after EPSV ALL: only EPSV may set up a data connection (RFC 2428 section 3). */
+	private volatile boolean epsvAll;
+
+	/** @return true after EPSV ALL, until REIN */
+	public boolean isEpsvAll() {
+		return epsvAll;
+	}
+
+	/** EPSV ALL: from now on only EPSV may set up a data connection. */
+	public void setEpsvAll(boolean epsvAll) {
+		this.epsvAll = epsvAll;
+	}
+
 	public void reinitialize() throws IOException {
 		while( transferInProcess.isTransferInProgress() ) {
 			// the transfer sends its own final reply, before this one
@@ -1244,6 +1257,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		}
 		resetDataConnection();
 		passive = false;
+		epsvAll = false;
 		tempStorage.clear();
 		logout();
 		// RFC 7151 section 3.2.1: a new HOST is needed
@@ -2221,6 +2235,24 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				&& ((us.bringardner.parley.net.server.Server) server).isRequireTls() && !isControlChannelSecure();
 	}
 	
+	/** @return true when this server can do TLS (it has a key and certificate) */
+	public boolean isTlsAvailable() {
+		IServer server = getServer();
+		return server instanceof us.bringardner.parley.net.server.Server
+				&& ((us.bringardner.parley.net.server.Server) server).isTlsAvailable();
+	}
+
+	/**
+	 * AUTH's TLS handshake failed after the 234: the control connection is in an unknown state, so
+	 * it is closed with no reply (RFC 4217 section 10.1), and logged as one line like any client's
+	 * failed handshake.
+	 * @param e why the handshake failed
+	 */
+	public void closeAfterTlsFailure(Exception e) {
+		logTlsHandshakeFailure(e);
+		stop();
+	}
+
 	public void makeChannelSecure(String sslOrTsl) throws IOException {
 		getConnection().negotiateSecureSocket(sslOrTsl);
 

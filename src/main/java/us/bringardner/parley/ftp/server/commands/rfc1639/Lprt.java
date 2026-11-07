@@ -77,6 +77,9 @@ public class Lprt extends LoginOnlyCommand {
 
 	@Override
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		if( refusedAfterEpsvAll(processor) ) {
+			return;
+		}
 		String line = context.getCommandLine().trim();
 		int sp = line.indexOf(' ');
 		java.net.InetSocketAddress target = sp < 0 ? null : parse(line.substring(sp+1));

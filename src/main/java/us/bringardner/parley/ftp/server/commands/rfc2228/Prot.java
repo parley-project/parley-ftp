@@ -32,6 +32,7 @@ package us.bringardner.parley.ftp.server.commands.rfc2228;
 import java.io.IOException;
 
 import us.bringardner.parley.net.server.IRequestContext;
+import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.commands.NoAuthReqBaseCommand;
 
@@ -39,7 +40,7 @@ import us.bringardner.parley.ftp.server.commands.NoAuthReqBaseCommand;
  * @author Tony Bringardner
  *
  */
-public class Prot extends NoAuthReqBaseCommand {
+public class Prot extends NoAuthReqBaseCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -141,5 +142,11 @@ public class Prot extends NoAuthReqBaseCommand {
 				processor.reply(REPLY_504_NOT_IMP_FOR_PARAM,"Unknown protection level "+args[1]);
 			}
 		}
+	}
+
+	@Override
+	public String getFeatResponse(FtpRequestProcessor processor) {
+		// RFC 4217 section 6: FEAT lists AUTH, PBSZ and PROT when TLS can be used
+		return processor.isTlsAvailable() ? "PROT" : null;
 	}
 }

@@ -301,7 +301,7 @@ Internet Draft        draft-ietf-ftpext-mlst-16.txt       September 2002
 		if( options.isEmpty() || options.equalsIgnoreCase("ON") ) {
 			processor.reply(REPLY_OK, "Always in UTF8 mode.");
 		} else if( options.equalsIgnoreCase("OFF") ) {
-			processor.reply(REPLY_504_NOT_IMP_FOR_PARAM, "UTF8 can't be turned off");
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, "UTF8 can't be turned off");
 		} else {
 			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, "Expected OPTS UTF8 ON");
 		}

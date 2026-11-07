@@ -56,6 +56,9 @@ public class Lpsv extends LoginOnlyCommand {
 
 	@Override
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		if( refusedAfterEpsvAll(processor) ) {
+			return;
+		}
 		processor.setPasvSocket(null);
 		PassiveSocket pasvSocket;
 		try {

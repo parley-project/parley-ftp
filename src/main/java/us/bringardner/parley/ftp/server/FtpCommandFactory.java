@@ -197,20 +197,19 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 		feat.addSupportedCommand(new XHash(us.bringardner.parley.ftp.FTP.XSHA512, Digests.SHA_512));
 		
 		
-		//  Security (RFC 2228)
-		//  Should these be in FEAT???
+		//  Security (RFC 2228, RFC 4217: AUTH, PBSZ and PROT are in FEAT)
 		addCommand(new Adat());
-		addCommand(new Auth());
+		feat.addSupportedCommand(new Auth());
 		addCommand(new Ccc());
 		addCommand(new Conf());
 		addCommand(new Enc());
 		addCommand(new Mic());
-		addCommand(new Pbsz());
-		addCommand(new Prot());
+		feat.addSupportedCommand(new Pbsz());
+		feat.addSupportedCommand(new Prot());
 		
 		//  (RFC 2428) Extended address (IPV6)
-		addCommand(new Eprt());
-		addCommand(new Epsv());
+		feat.addSupportedCommand(new Eprt());
+		feat.addSupportedCommand(new Epsv());
 		
 	}
 	
@@ -222,6 +221,17 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 	private static BaseCommand alias(BaseCommand cmd, String name) {
 		cmd.setName(name);
 		return cmd;
+	}
+
+	/** @return the names of every command, in alphabetical order, for HELP */
+	public static java.util.SortedSet<String> getCommandNames() {
+		java.util.SortedSet<String> ret = new java.util.TreeSet<String>();
+		synchronized (commands) {
+			for (String name : commands.keySet()) {
+				ret.add(name.toUpperCase(java.util.Locale.ROOT));
+			}
+		}
+		return ret;
 	}
 
 	public static void addCommand(ICommand cmd){
