@@ -185,7 +185,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	private FileSource ftpRoot ;
 	private FileSource currentDir ;
 	private FileSourceFactory factory;
-	private boolean allowAnonymous = true;
 	private int representationType = TYPE_ASCII;
 	/** The host chosen with HOST (RFC 7151), lower case; null until one is */
 	private volatile String virtualHost;
@@ -1469,14 +1468,6 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		this.tmp = tmp;
 	}
 
-
-	public boolean isAllowAnonymous() {
-		return allowAnonymous;
-	}
-
-	public void setAllowAnonymous(boolean allowAnonymous) {
-		this.allowAnonymous = allowAnonymous;
-	}
 
 	public int getBufferSize() {
 		return ((FtpServer)getServer()).getBufferSize();
