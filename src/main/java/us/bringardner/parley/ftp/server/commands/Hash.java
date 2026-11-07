@@ -97,18 +97,25 @@ public class Hash extends BaseCommand implements FeatCommand {
 		String hex;
 		StillWorking keepAlive = new StillWorking(processor, algorithm);
 		try {
-			hex = Digests.compute(f, algorithm, start, Math.max(0, end - start + 1), keepAlive);
-		} catch (IOException e) {
-			processor.logError("HASH "+path, e);
-			if( keepAlive.sent ) {
-				// a multi-line reply ends with the code it started with (RFC 959 4.2); no hash in it
-				processor.reply(REPLY_213_FILE_STATUS,"FAILED Can't read "+path);
-			} else {
-				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't read "+path);
+			try {
+				hex = Digests.compute(f, algorithm, start, Math.max(0, end - start + 1), keepAlive);
+			} catch (IOException e) {
+				processor.logError("HASH "+path, e);
+				if( keepAlive.sent ) {
+					// a multi-line reply ends with the code it started with (RFC 959 4.2); no hash in it
+					processor.reply(REPLY_213_FILE_STATUS,"FAILED Can't read "+path);
+				} else {
+					processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't read "+path);
+				}
+				return;
 			}
-			return;
+			processor.reply(REPLY_213_FILE_STATUS,algorithm+" "+start+"-"+Math.max(end, start)+" "+hex+" "+path);
+		} finally {
+			// the first "213-" line took the output lock; the reply's last line is out
+			if( keepAlive.sent ) {
+				processor.getOutputLock().unlock();
+			}
 		}
-		processor.reply(REPLY_213_FILE_STATUS,algorithm+" "+start+"-"+Math.max(end, start)+" "+hex+" "+path);
 	}
 
 	/** A "213-" line, so the client knows a long hash is still being computed */
@@ -125,8 +132,12 @@ public class Hash extends BaseCommand implements FeatCommand {
 
 		@Override
 		public void stillWorking() throws IOException {
+			if( !sent ) {
+				// held from this first line to the reply's last, so a goodbye can't land inside the reply
+				processor.getOutputLock().lock();
+				sent = true;
+			}
 			processor.reply(REPLY_213_FILE_STATUS+"-Computing "+algorithm);
-			sent = true;
 		}
 	}
 

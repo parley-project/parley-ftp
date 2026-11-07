@@ -377,8 +377,15 @@ public class FtpServerStream extends BaseThread {
 						 * terminated abnormally.  The server then sends a 226 reply, indicating that
 						 * the abort command was successfully processed.
 						 */
-						processor.reply(FTP.REPLY_426_CON_CLOSED,"Transfer aborted. "+bytesTransferred+" bytes transferred");
-						processor.reply(FTP.REPLY_226_CLOSING_DATA_CON,"ABOR command successful");
+						// both under the session's output lock, so nothing comes between them
+						java.util.concurrent.locks.ReentrantLock replies = processor.getOutputLock();
+						replies.lock();
+						try {
+							processor.reply(FTP.REPLY_426_CON_CLOSED,"Transfer aborted. "+bytesTransferred+" bytes transferred");
+							processor.reply(FTP.REPLY_226_CLOSING_DATA_CON,"ABOR command successful");
+						} finally {
+							replies.unlock();
+						}
 					} else if( success ) {
 						processor.reply(FTP.REPLY_226_CLOSING_DATA_CON,"Transfer complete. "+bytesTransferred+" bytes transferred");
 					} else if( commitError != null ) {
