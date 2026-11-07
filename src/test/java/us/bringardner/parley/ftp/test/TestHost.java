@@ -37,6 +37,7 @@ import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.AnonymousUserRegistry;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.ftp.server.commands.Host;
+import us.bringardner.parley.net.lock.Sharing;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 
@@ -54,6 +55,8 @@ public class TestHost {
 
 	private static FtpServer start(int port, File root) throws Exception {
 		FtpServer s = new FtpServer();
+		// the virtual host server and the plain one serve the same default root
+		s.setStoreSharing(Sharing.HOST);
 		s.setSecure(false);
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);

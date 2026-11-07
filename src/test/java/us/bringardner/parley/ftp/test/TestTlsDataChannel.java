@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSourceFactory;
+import us.bringardner.parley.net.lock.Sharing;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.client.FtpClient;
@@ -74,6 +75,8 @@ public class TestTlsDataChannel {
 
 	private static FtpServer startServer(int port, boolean secure) throws Exception {
 		FtpServer s = new FtpServer();
+		// two servers on one root, as FTP on one port and FTPS on another serving the same files
+		s.setStoreSharing(Sharing.HOST);
 		s.setSecure(secure);
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
