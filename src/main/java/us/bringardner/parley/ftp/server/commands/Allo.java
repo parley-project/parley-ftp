@@ -25,7 +25,6 @@ package us.bringardner.parley.ftp.server.commands;
 import java.io.IOException;
 
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.iam.ParleyPermission;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -39,7 +38,7 @@ import us.bringardner.parley.net.server.IRequestContext;
  *
  * @since 1.1.0
  */
-public class Allo extends BaseCommand {
+public class Allo extends LoginOnlyCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -59,9 +58,4 @@ public class Allo extends BaseCommand {
 		processor.reply(REPLY_202_NOT_IMPLEMENTED,"ALLO not needed: space is allocated as the data arrives");
 	}
 
-	@Override
-	public ParleyPermission getPermission() {
-		// it does nothing, so anyone logged in may send it
-		return READ_PERMISSION;
-	}
 }

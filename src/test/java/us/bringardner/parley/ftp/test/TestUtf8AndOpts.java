@@ -93,7 +93,7 @@ public class TestUtf8AndOpts {
 			assertEquals(200, c.code("OPTS UTF8 ON"));
 			assertEquals(200, c.code("opts utf8 on"));
 			assertEquals(200, c.code("OPTS UTF8"));
-			assertEquals(504, c.code("OPTS UTF8 OFF"));
+			assertEquals(501, c.code("OPTS UTF8 OFF"));
 			assertEquals(501, c.code("OPTS UTF8 MAYBE"));
 			assertEquals(501, c.code("OPTS NOSUCH ON"));
 			assertEquals(501, c.code("OPTS"));

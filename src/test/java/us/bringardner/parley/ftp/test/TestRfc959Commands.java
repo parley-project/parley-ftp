@@ -188,7 +188,7 @@ public class TestRfc959Commands {
 	@Test
 	public void allo() throws Exception {
 		try (Control c = new Control()) {
-			assertEquals(500, code(c.sendOne("ALLO 100")), "needs a login");
+			assertEquals(530, code(c.sendOne("ALLO 100")), "needs a login");
 			c.login();
 			assertEquals(202, code(c.sendOne("ALLO 1000")));
 			assertEquals(202, code(c.sendOne("ALLO 1000 R 80")));
@@ -275,7 +275,7 @@ public class TestRfc959Commands {
 			List<String> r = c.sendOne("REIN");
 			assertEquals(220, code(r));
 
-			assertEquals(500, code(c.sendOne("PWD")), "logged out");
+			assertEquals(530, code(c.sendOne("PWD")), "logged out");
 			String all = String.join("\n", c.sendOne("STAT"));
 			assertTrue(all.contains("Not logged in"), all);
 			assertTrue(all.contains("TYPE: ASCII"), all);
@@ -301,7 +301,7 @@ public class TestRfc959Commands {
 			// the transfer's reply, then REIN's
 			assertEquals(226, code(c.read()));
 			assertEquals(220, code(c.read()));
-			assertEquals(500, code(c.sendOne("PWD")), "logged out");
+			assertEquals(530, code(c.sendOne("PWD")), "logged out");
 		}
 	}
 

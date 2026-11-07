@@ -70,18 +70,18 @@ public class Rnfr  extends BaseCommand {
 			
 		FileSource target = processor.createNewFile(commandLine);
 		if( target == null ) {
-			processor.reply(REPLY_550_ACTION_NOT_TAKEN," Invalid name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Invalid name");
 			return;
 		}
 		commandLine = processor.getVirtualPath(target);
 		
 		if( !target.exists()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such file or directory");
 			return;
 		} 
 
 		if(target.equals(processor.getFtpRoot())) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such file or directory");
 			return;
 		}
 		
@@ -90,7 +90,7 @@ public class Rnfr  extends BaseCommand {
 			processor.setTmpFile(target);
 			processor.reply(REPLY_350_FILE_ACTION_PENDING,"OK send new name");
 		} else {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED,commandLine+" does not exist");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,commandLine+" does not exist");
 		}
 
 		

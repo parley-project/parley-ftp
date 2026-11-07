@@ -1902,6 +1902,10 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 					}
 					logError("Invalid response after list ="+res);
 				}
+			} else if( !useList && res._getResponseCode() == REPLY_501_SYNTAXT_ERROR_IN_PARAM && isMlstSupported() ) {
+				// RFC 3659: MLSD lists a directory, and answers 501 for a file; a file's facts come from MLST
+				String entry = mlstEntry(dirPath);
+				ret = entry == null ? null : new String[] { entry };
 			}
 		} finally {
 			if( in != null ) {
@@ -1920,6 +1924,28 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 
 
 
+
+	/**
+	 * The MLST entry of one file, in the form MLSD gives it (the facts, a space and the name, without
+	 * the path), or null when the server refuses it.
+	 */
+	private String mlstEntry(String path) throws IOException {
+		ClientFtpResponse res = executeCommand(MLST, path);
+		if( !res.isPositiveComplet() || res.getResponseText() == null ) {
+			return null;
+		}
+		for (String line : res.getResponseText().split("\n")) {
+			// the entry line starts with a space (RFC 3659 section 7.2); the others are text
+			int sp = line.indexOf("; ");
+			if( line.startsWith(" ") && sp > 0 ) {
+				String facts = line.substring(1, sp+2);
+				String name = line.substring(sp+2);
+				int slash = name.lastIndexOf('/');
+				return facts+(slash >= 0 && slash < name.length()-1 ? name.substring(slash+1) : name);
+			}
+		}
+		return null;
+	}
 
 	protected ClientDataTransferProcess getDataTransferProcess() throws IOException {
 		//  To support active we would need a psv/actv flag
@@ -2518,12 +2544,17 @@ transferred 3358 bytes in 0.016 seconds, 1679.000 Kbps ( 209.875 KBps), transfer
 		return ret;
 	}
 
+	/**
+	 * Delete a file, or an empty directory, like java.io.File.delete(). RFC 959's DELE deletes a
+	 * file and RMD removes a directory, so when DELE is refused with 550, RMD is tried.
+	 */
 	public boolean delete(String path) throws IOException {
-		boolean ret = false;
 		checkStreamInProcess(path);
 		ClientFtpResponse res = executeCommand(DELE,path) ;
-		ret = res.isPositiveComplet();
-		return ret;
+		if( res._getResponseCode() == REPLY_550_ACTION_NOT_TAKEN ) {
+			return executeCommand(RMD,path).isPositiveComplet();
+		}
+		return res.isPositiveComplet();
 	}
 
 	private void checkStreamInProcess(String path) throws IOException {

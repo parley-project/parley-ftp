@@ -83,8 +83,11 @@ public class Dele extends BaseCommand {
 			 
 		if(dest == null 				
 				 || !dest.exists()) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED,"Invalid or non existing file");
-		} else {			
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such file: "+name.trim());
+		} else if( dest.isDirectory() ) {
+			// RFC 959: DELE deletes a file; RMD removes a directory
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,processor.getVirtualPath(dest)+" is a directory; use RMD");
+		} else {
 			name = processor.getVirtualPath(dest);
 			// not while another session (or server) uploads it
 			us.bringardner.parley.ftp.server.FtpFileLock lock = dest.isDirectory() ? null : processor.lockFile(dest);
@@ -107,7 +110,7 @@ public class Dele extends BaseCommand {
 				processor.reply(REPLY_250_FILE_ACTION_OK,name+" deleted");
 				
 			} else {
-				processor.reply(REPLY_450_FILE_ACTION_FAILED,name+" can't be deleted");
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,name+" can't be deleted");
 			}
 		}
 	}

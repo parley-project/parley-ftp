@@ -86,7 +86,7 @@ public class Stor  extends BaseCommand {
 		
 		FileSource target = processor.createNewFile(commandLine);
 		if( target == null || target.isDirectory()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_553_FILE_NAME_NOT_ALLOWED,"File name not allowed");
 			return;
 		} 
 		processor.logDebug(getName()+" target = "+target.getAbsolutePath());
@@ -113,7 +113,7 @@ public class Stor  extends BaseCommand {
 			// random access: write in place from the marker, leaving the rest of the file as it was
 			if( processor.isLink(target) ) {
 				// written in place, the file it leads to would change
-				processor.reply(REPLY_450_FILE_ACTION_FAILED," Restart marker "+rest+" is not accepted on a link");
+				processor.reply(REPLY_554_INVALID_REST,"Restart marker "+rest+" is not accepted on a link");
 				return;
 			}
 			long len = target.exists() ? target.length() : 0;
@@ -128,7 +128,7 @@ public class Stor  extends BaseCommand {
 		if( resume ){
 			long len = target.exists() ? target.length() : 0;
 			if( len != rest.longValue()) {
-				processor.reply(REPLY_450_FILE_ACTION_FAILED," Restart marker "+rest+" does not match the file size ("+len+")");
+				processor.reply(REPLY_554_INVALID_REST,"Restart marker "+rest+" does not match the file size ("+len+")");
 				return;
 			}
 			/*
@@ -138,7 +138,7 @@ public class Stor  extends BaseCommand {
 			 * neither version. It starts again instead.
 			 */
 			if( !processor.isUnfinishedUpload(target, len) ) {
-				processor.reply(REPLY_450_FILE_ACTION_FAILED," Restart marker "+rest+" is not accepted: store the file again without REST");
+				processor.reply(REPLY_554_INVALID_REST,"Restart marker "+rest+" is not accepted: store the file again without REST");
 				return;
 			}
 		}
@@ -168,7 +168,7 @@ public class Stor  extends BaseCommand {
 	private void storeRange(FtpRequestProcessor processor, FileSource target, Rang.Range range) throws IOException {
 		if( processor.isLink(target) ) {
 			// written in place, the file it leads to would change
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," RANG with STOR is not accepted on a link");
+			processor.reply(REPLY_554_INVALID_REST,"RANG with STOR is not accepted on a link");
 			return;
 		}
 		long len = target.exists() ? target.length() : 0;

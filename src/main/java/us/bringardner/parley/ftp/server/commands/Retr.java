@@ -73,12 +73,14 @@ public class Retr extends BaseCommand {
 		FileSource arg = processor.createNewFile(commandLine);
 		
 		if( arg == null ) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED,"Invalid file name, "+commandLine);
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Invalid file name: "+commandLine.trim());
 		} else {
 			try {
 				processor.deliverStream(arg,commandLine);
-			} catch(Throwable e) {
-				processor.reply(REPLY_500_GENERIC_ERROR,e.toString());
+			} catch(Exception e) {
+				// the details are logged, not sent
+				processor.logError("RETR "+commandLine.trim()+" failed", e);
+				processor.reply(REPLY_451_ACTION_ABORTED_LOCAL_ERROR,"Local error; transfer not started");
 			}
         }
         

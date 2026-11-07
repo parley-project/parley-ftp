@@ -26,7 +26,7 @@ import java.io.IOException;
 
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.PassiveSocket;
-import us.bringardner.parley.ftp.server.commands.BaseCommand;
+import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
 import us.bringardner.parley.net.server.IRequestContext;
 
 /**
@@ -35,7 +35,7 @@ import us.bringardner.parley.net.server.IRequestContext;
  *
  * @since 1.1.0
  */
-public class Lpsv extends BaseCommand {
+public class Lpsv extends LoginOnlyCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -56,6 +56,9 @@ public class Lpsv extends BaseCommand {
 
 	@Override
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		if( refusedAfterEpsvAll(processor) ) {
+			return;
+		}
 		processor.setPasvSocket(null);
 		PassiveSocket pasvSocket;
 		try {
