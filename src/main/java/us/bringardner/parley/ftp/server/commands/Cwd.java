@@ -70,7 +70,7 @@ public class Cwd extends BaseCommand {
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
 		
 		if(!context.hasNext() ){			
-			processor.reply(REPLY_450_FILE_ACTION_FAILED, "Missing path.\"" + processor.getCurrentDir()+"\" is the current directory");
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, "CWD needs a directory");
 			return;
 		}
 
@@ -80,10 +80,10 @@ public class Cwd extends BaseCommand {
 		
 		if(dir == null || !dir.isDirectory()) {
 			//Not a valid path
-			processor.reply(REPLY_450_FILE_ACTION_FAILED, "\"" + processor.getVirtualPath(processor.getCurrentDir())+"\" is the current directory");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN, "No such directory: "+path.trim());
 		} else {			
 				processor.setCurrentDir(dir);
-				processor.reply(REPLY_250_FILE_ACTION_OK, "\"" +processor.getVirtualPath(dir)+"\" is the current directory");
+				processor.reply(REPLY_250_FILE_ACTION_OK, FtpRequestProcessor.quotePath(processor.getVirtualPath(dir))+" is the current directory");
 		}
 
 	}

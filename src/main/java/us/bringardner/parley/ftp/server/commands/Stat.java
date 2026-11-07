@@ -71,7 +71,7 @@ public class Stat extends NoAuthReqBaseCommand {
 		}
 		FileSource f = processor.createNewFile(path);
 		if( f == null || !f.exists() ) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_450_FILE_ACTION_FAILED,"No such file or directory");
 			return;
 		}
 		boolean dir = f.isDirectory();

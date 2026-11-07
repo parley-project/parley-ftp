@@ -73,18 +73,18 @@ public class Rmd extends BaseCommand {
 			
 		FileSource target = processor.createNewFile(commandLine);
 		if( target == null ) {
-			processor.reply(REPLY_550_ACTION_NOT_TAKEN," Invalid name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Invalid name");
 			return;
 		}
 		commandLine = processor.getVirtualPath(target);
 		
 		if( !target.isDirectory()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such directory: "+commandLine);
 			return;
 		} 
 
 		if(target.equals(processor.getFtpRoot())) {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"The root can't be removed");
 			return;
 		}
 		
@@ -95,7 +95,7 @@ public class Rmd extends BaseCommand {
 			}
 			processor.reply(REPLY_250_FILE_ACTION_OK,commandLine+" has been deleted");
 		} else {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Unable to dlete "+commandLine);
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Can't remove "+commandLine+" (is it empty?)");
 		}
 	}
 

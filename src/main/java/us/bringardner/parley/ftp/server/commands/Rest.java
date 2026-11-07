@@ -150,7 +150,7 @@ http://www.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-16.txt
 		if( idx > 0 ){
 			commandLine = commandLine.substring(idx).trim();
 		} else {
-			processor.reply(REPLY_450_FILE_ACTION_FAILED, "\"" + processor.getCurrentDir()+"\"File Action Pending");
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, "REST needs a byte position");
 			return;
 		}
 
@@ -165,10 +165,10 @@ http://www.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-16.txt
 			// the last of RANG and REST is the one the transfer uses
 			processor.removeTempValue(RANG);
 			processor.setTempValue(REST,marker);
-			processor.reply(REPLY_350_FILE_ACTION_PENDING,"Restarting at "+marker+". Send STORE or RETRIEVE"); 
+			processor.reply(REPLY_350_FILE_ACTION_PENDING,"Restarting at "+marker+". Send STOR or RETR"); 
 					
 		} catch(NumberFormatException ex){	
-			processor.reply(REPLY_500_SYNTAX_ERROR, "Marker "+commandLine+" could not be converted to a number ex="+ex);
+			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM, commandLine+" isn't a byte position");
 		}
 		
 

@@ -84,7 +84,7 @@ public class Appe  extends BaseCommand {
 		FileSource target = processor.createNewFile(commandLine);
 		
 		if( target == null || target.isDirectory()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_553_FILE_NAME_NOT_ALLOWED,"File name not allowed");
 			return;
 		} 
 

@@ -68,19 +68,24 @@ public class Rnto extends BaseCommand {
 			return;
 		}
 			
-		FileSource newFile = processor.createNewFile(commandLine);
-		
-		if( newFile == null || newFile.exists()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
-			return;
-		} 		
-		
-		FileSource target = processor.getTmpFile();
+				FileSource target = processor.getTmpFile();
 		processor.setTmpFile(null);
 		if( target == null ) {
 			processor.reply(REPLY_503_BAD_SEQ_OF_COMMANDS,"RNFR required first");
 			return;
 		}
+
+		// RFC 959: RNTO answers 553 for a name it won't take
+		FileSource newFile = processor.createNewFile(commandLine);
+		if( newFile == null ) {
+			processor.reply(REPLY_553_FILE_NAME_NOT_ALLOWED,"File name not allowed");
+			return;
+		}
+		if( newFile.exists() ) {
+			processor.reply(REPLY_553_FILE_NAME_NOT_ALLOWED,processor.getVirtualPath(newFile)+" already exists");
+			return;
+		}
+
 		
 		// neither file while another session (or server) uploads it
 		us.bringardner.parley.ftp.server.FtpFileLock from = null;
@@ -97,9 +102,9 @@ public class Rnto extends BaseCommand {
 				return;
 			}
 			if( target.renameTo(newFile) ) {
-				processor.reply(REPLY_250_FILE_ACTION_OK,"Requested file action okay, completed");
+				processor.reply(REPLY_250_FILE_ACTION_OK,"Renamed");
 			} else {
-				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Requested action not taken.");
+				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Rename failed");
 			}
 		} finally {
 			if( into != null ) {

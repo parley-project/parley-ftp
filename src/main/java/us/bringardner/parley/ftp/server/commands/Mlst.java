@@ -204,7 +204,7 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 
 
 		if( target == null || !target.exists()){
-			processor.reply(REPLY_450_FILE_ACTION_FAILED," Invalid or non existant name");
+			processor.reply(REPLY_550_ACTION_NOT_TAKEN,"No such file or directory");
 			return;
 		} 
 
