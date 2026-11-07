@@ -32,6 +32,7 @@ package us.bringardner.parley.ftp.server.commands.rfc2428;
 import java.io.IOException;
 
 import us.bringardner.parley.net.server.IRequestContext;
+import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.PassiveSocket;
 import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
@@ -41,7 +42,7 @@ import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
  * @author Tony Bringardner
  *
  */
-public class Epsv extends LoginOnlyCommand {
+public class Epsv extends LoginOnlyCommand implements FeatCommand {
 
     private static final long serialVersionUID = 1L;
 
@@ -141,6 +142,8 @@ RFC 2428            FTP Extensions for IPv6 and NATs      September 1998
     		 */
     		String arg = context.getNextToken().trim();
     		if( arg.equalsIgnoreCase("ALL")) {
+    			// RFC 2428: from now on every other way to set up a data connection is refused
+    			processor.setEpsvAll(true);
     			processor.reply(REPLY_200_OK,"EPSV ALL command successful");
     			return;
     		}
@@ -167,4 +170,10 @@ RFC 2428            FTP Extensions for IPv6 and NATs      September 1998
     	// RFC 2428: the reply code MUST be 229
     	processor.reply(REPLY_229_ENTERING_EXTENDED_PASSIVE_MODE,"Entering Extended Passive Mode (|||"+pasvSocket.getPort()+"|)");
     }
+
+	@Override
+	public String getFeatResponse(FtpRequestProcessor processor) {
+		// RFC 2428
+		return "EPSV";
+	}
 }

@@ -68,7 +68,7 @@ public class Rnto extends BaseCommand {
 			return;
 		}
 			
-				FileSource target = processor.getTmpFile();
+		FileSource target = processor.getTmpFile();
 		processor.setTmpFile(null);
 		if( target == null ) {
 			processor.reply(REPLY_503_BAD_SEQ_OF_COMMANDS,"RNFR required first");

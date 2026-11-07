@@ -78,6 +78,9 @@ public class Port extends LoginOnlyCommand {
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		if( refusedAfterEpsvAll(processor) ) {
+			return;
+		}
 		if( !context.hasNext()) {
 			processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Not enough parameters");
 			return;

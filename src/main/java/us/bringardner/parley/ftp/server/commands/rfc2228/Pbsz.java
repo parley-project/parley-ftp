@@ -32,6 +32,7 @@ package us.bringardner.parley.ftp.server.commands.rfc2228;
 import java.io.IOException;
 
 import us.bringardner.parley.net.server.IRequestContext;
+import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.commands.NoAuthReqBaseCommand;
 
@@ -39,7 +40,7 @@ import us.bringardner.parley.ftp.server.commands.NoAuthReqBaseCommand;
  * @author Tony Bringardner
  *
  */
-public class Pbsz extends NoAuthReqBaseCommand {
+public class Pbsz extends NoAuthReqBaseCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -112,5 +113,11 @@ public class Pbsz extends NoAuthReqBaseCommand {
 				processor.reply(REPLY_501_SYNTAXT_ERROR_IN_PARAM,"Invalid PBSZ size "+args[1]);
 			}
 		}
+	}
+
+	@Override
+	public String getFeatResponse(FtpRequestProcessor processor) {
+		// RFC 4217 section 6: FEAT lists AUTH, PBSZ and PROT when TLS can be used
+		return processor.isTlsAvailable() ? "PBSZ" : null;
 	}
 }

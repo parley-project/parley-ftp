@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 
 
 import us.bringardner.parley.net.server.IRequestContext;
+import us.bringardner.parley.ftp.server.FeatCommand;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
 import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
 
@@ -45,7 +46,7 @@ import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
  * @author Tony Bringardner
  *
  */
-public class Eprt extends LoginOnlyCommand {
+public class Eprt extends LoginOnlyCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 
@@ -162,6 +163,9 @@ public class Eprt extends LoginOnlyCommand {
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+		if( refusedAfterEpsvAll(processor) ) {
+			return;
+		}
 		String commandLine = context.getCommandLine();
 		String [] args = commandLine.trim().split(" ");
 		if( args.length != 2 || args[1].length() < 2) {
@@ -231,4 +235,10 @@ public class Eprt extends LoginOnlyCommand {
 	}
 
 	private static final Pattern IPV4 = Pattern.compile("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}");
+
+	@Override
+	public String getFeatResponse(FtpRequestProcessor processor) {
+		// RFC 2428
+		return "EPRT";
+	}
 }

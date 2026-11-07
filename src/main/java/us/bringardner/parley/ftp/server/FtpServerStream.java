@@ -385,6 +385,9 @@ public class FtpServerStream extends BaseThread {
 						processor.reply(FTP.REPLY_451_ACTION_ABORTED_LOCAL_ERROR,"Transfer failed, local error: "+commitError);
 					} else if( timedOut ) {
 						processor.reply(FTP.REPLY_426_CON_CLOSED,"Data connection idle for more than "+(timeout/1000.0)+" seconds; transfer aborted after "+bytesTransferred+" bytes");
+					} else if( !localError && error != null && us.bringardner.parley.net.server.AbstractCommandProcessor.isTlsHandshakeFailure(error) ) {
+						// RFC 4217 section 10.2
+						processor.reply(FTP.REPLY_522_DATA_TLS_FAILED,"TLS negotiation on the data connection failed; transfer aborted");
 					} else if( localError ) {
 						processor.reply(FTP.REPLY_451_ACTION_ABORTED_LOCAL_ERROR,"Transfer failed, local error: "+(error == null ? "unknown" : error.getMessage()));
 					} else {

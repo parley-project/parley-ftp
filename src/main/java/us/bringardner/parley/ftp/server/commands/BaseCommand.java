@@ -67,6 +67,21 @@ public abstract class BaseCommand extends AbstractCommand implements FtpCommand 
 		return null;
 	}
 
+	/**
+	 * After EPSV ALL, RFC 2428 says the server MUST refuse every other way to set up a data
+	 * connection (PORT, PASV, EPRT, LPRT, LPSV, SPSV). The RFC names no reply; 503 (bad sequence
+	 * of commands) says what happened.
+	 *
+	 * @return true when the command was refused (the reply has been sent)
+	 */
+	protected boolean refusedAfterEpsvAll(FtpRequestProcessor processor) throws IOException {
+		if( processor.isEpsvAll() ) {
+			processor.reply(REPLY_503_BAD_SEQ_OF_COMMANDS, getName()+" refused: EPSV ALL is in effect, use EPSV");
+			return true;
+		}
+		return false;
+	}
+
 	/** Buffer for directory listings sent on the data connection (BJL-30) */
 	public static final int LISTING_BUFFER_SIZE = 64*1024;
 
@@ -136,7 +151,11 @@ public abstract class BaseCommand extends AbstractCommand implements FtpCommand 
 		} finally {
 			IoUtils.closeQuietly(sock);
 		}
-		if( dataError != null ) {
+		if( dataError != null && us.bringardner.parley.net.server.AbstractCommandProcessor.isTlsHandshakeFailure(dataError) ) {
+			// RFC 4217 section 10.2
+			processor.logDebug("Listing's data connection failed TLS", dataError);
+			processor.reply(REPLY_522_DATA_TLS_FAILED, "TLS negotiation on the data connection failed; transfer aborted");
+		} else if( dataError != null ) {
 			processor.logDebug("Listing aborted after "+sent+" entries", dataError);
 			processor.reply(REPLY_426_CON_CLOSED, "Data connection closed; transfer aborted.");
 		} else {
