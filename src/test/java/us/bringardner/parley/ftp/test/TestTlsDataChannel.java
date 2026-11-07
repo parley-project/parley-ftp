@@ -2,6 +2,7 @@ package us.bringardner.parley.ftp.test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import us.bringardner.parley.core.ILogger.Level;
 import us.bringardner.parley.files.FileSourceFactory;
+import us.bringardner.parley.net.lock.Sharing;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.client.FtpClient;
@@ -73,6 +75,8 @@ public class TestTlsDataChannel {
 
 	private static FtpServer startServer(int port, boolean secure) throws Exception {
 		FtpServer s = new FtpServer();
+		// two servers on one root, as FTP on one port and FTPS on another serving the same files
+		s.setStoreSharing(Sharing.HOST);
 		s.setSecure(secure);
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
@@ -239,6 +243,33 @@ public class TestTlsDataChannel {
 		}
 	}
 
+	// ------------------------------------------------------------------ FEAT
+
+	@Test
+	public void featOffersAuthTlsOnAClearConnection() throws Exception {
+		try (Control c = Control.plain(EXPLICIT_PORT)) {
+			assertTrue(c.feat().contains(" AUTH TLS"), "FEAT on a clear connection lists AUTH TLS");
+		}
+	}
+
+	@Test
+	public void featLeavesOutAuthTlsAfterAuthTls() throws Exception {
+		try (Control c = Control.explicit(EXPLICIT_PORT)) {
+			String feat = c.feat();
+			assertFalse(feat.contains("AUTH"), "FEAT after AUTH TLS: " + feat);
+			assertTrue(feat.contains(" PROT"), "PBSZ and PROT are still listed: " + feat);
+		}
+	}
+
+	@Test
+	public void featLeavesOutAuthTlsOnImplicitTls() throws Exception {
+		try (Control c = Control.implicit(IMPLICIT_PORT)) {
+			String feat = c.feat();
+			assertFalse(feat.contains("AUTH"), "FEAT on implicit TLS: " + feat);
+			assertTrue(feat.contains(" PROT"), "PBSZ and PROT are still listed: " + feat);
+		}
+	}
+
 	// ------------------------------------------------------------------ helpers
 
 	/** A control connection that can be plain, upgraded with AUTH TLS, or implicit TLS. */
@@ -305,6 +336,22 @@ public class TestTlsDataChannel {
 			assertTrue(line != null, "connection closed after " + command);
 			assertEquals(expected, Integer.parseInt(line.substring(0, 3)), command + " -> " + line);
 			return line;
+		}
+
+		/** Sends FEAT and gives the whole reply, "211-..." to "211 End". */
+		String feat() throws IOException {
+			out.write("FEAT\r\n");
+			out.flush();
+			StringBuilder reply = new StringBuilder();
+			String line = in.readLine();
+			assertTrue(line != null && line.startsWith("211-"), "FEAT -> " + line);
+			while (line != null && !line.startsWith("211 ")) {
+				reply.append(line).append('\n');
+				line = in.readLine();
+			}
+			assertTrue(line != null, "connection closed in the FEAT reply");
+			reply.append(line);
+			return reply.toString();
 		}
 
 		void expect(int code) throws IOException {
