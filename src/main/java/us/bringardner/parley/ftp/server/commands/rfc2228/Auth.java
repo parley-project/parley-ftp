@@ -138,8 +138,12 @@ public class Auth extends NoAuthReqBaseCommand implements FeatCommand {
 		}
 		// RFC 4217: AUTH resets the session's security state and the user must log in again
 		processor.reset();
-		processor.reply(REPLY_234_SECURITY_DATA_EXCHANGE_COMPLETE,getName()+" Accepted");
+		// the 234 and the handshake under the session's output lock: a goodbye goes out before the
+		// 234 or on the TLS connection after the handshake, never in between
+		java.util.concurrent.locks.ReentrantLock lock = processor.getOutputLock();
+		lock.lock();
 		try {
+			processor.reply(REPLY_234_SECURITY_DATA_EXCHANGE_COMPLETE,getName()+" Accepted");
 			processor.makeChannelSecure(mech);
 		} catch (Exception ex) {
 			/*
@@ -148,7 +152,9 @@ public class Auth extends NoAuthReqBaseCommand implements FeatCommand {
 			 * out in the clear after a 234.
 			 */
 			processor.closeAfterTlsFailure(ex);
-		} 
+		} finally {
+			lock.unlock();
+		}
 
 
 	}
