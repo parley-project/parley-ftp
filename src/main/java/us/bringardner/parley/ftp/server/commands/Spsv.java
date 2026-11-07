@@ -41,7 +41,7 @@ import us.bringardner.parley.net.server.IRequestContext;
  *
  * @since 1.1.0
  */
-public class Spsv extends BaseCommand implements FeatCommand {
+public class Spsv extends LoginOnlyCommand implements FeatCommand {
 
 	private static final long serialVersionUID = 1L;
 

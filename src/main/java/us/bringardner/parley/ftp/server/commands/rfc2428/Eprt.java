@@ -38,14 +38,14 @@ import java.util.regex.Pattern;
 
 import us.bringardner.parley.net.server.IRequestContext;
 import us.bringardner.parley.ftp.server.FtpRequestProcessor;
-import us.bringardner.parley.ftp.server.commands.BaseCommand;
+import us.bringardner.parley.ftp.server.commands.LoginOnlyCommand;
 
 
 /**
  * @author Tony Bringardner
  *
  */
-public class Eprt extends BaseCommand {
+public class Eprt extends LoginOnlyCommand {
 
 	private static final long serialVersionUID = 1L;
 

@@ -41,7 +41,7 @@ import us.bringardner.parley.ftp.server.FtpRequestProcessor;
  * @author Tony Bringardner
  *
  */
-public class Port extends BaseCommand {
+public class Port extends LoginOnlyCommand {
 
 	private static final long serialVersionUID = 1L;
 

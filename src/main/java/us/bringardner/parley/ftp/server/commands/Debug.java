@@ -83,7 +83,8 @@ public class Debug extends BaseCommand {
 	
 	@Override
 	public ParleyPermission getPermission() {
-		return WRITE_PERMISSION;
+		// it can turn on debug logging for the whole server
+		return ADMIN_PERMISSION;
 	}
 
 

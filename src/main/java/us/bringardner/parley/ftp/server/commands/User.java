@@ -94,13 +94,10 @@ public class User  extends NoAuthReqBaseCommand {
 		processor.removeTempValue(PASS);
 		processor.removeTempValue(ACCT);
 		String user = context.getNextToken();
-		if( context.hasNext()) {
-			String nxt = context.getNextToken();
-			System.out.println("nxt="+nxt);
-		}
 		if( user.equalsIgnoreCase(FTP_USER) || user.equalsIgnoreCase(ANONYMOUS) ) {
 			if(!processor.isAllowAnonymous()){
-				processor.reply(REPLY_550_ACTION_NOT_TAKEN,"Anonymous login is not supported.  Please use a valid user ID.");
+				// RFC 959: USER answers 530, not 550
+				processor.reply(REPLY_530_USER_NOT_LOGGED_IN,"Anonymous login is not allowed here");
 			} else {
 				processor.setTempValue(USER,user);
 				processor.reply(REPLY_331_USER_NAME_OK_NEED_PASS,"Anonymous login use email address as password");

@@ -36,7 +36,6 @@ import us.bringardner.parley.ftp.server.commands.Rein;
 import us.bringardner.parley.ftp.server.commands.Stat;
 import us.bringardner.parley.ftp.server.commands.Acct;
 import us.bringardner.parley.ftp.server.commands.Appe;
-import us.bringardner.parley.ftp.server.commands.AuthError;
 import us.bringardner.parley.ftp.server.commands.Cdup;
 import us.bringardner.parley.ftp.server.commands.Cwd;
 import us.bringardner.parley.ftp.server.commands.Debug;
@@ -65,7 +64,6 @@ import us.bringardner.parley.ftp.server.commands.Mlst;
 import us.bringardner.parley.ftp.server.commands.Mode;
 import us.bringardner.parley.ftp.server.commands.Nlst;
 import us.bringardner.parley.ftp.server.commands.Noop;
-import us.bringardner.parley.ftp.server.commands.NotAuthError;
 import us.bringardner.parley.ftp.server.commands.Opts;
 import us.bringardner.parley.ftp.server.commands.Pass;
 import us.bringardner.parley.ftp.server.commands.Pasv;
@@ -110,8 +108,6 @@ public class FtpCommandFactory extends AbstractCommandFactory {
 	static {
 		//  Create the command processors		
 		//	  These commands are available after authentication
-		addCommand(new AuthError());
-		addCommand(new NotAuthError());
 		addCommand(new Abor());
 		addCommand(new Appe());
 		addCommand(new Cdup());
