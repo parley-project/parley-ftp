@@ -75,6 +75,9 @@ public class TestRfcReplies {
 			// no login needed
 			assertEquals(200, c.one("TYPE I"));
 			assertEquals(503, c.one("PASS x"), "PASS before USER");
+			// anonymous is the registry's policy: this one doesn't accept it, so the PASS is refused
+			assertEquals(331, c.one("USER anonymous"));
+			assertEquals(530, c.one("PASS guest@example.com"));
 			// the classes that answered these names are gone
 			assertEquals(500, c.one("AUTHERROR"));
 			assertEquals(500, c.one("UNAUTHERROR"));
