@@ -199,7 +199,9 @@ public class TestLoginReplies {
 					// A closed connection reads end of stream (or a reset)
 					c.out.write("NOOP\r\n");
 					c.out.flush();
-					if( c.in.readLine() == null ) {
+					String line = c.in.readLine();
+					// the server says why (421) and closes
+					if( line == null || line.startsWith("421") ) {
 						return i;
 					}
 				} catch (IOException e) {

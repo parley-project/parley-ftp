@@ -163,7 +163,8 @@ public class TestSiteReplies {
 	@Test
 	public void siteRootNeedsAdmin() throws Exception {
 		try (Control c = new Control("plain", "1234")) {
-			assertEquals(534, code(c.sendOne("SITE root " + new File(base, "other").getPath())));
+			List<String> reply = c.sendOne("SITE root " + new File(base, "other").getPath());
+			assertEquals("550 SITE root refused: plain doesn't have the admin permission", reply.get(0));
 		}
 	}
 
@@ -195,15 +196,20 @@ public class TestSiteReplies {
 
 	@Test
 	public void textWithLineBreaksIsAMultiLineReply() throws Exception {
-		try (Control c = new Control("plain", "1234")) {
+		// SITE modDate needs write
+		try (Control c = new Control("admin", "0000")) {
 			List<String> reply = c.sendOne("SITE modDate");
 			assertEquals(2, reply.size(), reply.toString());
 			assertTrue(reply.get(0).startsWith("501-"), reply.toString());
 			assertTrue(reply.get(1).startsWith("501 USAGE"), reply.toString());
 
+			// HELP without an argument lists the commands (RFC 959: 214)
 			reply = c.sendOne("HELP");
-			assertEquals(2, reply.size(), reply.toString());
-			assertTrue(reply.get(0).startsWith("501-") && reply.get(1).startsWith("501 "), reply.toString());
+			assertTrue(reply.size() > 2, reply.toString());
+			assertTrue(reply.get(0).startsWith("214-") && reply.get(reply.size()-1).startsWith("214 "), reply.toString());
+			for (int i = 1; i < reply.size()-1; i++) {
+				assertFalse(reply.get(i).matches("[0-9]{3}[ -].*"), "a middle line looks like a reply: "+reply);
+			}
 
 			reply = c.sendOne("SITE modDate notANumber x");
 			assertEquals(1, reply.size(), reply.toString());

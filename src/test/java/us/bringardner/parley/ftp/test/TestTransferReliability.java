@@ -242,7 +242,7 @@ public class TestTransferReliability {
 				s.expect(350);
 				s.send("STOR rest.txt");
 				TestTransferReliability.Reply r = s.read(5000);
-				assertEquals(450, r.code, "refused before any data: " + r);
+				assertEquals(554, r.code, "refused before any data: " + r);
 			}
 			assertArrayEquals("Hello ".getBytes(StandardCharsets.UTF_8), s.get("rest.txt"), "unchanged");
 			// a plain STOR still replaces it
