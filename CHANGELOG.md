@@ -31,6 +31,11 @@
   `MFF`, `STAT` with a path). A registry that can't answer a permission check gets `421` and the connection is closed,
   never "permission denied".
 
+### Changed (2026-11-07: FEAT and TLS)
+
+- **FEAT lists `AUTH TLS` only while the control connection is clear**: on implicit TLS, or after `AUTH TLS`, `AUTH`
+  is refused with `534`, so FEAT no longer offers it. `PBSZ` and `PROT` are still listed.
+
 ### Changed (2026-11-03: the mail suite's FTP servers moved to parley-mail)
 
 - **parley-ftp no longer knows the mail suite**: `FtpProviders` (the launcher's `ftp` and `ftps`), `SuiteAcl` and
