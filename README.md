@@ -132,7 +132,8 @@ Times are durations: a whole number with `ms`, `s`, `m`, `h` or `d` (`15s`, `10m
   - **Explicit TLS:** `AUTH TLS` on the normal port. Data connections are clear until the client sends `PBSZ 0` and `PROT P`.
   - **Implicit TLS:** `setSecure(true)`. Data connections use TLS unless the client sends `PROT C`.
   - **PROT levels:** only `C` and `P` are supported; `S` and `E` get `536`.
-  - **CCC** clears the control connection after `AUTH TLS` (`533` otherwise; implicit TLS can't be cleared); `PBSZ`
+  - **CCC** clears the control connection after `AUTH TLS` (`533` on a connection that isn't TLS, `534` on implicit
+    TLS, which can't be cleared); `PBSZ`
     and `PROT` stay, so data connections are protected as before. After the reply to `CCC` (and to `REIN`), TLS is
     shut down both ways as RFC 4217 section 12.3 shows: the server sends close_notify and reads the client's. A client
     that sends none should wait 2 seconds before its next command, or that command is lost.
@@ -147,20 +148,113 @@ Who may log in, and what they may do, comes from a parley-iam `UserRegistry`, na
 - **Logging in:** `USER` then `PASS` (or `ACCT`, which logs in as `user@account`) sends a password to the registry.
   A registry that can't answer now (a database outage) gets `421` and the connection is closed; it isn't counted as a
   failed login.
-- **Permissions** are checked on the server as a whole: `read` (listing, downloading), `write` (uploading, making,
-  renaming, deleting) and `admin` (`SITE`, and changing a file's owner or group with `MFF`). The registry decides who
-  holds them. A registry that can't answer a permission check gets `421` too.
+- **Permissions** are checked on the server as a whole, and the registry decides who holds them. A login is a login:
+  a user without a permission is still logged in, and only the commands that need it are refused.
+  - `read`: `CWD`, `CDUP`, `PWD`, `LIST`, `NLST`, `MLSD`, `MLST`, `RETR`, `SIZE`, `MDTM`, `STAT` with a path, `HASH`
+    and the X checksums, `THMB`, `AVBL`, `DSIZ`.
+  - `write`: `STOR`, `STOU`, `APPE`, `DELE`, `MKD`, `RMD`, `RMDA`, `RNFR`, `RNTO`, `MFMT`, `MFCT`, `MFF`,
+    `SITE CHMOD`, `SITE modDate`.
+  - `admin`: `SITE root`, `SITE SetFactory`, `DEBUG`, and changing a file's owner or group with `MFF`.
+  - A login and no permission: `PORT`, `PASV`, `EPRT`, `EPSV`, `LPRT`, `LPSV`, `SPSV`, `MODE`, `STRU`, `ALLO`, `REST`,
+    `RANG`. They only set up the next command, which checks `read` or `write`.
+  - No login: `USER`, `PASS`, `ACCT`, `AUTH`, `PBSZ`, `PROT`, `CCC`, `FEAT`, `HELP`, `SYST`, `NOOP`, `QUIT`, `REIN`,
+    `TYPE`, `OPTS`, `LANG`, `HOST`, `CLNT`.
+
+  A command refused for want of a login gets `530 RETR refused: nobody is logged in`; one refused for want of a
+  permission gets `550 DELE refused: tony doesn't have the write permission`, and the server logs a warning with the
+  user, the permission, the command and the client's address. A registry that can't answer a permission check gets
+  `421` too.
 - **A user's root and starting directory** come from the principal's attributes `userRoot` and `defaultDir`, when the
   registry gives them (paths in the server's file system, made on the first login); otherwise the user's root is the
   server's.
-- **Anonymous FTP** (RFC 1635) is `AnonymousUserRegistry`: `anonymous` or `ftp` with any password, the server's root,
-  every permission except `admin`:
+- parley-net's `FileUserRegistry` (a user file) is the usual registry for named users.
 
-  ```
-  parley.ftp.authenticationProvider=us.bringardner.parley.ftp.server.AnonymousUserRegistry
-  ```
+### Anonymous FTP
 
-  parley-net's `FileUserRegistry` (a user file) is the usual registry for named users.
+Anonymous FTP (RFC 1635) is a password login as `anonymous` or `ftp`, usually with an email address as the
+password. Whether it is allowed is the registry's policy: the server has no setting of its own for it. `USER
+anonymous` always gets `331`, and the registry accepts the `PASS` or refuses it with `530` like any other login.
+
+**To block anonymous logins,** use a registry that doesn't accept them. `FileUserRegistry` and the database
+registries accept only the users they hold, so with them anonymous is blocked, and there is nothing to turn off.
+Don't put an `anonymous` or `ftp` user in the user file unless you mean it: that user logs in with the password the
+file gives it.
+
+**To allow only anonymous logins,** use `AnonymousUserRegistry`. It accepts `anonymous` and `ftp` with any password
+and refuses everyone else; anonymous gets the server's root and every permission except `admin`, so it can upload,
+rename and delete as well as download:
+
+```
+parley.ftp.authenticationProvider=us.bringardner.parley.ftp.server.AnonymousUserRegistry
+```
+
+To give anonymous less (read only, say), override `checkPermission` in a subclass of `AnonymousUserRegistry`, and
+name the subclass in `parley.ftp.authenticationProvider`.
+
+**To allow anonymous and named users,** give the server a registry that sends anonymous and ftp to
+`AnonymousUserRegistry` and everyone else to the user file. parley-iam has no ready-made one; this is all it takes:
+
+```java
+public class AnonymousAndFileUserRegistry implements UserRegistry {
+
+    private final AnonymousUserRegistry anonymous = new AnonymousUserRegistry();
+    private final UserRegistry named;
+
+    public AnonymousAndFileUserRegistry(UserRegistry named) {
+        this.named = named;
+    }
+
+    /** The registry for this user name: anonymous and ftp go to AnonymousUserRegistry. */
+    private UserRegistry registryFor(String name) {
+        if( name != null && (name.equalsIgnoreCase(AnonymousUserRegistry.ANONYMOUS)
+                || name.equalsIgnoreCase(AnonymousUserRegistry.FTP)) ) {
+            return anonymous;
+        }
+        return named;
+    }
+
+    @Override
+    public boolean supports(Class<? extends Credential> kind, StoredCredentialType stored) {
+        return named.supports(kind, stored);
+    }
+
+    @Override
+    public AuthenticationResult authenticate(Credential credential) {
+        return registryFor(credential.getUser()).authenticate(credential);
+    }
+
+    @Override
+    public StoredCredential findStoredCredential(String user, StoredCredentialType type)
+            throws UserRegistryUnavailableException {
+        return registryFor(user).findStoredCredential(user, type);
+    }
+
+    @Override
+    public ParleyPrincipal findPrincipal(String name) throws UserRegistryUnavailableException {
+        return registryFor(name).findPrincipal(name);
+    }
+
+    @Override
+    public ParleyPrincipal findPrincipal(EntityId id) throws UserRegistryUnavailableException {
+        ParleyPrincipal found = anonymous.findPrincipal(id);
+        if( found == null ) {
+            found = named.findPrincipal(id);
+        }
+        return found;
+    }
+
+    @Override
+    public AuthorizationResult checkPermission(Requester requester, ParleyPermission needed,
+            ProtectedResource resource) {
+        ParleyPrincipal who = requester.getPrincipal();
+        String name = who == null ? null : who.getName();
+        return registryFor(name).checkPermission(requester, needed, resource);
+    }
+}
+```
+
+and give it to the server with `setUserRegistry(new AnonymousAndFileUserRegistry(fileRegistry))`. A user file can't
+hold a user named `anonymous` or `ftp` then: those names always go to `AnonymousUserRegistry`.
 
 ## Uploads and resuming
 
@@ -171,13 +265,13 @@ trade two things against each other: a file that is never half replaced, and an 
 |---|---|---|
 | Where the data goes | A hidden temporary file in the same directory, renamed over the target when the whole upload has arrived | Straight into the target, which `STOR` empties first |
 | An upload that breaks | The temporary file is deleted. The target is untouched (a new file doesn't exist). | What arrived stays in the target. |
-| Resuming it | **Not possible.** `REST` then `STOR` is refused (`450`) and the client starts again. | `REST <length>` then `STOR` carries on. |
+| Resuming it | **Not possible.** `REST` then `STOR` is refused (`554`) and the client starts again. | `REST <length>` then `STOR` carries on. |
 | The original while it uploads | Still there, complete | Gone as soon as the upload starts; a half written file is visible |
 
 **`REST` then `STOR` carries on only an upload the server knows is unfinished.** It is accepted when the
 marker equals the file's length *and* an earlier upload of that file stopped at that length (a break in
 `inPlace` mode; the server remembers up to 1000 such files, in memory, so after a restart a client starts
-again). Otherwise it is refused (`450`) and nothing is written. A complete file can't be added to with
+again). Otherwise it is refused (`554`, RFC 3659 section 5.5) and nothing is written. A complete file can't be added to with
 `REST`. This used to be possible, and it corrupted files: a client that resumes by asking `SIZE` and sending
 the rest from that offset, after an upload that was interrupted *over an existing file*, got the old file's
 length, the marker matched, and the new data was appended to the old file, which is neither version.
@@ -201,7 +295,7 @@ bufferSize)` sends the `REST` and `STOR`).
   length adds to the file, **even one that wasn't cut off**: the check described above is off with it.
 - The write isn't atomic, whatever `parley.ftp.uploadMode` is: a transfer that breaks leaves what arrived.
 - `REST 0` is no restart: `STOR` replaces the file, as always.
-- On a link it is refused (`450`), as before.
+- On a link it is refused (`554`), as before.
 
 ### Octet ranges (RANG)
 
@@ -217,7 +311,7 @@ clients may not have it. Both points count octets from the start of the file, an
   sends nothing.
 - `STOR` writes the upload into the file from the start, in place, and changes nothing outside the range: the
   file isn't truncated, and more data than the range holds fails the transfer (`451`) once the range is
-  written. A start past the end of the file is refused (`554`). On a link it is refused (`450`).
+  written. A start past the end of the file is refused (`554`). On a link it is refused (`554`).
   Unlike `REST` then `STOR`, the range says exactly which octets are written, so this doesn't need
   `parley.ftp.storeAtOffset`.
 - `APPE` refuses a range (`504`).
@@ -286,9 +380,9 @@ What a client does to a link never changes the file it leads to.
 | `DELE`, `RMD`, `RNFR` + `RNTO` | Acts on the **link**. The linked file or directory is untouched. |
 | `STOR` | The link is **replaced by a regular file** that holds the upload. The original is untouched. |
 | `APPE`, `SITE CHMOD`, `SITE modDate` | The link is first replaced by a regular **copy** of the file (same content, permissions and time), and the command applies to that copy. The original is untouched. |
-| `REST` then `STOR` | Refused (`450`): a link isn't an unfinished upload (see [Uploads and resuming](#uploads-and-resuming)), and isn't written at an offset either. Nothing changes. |
+| `REST` then `STOR` | Refused (`554`): a link isn't an unfinished upload (see [Uploads and resuming](#uploads-and-resuming)), and isn't written at an offset either. Nothing changes. |
 | `STOR`, `MKD`, `DELE` **inside** a linked directory | Happens in the directory it leads to. The link is the way in, and a client with write permission changes what is behind it, as it would in any directory it can write to. |
-| `SITE CHMOD`, `SITE modDate` on a linked **directory** | Refused (`450 Permission denied.`). A directory isn't copied. |
+| `SITE CHMOD`, `SITE modDate` on a linked **directory** | Refused (`550 Permission denied`). A directory isn't copied. |
 
 So a client that writes to a linked file ends up with its own regular file in the same place, and the
 administrator's link, and the original, are not harmed.
@@ -301,7 +395,7 @@ The administrator's control is permissions, the same as for any file:
   (`550 Permission denied.`). A link has the permissions of the file it leads to, so make that file
   read-only (`chmod a-w`) and the link is read-only for the users, whichever of their roots it appears in.
 - **A directory that can't be written keeps its entries.** A link in a directory without the write
-  permission can't be deleted, renamed or replaced (`450`, `550`, `553`), as for any file in it.
+  permission can't be deleted, renamed or replaced (`550`, `553`), as for any file in it.
 - A symbolic link has no permissions of its own on most systems, so there is nothing to set on the link
   itself.
 
