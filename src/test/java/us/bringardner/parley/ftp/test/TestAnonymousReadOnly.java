@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
@@ -129,7 +130,11 @@ public class TestAnonymousReadOnly {
 		assertThrows(NullPointerException.class, new Executable() {
 			@Override
 			public void execute() {
-				new AnonymousUserRegistry(StandardPermissions.READ, null);
+				AnonymousUserRegistry reg = new AnonymousUserRegistry(StandardPermissions.READ, null);
+				try {
+					reg.close();
+				} catch (IOException e) {
+				}
 			}
 		});
 	}
