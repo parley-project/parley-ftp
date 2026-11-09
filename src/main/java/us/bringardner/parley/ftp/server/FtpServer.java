@@ -37,9 +37,8 @@ import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.IProcessor;
 import us.bringardner.parley.net.IProcessorFactory;
-import us.bringardner.parley.net.server.ServerMain;
-import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.net.server.Server;
+import us.bringardner.parley.net.server.ServerMain;
 
 
 /**
