@@ -30,9 +30,9 @@
 package us.bringardner.parley.ftp.server;
 
 
+import us.bringardner.parley.core.LogLevel;
 import java.io.IOException;
 
-import us.bringardner.parley.core.ILogger;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.IProcessor;
@@ -301,8 +301,6 @@ public class FtpServer extends Server {
 		setSecure(secure);
 		setDaemon(false);
 		initMe(true);
-		// INFO by default: DEBUG logs several lines per transfer, including paths and client addresses
-		getLogger().setLevel(us.bringardner.parley.core.ILogger.Level.INFO);
 	}
 	
 	public FtpServer() {
@@ -331,7 +329,6 @@ public class FtpServer extends Server {
 		setSecure(secure);
 		setDaemon(false);
 		initMe(false);
-		getLogger().setLevel(us.bringardner.parley.core.ILogger.Level.INFO);
 		try {
 			setFtpRoot(root);
 		} catch (IOException e) {
@@ -410,7 +407,7 @@ public class FtpServer extends Server {
 		setProcessorFactory(new IProcessorFactory() {
 			public IProcessor getProcessor() {
 				FtpRequestProcessor ret = new FtpRequestProcessor();
-				ret.getLogger().setLevel(FtpServer.this.getLogger().getLevel());
+				ret.setLogLevel(FtpServer.this.getLogLevel());
 				ret.setActivityTimeOut(getDataTimeout());
 				return ret;
 			}			
@@ -840,8 +837,4 @@ public class FtpServer extends Server {
 		super.logDebug(msg, error);
 	}
 
-	@Override
-	protected ILogger getLogger(String name) {
-		return super.getLogger("FtpServer");
-	}
 }

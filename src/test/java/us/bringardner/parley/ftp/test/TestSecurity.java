@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -69,7 +69,7 @@ public class TestSecurity {
 		server.setFtpRoot(fs);
 		server.setPort(PORT);
 		server.setDataTimeout(2000);
-		server.getLogger().setLevel(Level.ERROR);
+		server.setLogLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -237,7 +237,7 @@ public class TestSecurity {
 	@Test
 	public void clientDialogDoesNotContainPassword() throws Exception {
 		FtpClient client = new FtpClient("localhost", PORT);
-		client.getLogger().setLevel(Level.ERROR);
+		client.setLogLevel(LogLevel.ERROR);
 		client.setRequestSecure(false); // this test server has no TLS keystore
 		try {
 			assertTrue(client.connect("anonymous", "SuperSecret-123", null), "can't connect");

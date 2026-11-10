@@ -26,7 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.lock.Sharing;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -126,7 +126,7 @@ public class TestTlsResumption {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setDataTimeout(5000);
-		s.getLogger().setLevel(Level.ERROR);
+		s.setLogLevel(LogLevel.ERROR);
 		s.start();
 		long start = System.currentTimeMillis();
 		while (!s.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -171,7 +171,7 @@ public class TestTlsResumption {
 		}
 		client.setActive(active);
 		client.setTrustManagers(new TrustManager[] { trust });
-		client.getLogger().setLevel(Level.ERROR);
+		client.setLogLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			assertTrue(client.isDataChannelSecure());
@@ -205,7 +205,7 @@ public class TestTlsResumption {
 			FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 			client.setRequestSecure(true);
 			client.setTrustManagers(new TrustManager[] { trust });
-			client.getLogger().setLevel(Level.ERROR);
+			client.setLogLevel(LogLevel.ERROR);
 			try {
 				assertTrue(client.connect("anonymous", "x", null));
 				assertEquals("TLSv1.2", trust.protocols.get(0));
@@ -222,7 +222,7 @@ public class TestTlsResumption {
 			client.setRequestSecure(true);
 			client.setTls12Fallback(false);
 			client.setTrustManagers(new TrustManager[] { trust });
-			client.getLogger().setLevel(Level.ERROR);
+			client.setLogLevel(LogLevel.ERROR);
 			try {
 				assertTrue(client.connect("anonymous", "x", null));
 				assertEquals("TLSv1.3", trust.protocols.get(0));
@@ -241,7 +241,7 @@ public class TestTlsResumption {
 		FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 		client.setRequestSecure(true);
 		client.setTrustManagers(new TrustManager[] { new CountingTrust() });
-		client.getLogger().setLevel(Level.ERROR);
+		client.setLogLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			for (int i = 0; i < 2; i++) {

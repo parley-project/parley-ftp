@@ -46,7 +46,6 @@ import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 
-import us.bringardner.parley.core.ILogger;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.FTP;
@@ -2445,8 +2444,4 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		return ret;
 	}
 	
-	@Override
-	protected ILogger getLogger(String name) {
-		return super.getLogger("FtpRequestProcessor");
-	}
 }

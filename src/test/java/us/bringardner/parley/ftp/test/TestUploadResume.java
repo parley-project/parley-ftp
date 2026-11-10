@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.ftp.server.FtpServer.UploadMode;
@@ -48,7 +48,7 @@ public class TestUploadResume {
 		if( mode != null ) {
 			server.setUploadMode(mode);
 		}
-		server.getLogger().setLevel(Level.ERROR);
+		server.setLogLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - t < 5000) {

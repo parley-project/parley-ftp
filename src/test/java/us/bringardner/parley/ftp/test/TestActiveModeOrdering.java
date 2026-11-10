@@ -21,7 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.ftp.client.FtpClient;
 
 /**
@@ -59,7 +59,7 @@ public class TestActiveModeOrdering {
 	@Test
 	public void activeTransfersWhenServerConnectsAfterCommand() throws IOException {
 		FtpClient client = new FtpClient(InetAddress.getLoopbackAddress().getHostAddress(), control.getLocalPort());
-		client.getLogger().setLevel(Level.ERROR);
+		client.setLogLevel(LogLevel.ERROR);
 		client.setActive(true);
 		// short, so the old ordering fails in seconds instead of hanging
 		client.setTransferTimeout(3000);
