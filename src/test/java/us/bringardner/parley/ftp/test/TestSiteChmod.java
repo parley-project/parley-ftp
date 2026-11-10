@@ -12,7 +12,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.FTP;
@@ -50,7 +50,7 @@ public class TestSiteChmod {
 		server.setSecure(false);
 		server.setFtpRoot(root);
 		server.setPort(PORT);
-		server.getLogger().setLevel(Level.ERROR);
+		server.setLogLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -90,7 +90,7 @@ public class TestSiteChmod {
 	private static FtpClient connect() throws Exception {
 		FtpClient client = new FtpClient("localhost", PORT);
 		client.setRequestSecure(false);
-		client.getLogger().setLevel(Level.ERROR);
+		client.setLogLevel(LogLevel.ERROR);
 		assertTrue(client.connect("anonymous", "x", null));
 		return client;
 	}

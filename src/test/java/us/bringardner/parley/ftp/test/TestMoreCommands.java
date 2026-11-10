@@ -24,7 +24,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.ftp.client.ClientFtpOutputStream;
 import us.bringardner.parley.ftp.client.ClientPassiveDataConnection;
 import us.bringardner.parley.ftp.client.FtpClient;
@@ -152,7 +152,7 @@ public class TestMoreCommands {
 	public void clientStoreUnique() throws Exception {
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
 			String first;
@@ -192,7 +192,7 @@ public class TestMoreCommands {
 		}
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
 			assertEquals(java.util.Collections.singletonList("EN*"), c.getLanguages());
@@ -251,7 +251,7 @@ public class TestMoreCommands {
 		}
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
 			assertEquals(hex("SHA-256", "hello"), c.hash("file.txt"));

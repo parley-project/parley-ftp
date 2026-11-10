@@ -31,7 +31,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
@@ -60,7 +60,7 @@ public class TestHost {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setLoginFailureDelay(0);
-		s.getLogger().setLevel(Level.ERROR);
+		s.setLogLevel(LogLevel.ERROR);
 		return s;
 	}
 
@@ -309,7 +309,7 @@ public class TestHost {
 	private static FtpClient client(String host, int port) {
 		FtpClient c = new FtpClient(host, port);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		return c;
 	}
 

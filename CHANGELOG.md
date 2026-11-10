@@ -2,6 +2,14 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-10: logging through System.Logger, To-Do 19.5)
+
+- **Logging through `System.Logger`** (parley-core): `FtpServer` and `FtpRequestProcessor` log under
+  their class names (no longer the short names `FtpServer` and `FtpRequestProcessor`), so
+  `parley.log.level.ftp` covers them; levels are set per object with `setLogLevel`. `FtpServer` no
+  longer sets INFO on itself when made: it follows `parley.log.level` or the installed `System.Logger`
+  (java.util.logging shows INFO and up by default).
+
 ### Changed (2026-11-07: anonymous FTP is read only)
 
 - **`AnonymousUserRegistry` gives anonymous `read` only** (design doc Q13): anonymous can list, download and change

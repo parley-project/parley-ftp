@@ -26,7 +26,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -173,7 +173,7 @@ public class TestSpsvModeZ {
 	private static FtpClient client() throws Exception {
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}

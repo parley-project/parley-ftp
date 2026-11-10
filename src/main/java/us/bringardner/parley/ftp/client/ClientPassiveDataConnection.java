@@ -73,7 +73,7 @@ public final class ClientPassiveDataConnection extends ClientDataTransferProcess
 
     public ClientPassiveDataConnection(FtpClient client) throws IOException {    	
         super(client);
-        getLogger().setLevel(client.getLogger().getLevel());
+        setLogLevel(client.getLogLevel());
         setPassive(true);
 
         if( client.isUseSinglePort() && client.getFeatResponse().containsKey(SPSV) ) {

@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
@@ -52,7 +52,7 @@ public class TestTransferThreads {
 		server.setSecure(false);
 		server.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		server.setPort(PORT);
-		server.getLogger().setLevel(Level.ERROR);
+		server.setLogLevel(LogLevel.ERROR);
 		server.start();
 		waitFor(server::isRunning, "server did not start");
 		return server;

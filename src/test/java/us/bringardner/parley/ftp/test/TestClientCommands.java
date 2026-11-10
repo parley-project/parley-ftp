@@ -17,7 +17,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -64,7 +64,7 @@ public class TestClientCommands {
 			c.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
 			c.setVerifyHostname(false);
 		}
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}
@@ -99,7 +99,7 @@ public class TestClientCommands {
 		FtpClient q = new FtpClient("127.0.0.1", PORT);
 		q.setRequestSecure(false);
 		q.setSendClientName(false);
-		q.getLogger().setLevel(Level.ERROR);
+		q.setLogLevel(LogLevel.ERROR);
 		assertTrue(q.connect("anonymous", "x", null));
 		try {
 			assertFalse(q.getDialog().contains("Write:CLNT"), q.getDialog());
