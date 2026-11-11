@@ -41,7 +41,7 @@ public final class ClientActiveDataConnection extends ClientDataTransferProcess 
 
     public ClientActiveDataConnection(FtpClient client) throws IOException {
         super(client);
-        getLogger().setLevel(client.getLogger().getLevel());
+        setLogLevel(client.getLogLevel());
         setPassive(false);
 
         /*

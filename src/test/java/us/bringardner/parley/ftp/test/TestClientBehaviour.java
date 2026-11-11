@@ -15,7 +15,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -50,7 +50,7 @@ public class TestClientBehaviour {
 		server.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		server.setPort(PORT);
 		server.setDataTimeout(DATA_TIMEOUT_MS);
-		server.getLogger().setLevel(Level.ERROR);
+		server.setLogLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -74,7 +74,7 @@ public class TestClientBehaviour {
 	private static FtpClient client() throws IOException {
 		FtpClient c = new FtpClient("localhost", PORT);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}
@@ -198,7 +198,7 @@ public class TestClientBehaviour {
 			}
 		};
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		c.setSocketBufferSize(socketBufferSize);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
@@ -387,7 +387,7 @@ public class TestClientBehaviour {
 	private static FtpClient fakeClient(FakeFtpServer fake) throws IOException {
 		FtpClient c = new FtpClient("127.0.0.1", fake.port());
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(Level.ERROR);
+		c.setLogLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}
