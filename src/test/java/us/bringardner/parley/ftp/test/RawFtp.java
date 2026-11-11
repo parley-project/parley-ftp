@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.server.FtpServer;
 
@@ -52,7 +52,7 @@ class RawFtp implements AutoCloseable {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setLoginFailureDelay(0);
-		s.getLogger().setLevel(Level.ERROR);
+		s.setLogLevel(LogLevel.ERROR);
 		s.start();
 		long t = System.currentTimeMillis();
 		while (!s.isRunning() && System.currentTimeMillis() - t < 5000) {

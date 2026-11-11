@@ -38,7 +38,7 @@
 	<!--
 	  The threshold is Low since BJL-5; these Low findings are accepted.
 
-	  FtpServer's constructor calls getLogger() and (through initMe) getAccessControl() to set
+	  FtpServer's constructor calls (through initMe) getAccessControl() to set
 	  itself up. FtpServer is meant to be subclassed; an override that needs fields of the
 	  subclass must not rely on them in these methods during construction.
 	-->

@@ -41,9 +41,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import us.bringardner.parley.core.ParleyLogger;
-import us.bringardner.parley.core.ILogger;
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -57,8 +55,8 @@ import us.bringardner.parley.ftp.server.FtpServer;
 public class TestPermissions {
 
 	protected static int ftpPort2=8030;
-	protected static Level serverLogLevel = Level.ERROR;
-	protected static Level clientLogLevel = Level.ERROR;
+	protected static LogLevel serverLogLevel = LogLevel.ERROR;
+	protected static LogLevel clientLogLevel = LogLevel.ERROR;
 	private static FtpServer ftpServer;
 
 	private static FileSource root;
@@ -75,15 +73,9 @@ public class TestPermissions {
 		if( _client == null ) {
 			
 			_client = new FtpClient("localhost", ftpPort2);
-			ILogger logger = _client.getLogger();
-			// Put the client logging on err so I tell client log from server log at runtime.
-			if (logger instanceof ParleyLogger	) {
-				ParleyLogger l = (ParleyLogger) logger;
-				l.setOut(System.err);				
-			}
 			_client.setSecure(false);
 			_client.setRequestSecure(false);
-			_client.getLogger().setLevel(clientLogLevel);
+			_client.setLogLevel(clientLogLevel);
 			_client.setCmdTimeout(100000);
 			_client.setCmdTimeout(9999999);
 			
@@ -125,7 +117,7 @@ public class TestPermissions {
 			//  this creates a sand box for the users
 			ftpServer.setFtpRoot(root);			
 			ftpServer.setPort(ftpPort2);
-			ftpServer.getLogger().setLevel(serverLogLevel);
+			ftpServer.setLogLevel(serverLogLevel);
 			
 			ftpServer.start();
 			int cnt = 0;

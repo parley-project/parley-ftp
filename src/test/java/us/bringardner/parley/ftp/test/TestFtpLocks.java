@@ -18,7 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.ILogger.Level;
+import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.server.FtpServer;
@@ -64,7 +64,7 @@ public class TestFtpLocks {
 		server.setSecure(false);
 		server.setFtpRoot(root);
 		server.setPort(PORT);
-		server.getLogger().setLevel(Level.ERROR);
+		server.setLogLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while( !server.isRunning() && System.currentTimeMillis() - t < 5000 ) {

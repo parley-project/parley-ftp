@@ -1,5 +1,6 @@
 package us.bringardner.parley.ftp.test;
 
+import us.bringardner.parley.core.LogLevel;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +29,7 @@ public class TestCloseReplies {
 		s.setFtpRoot(us.bringardner.parley.files.FileSourceFactory.getDefaultFactory().createFileSource(root("CloseLogin").getPath()));
 		s.setPort(PORT);
 		s.setLoginTimeLimit(300);
-		s.getLogger().setLevel(us.bringardner.parley.core.ILogger.Level.ERROR);
+		s.setLogLevel(us.bringardner.parley.core.LogLevel.ERROR);
 		s.start();
 		try {
 			long t = System.currentTimeMillis();
