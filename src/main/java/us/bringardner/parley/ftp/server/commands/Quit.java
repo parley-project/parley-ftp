@@ -71,6 +71,8 @@ public class Quit extends NoAuthReqBaseCommand {
 	 * @see us.bringardner.parley.ftp.server.FtpCommand#execute(us.bringardner.parley.ftp.server.FtpRequestProcessor, java.lang.String)
 	 */
 	public void execute(FtpRequestProcessor processor, IRequestContext context) throws IOException {
+        // for the server's "Disconnected" line
+        processor.setCloseReason(us.bringardner.parley.net.server.SessionLog.REASON_CLIENT_QUIT);
         try {
             // RFC 959: 221 Service closing control connection
             processor.reply(REPLY_221_CLOSING_CONTROL,"Goodbye");
