@@ -81,4 +81,35 @@
 		<Method name="closeQuietly"/>
 		<Bug pattern="DE_MIGHT_IGNORE"/>
 	</Match>
+
+	<!--
+	  SpotBugs 4.9: "releases lock without acquiring it". Both take the lock and release it in a
+	  matching try/finally: StreamController.abort locks and unlocks current.lock (the current
+	  stream's lock, through a local), FtpServerStream.finish its own lock around the final reply.
+	  The detector can't follow a lock reached through another object's field.
+	-->
+	<Match>
+		<Or>
+			<And>
+				<Class name="us.bringardner.parley.ftp.server.FtpRequestProcessor$StreamController"/>
+				<Method name="abort"/>
+			</And>
+			<And>
+				<Class name="us.bringardner.parley.ftp.server.FtpServerStream"/>
+				<Method name="finish"/>
+			</And>
+		</Or>
+		<Bug pattern="CWO_CLOSED_WITHOUT_OPENED"/>
+	</Match>
+
+	<!--
+	  SpotBugs 4.9: "intentionally throws RuntimeException". FtpServer.start releases the stores
+	  it claimed when starting fails, then throws the RuntimeException it caught on unchanged
+	  (start() can't throw a checked exception), so the caller sees the real cause.
+	-->
+	<Match>
+		<Class name="us.bringardner.parley.ftp.server.FtpServer"/>
+		<Method name="start"/>
+		<Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
+	</Match>
 </FindBugsFilter>

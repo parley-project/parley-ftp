@@ -55,12 +55,12 @@ public abstract class ClientDataTransferProcess extends BaseObject implements FT
 	/** Guards connecting the data socket (a lock, not a monitor: it connects, BJL-58). */
 	private final java.util.concurrent.locks.ReentrantLock socketLock = new java.util.concurrent.locks.ReentrantLock();
 	private volatile Socket socket;
-	private boolean passive = false;
+	private volatile boolean passive = false;
 	private InputStream input;
 	private OutputStream output;
 	private String name;
 	private String host;
-	private int port;
+	private volatile int port;
 
 
 	/** @param client the client this data connection belongs to */

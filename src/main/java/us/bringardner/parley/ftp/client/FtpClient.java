@@ -119,12 +119,12 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	private SocketFactory socketFactory;
 	private ServerSocketFactory serverSocketFactory = ServerSocketFactory.getDefault();
 
-	private boolean requestSecure = true;
+	private volatile boolean requestSecure = true;
 	/** "false" turns off the host name check for secure connections, see {@link #isVerifyHostname()}. */
 	public static final String PROPERTY_VERIFY_HOSTNAME = "verifyHostname";
 	//  null means the verifyHostname property has not been read yet
 	private volatile Boolean verifyHostname;
-	private boolean requireSecure = false;
+	private volatile boolean requireSecure = false;
 
 
 	private String host;
@@ -210,8 +210,8 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	private volatile String language;
 	/** Send HOST before logging in (RFC 7151) */
 	private volatile boolean sendHost = true;
-	private int port = FTP_PORT;
-	private boolean useSsl;
+	private volatile int port = FTP_PORT;
+	private volatile boolean useSsl;
 	/**
 	 * One command at a time on the control connection, and the connection state that goes
 	 * with it. A lock, not synchronized methods: commands wait for the server's reply while
@@ -241,11 +241,11 @@ public class FtpClient extends SecureBaseObject implements FTP {
 	private volatile CRLFLineWriter output;
 	private boolean connected = false;
 	//  Socket timeout in milliseconds
-	private int cmdTimeout = 60000;
+	private volatile int cmdTimeout = 60000;
 	//  Socket linger in seconds (off by default, a positive value makes close() block)
-	private int cmdLinger = -1;
-	private int txferTimeout = 60000;
-	private int transferLinger = -1;    
+	private volatile int cmdLinger = -1;
+	private volatile int txferTimeout = 60000;
+	private volatile int transferLinger = -1;    
 	private volatile String currentDir;
 	private ClientFtpResponse lastResponse;
 
@@ -290,10 +290,10 @@ public class FtpClient extends SecureBaseObject implements FTP {
 
 	private volatile boolean mlstTested = false;
 	private volatile boolean mlstSupported = false;
-	private int transferBufferSize = 1024*65;
-	private int socketBufferSize = 0;
-	private boolean usePasvAddress = false;
-	private boolean active = false;
+	private volatile int transferBufferSize = 1024*65;
+	private volatile int socketBufferSize = 0;
+	private volatile boolean usePasvAddress = false;
+	private volatile boolean active = false;
 	private volatile boolean channelSecure;
 	/** true if data connections use TLS (PROT P accepted, or a legacy server without PBSZ) */
 	private volatile boolean dataChannelSecure;
