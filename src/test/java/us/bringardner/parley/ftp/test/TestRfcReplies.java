@@ -107,17 +107,21 @@ public class TestRfcReplies {
 			assertEquals(550, c.one("CWD nope"));
 			assertEquals(550, c.one("CWD a.txt"));
 			assertEquals(550, c.one("CDUP"), "at the root");
-			// RFC 959 Appendix II: quoted, with a quote in the name doubled
-			assertEquals("257 \"/q\"\"x\" created", first(c, "MKD q\"x"));
-			assertEquals(550, c.one("MKD q\"x"), "it exists");
-			assertEquals(250, c.one("CWD q\"x"));
-			assertEquals("257 \"/q\"\"x\" is the current directory", first(c, "PWD"));
+			// RFC 959 Appendix II: quoted, with a quote in the name doubled. (A quote is not allowed in
+			// a Windows file name, so there the folder is qx and the reply has nothing to double.)
+			boolean quoteInName = File.separatorChar != '\\';
+			String name = quoteInName ? "q\"x" : "qx";
+			String quoted = quoteInName ? "\"/q\"\"x\"" : "\"/qx\"";
+			assertEquals("257 "+quoted+" created", first(c, "MKD "+name));
+			assertEquals(550, c.one("MKD "+name), "it exists");
+			assertEquals(250, c.one("CWD "+name));
+			assertEquals("257 "+quoted+" is the current directory", first(c, "PWD"));
 			assertEquals(250, c.one("CDUP"));
-			assertEquals(550, c.one("DELE q\"x"), "DELE of a directory");
-			assertTrue(new File(root, "q\"x").isDirectory());
+			assertEquals(550, c.one("DELE "+name), "DELE of a directory");
+			assertTrue(new File(root, name).isDirectory());
 			assertEquals(550, c.one("RMD nope"));
 			assertEquals(550, c.one("RMD a.txt"));
-			assertEquals(250, c.one("RMD q\"x"));
+			assertEquals(250, c.one("RMD "+name));
 			assertEquals(550, c.one("DELE nope"));
 		}
 	}
