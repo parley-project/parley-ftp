@@ -181,28 +181,28 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 	/** The server's allowed link targets and their canonical forms, cached per session (BJL-32) */
 	private java.util.List<String> allowedTargetsFor;
 	private java.util.List<String> allowedTargetsCanonical;
-	private int rootNameLen = 0;
+	private volatile int rootNameLen = 0;
 	private FileSource ftpRoot ;
 	private FileSource currentDir ;
 	private FileSourceFactory factory;
-	private int representationType = TYPE_ASCII;
+	private volatile int representationType = TYPE_ASCII;
 	/** The host chosen with HOST (RFC 7151), lower case; null until one is */
 	private volatile String virtualHost;
 
 
 	private FileSource tmp;
 	private transient PassiveSocket pasvSocket; 	
-	private boolean passive = false;
+	private volatile boolean passive = false;
 	private transient Socket dataSocket;
 
 	//  Time out if inactive
-	private int activityTimeOut = 10 * (60*1000);
+	private volatile int activityTimeOut = 10 * (60*1000);
 
-	private boolean channelSecure = false;
-	private int pbsz=-1;
+	private volatile boolean channelSecure = false;
+	private volatile int pbsz=-1;
 	/** Data channel protection level set by PROT, null until PROT is sent (see isDataChannelSecure) */
 	private String protLevel = null;
-	private int linger = -2;
+	private volatile int linger = -2;
 	public transient StreamController transferInProcess = new StreamController();
 
 
@@ -278,7 +278,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 				throw new IOException("Cannot create ftp root at "+ftpRoot);
 			}
 		} else if( !ftpRoot.isDirectory() ) {
-			throw new RuntimeException("Invalide root dir = "+ftpRoot);
+			throw new IllegalArgumentException("The FTP root is not a directory: "+ftpRoot);
 		}
 		this.ftpRoot = ftpRoot;
 
