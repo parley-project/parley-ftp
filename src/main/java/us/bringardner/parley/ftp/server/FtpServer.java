@@ -350,7 +350,7 @@ public class FtpServer extends Server {
 	 * Runs one FTP server (prefix parley.ftp, port parley.ftp.port, default 21) with explicit TLS
 	 * (AUTH TLS). A server with implicit TLS is made in code (secure true), with a prefix of its own.
 	 */
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws InterruptedException {
 		ServerMain.run("FtpServer", args, CONFIG_PROP, "parley-ftp.properties", () -> {
 			if( System.getProperty(FTP_PREFIX+".secure") != null ) {
 				System.err.println(FTP_PREFIX+".secure is no longer read: FtpServer.main runs FTP with explicit TLS (AUTH TLS); "
@@ -636,7 +636,7 @@ public class FtpServer extends Server {
 		if( !ftpRoot.exists() ){
 			ftpRoot.mkdirs();
 		} else if( !ftpRoot.isDirectory() ) {
-			throw new RuntimeException("Invalid root dir = "+ftpRoot);
+			throw new IllegalArgumentException("The FTP root is not a directory: "+ftpRoot);
 		}
 		this.ftpRoot = ftpRoot;
 		setFileSourceFactory(ftpRoot.getFileSourceFactory());

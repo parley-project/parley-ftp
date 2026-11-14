@@ -23,7 +23,6 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<junit.version>5.11.4</junit.version>
-		<spotbugs.version>4.8.6.6</spotbugs.version>
 	</properties>
 
 	<dependencyManagement>
@@ -72,7 +71,6 @@
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
-				<version>${spotbugs.version}</version>
 				<configuration>
 					<effort>Max</effort>
 					<threshold>Low</threshold>

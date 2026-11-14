@@ -68,7 +68,7 @@ public class FtpClientFile extends BaseObject {
 	protected String owner;
 	protected String group;
 	protected long length;
-	protected long lastModified;
+	protected volatile long lastModified;
 	protected char type;
 	protected char[] permissions;
 	protected String mlstPermissions;
