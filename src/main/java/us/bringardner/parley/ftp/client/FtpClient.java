@@ -1197,9 +1197,16 @@ public class FtpClient extends SecureBaseObject implements FTP {
 				logDebug("userid="+userId+" account="+account);
 
 				// connecting a socket will trigger the server to send us a greeting line
-				ClientFtpResponse res = readResponse();
-				if( res.isPositiveComplet() ) {
-					login();
+				try {
+					ClientFtpResponse res = readResponse();
+					if( res.isPositiveComplet() ) {
+						login();
+					}
+				} catch (IOException | RuntimeException e) {
+					// No greeting in time, or the login failed part way: close the connection
+					// rather than leave it open for the caller (and the server) to find later
+					abandonConnection();
+					throw e;
 				}
 
 				//  All done, if we're not connected we need to close socket
