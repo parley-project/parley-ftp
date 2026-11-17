@@ -26,6 +26,7 @@ package us.bringardner.parley.ftp.server;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -179,4 +180,13 @@ public class AnonymousUserRegistry implements UserRegistry {
 		}
 		return AuthorizationResult.allowed("anonymous holds "+needed.getName());
 	}
+	
+	  @Override
+	    public Set<ParleyPrincipal> findByAttribute(String name, Object value) {
+		  	Set<ParleyPrincipal> found = new LinkedHashSet<ParleyPrincipal>();
+            if (anonymous.hasAttribute(name, value) ) {
+            	found.add(anonymous);
+            }
+	        return found;
+	    }
 }
