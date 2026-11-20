@@ -1569,9 +1569,9 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 		boolean nothing = false;
 		if( range != null ) {
 			startAt = range.getStart();
-			nothing = startAt >= local.length();
+			nothing = startAt >= local.contentLength();
 		} else if( startAt > 0 ) {
-			long size = local.length();
+			long size = local.contentLength();
 			if( startAt > size ) {
 				// RFC 3659 section 5.5
 				reply(REPLY_554_INVALID_REST,"Invalid REST "+startAt+": "+ftpFileName+" is "+size+" bytes");
@@ -1782,7 +1782,7 @@ public class FtpRequestProcessor extends AbstractCommandProcessor implements FTP
 							clearUnfinishedUpload(target);
 						} else {
 							// what arrived is there, and REST can carry on from its length
-							markUnfinishedUpload(target, target.length());
+							markUnfinishedUpload(target, target.contentLength());
 						}
 					}
 				};

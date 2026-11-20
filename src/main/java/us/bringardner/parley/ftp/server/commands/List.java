@@ -206,8 +206,22 @@ public class List  extends BaseCommand {
 	 format like this
 	 */
 	
-	public String formatFile(FileSource file) throws IOException{
+	public String formatFile(FileSource entry) throws IOException{
 
+		// A link is shown as what it leads to (the FTP server hides links): its owner, group,
+		// time and permissions are the target's, only the name is its own. A link that leads
+		// nowhere has only its own.
+		FileSource file = entry;
+		for (int depth = 0; depth < 40; depth++) {
+			FileSource to = file.getLinkedTo();
+			if( to == null ) {
+				break;
+			}
+			file = to;
+		}
+		if( !file.exists() ) {
+			file = entry;
+		}
 		String ret = "";
 		String dt = formatListDate(file.lastModified(), System.currentTimeMillis(), ZoneId.systemDefault());
 
@@ -228,9 +242,9 @@ public class List  extends BaseCommand {
 		
 		ret = (file.isDirectory() ? "d":"-")+perm+
 				"   1 "+listingName(file.getOwner())+"  "+listingName(file.getGroup())+" "+
-				pad(""+file.length(),26)+" "+
+				pad(""+file.contentLength(),26)+" "+
 				dt+" "+
-				file.getName()
+				entry.getName()
 				;
 
 		return ret;

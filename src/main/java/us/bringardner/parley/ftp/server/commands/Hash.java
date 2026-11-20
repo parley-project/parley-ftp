@@ -82,7 +82,7 @@ public class Hash extends BaseCommand implements FeatCommand {
 			processor.reply(REPLY_553_FILE_NAME_NOT_ALLOWED,path+" is a directory");
 			return;
 		}
-		long len = f.length();
+		long len = f.contentLength();
 		long start = 0;
 		long end = len-1;
 		if( range != null ) {
