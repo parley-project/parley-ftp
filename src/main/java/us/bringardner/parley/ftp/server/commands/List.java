@@ -211,17 +211,7 @@ public class List  extends BaseCommand {
 		// A link is shown as what it leads to (the FTP server hides links): its owner, group,
 		// time and permissions are the target's, only the name is its own. A link that leads
 		// nowhere has only its own.
-		FileSource file = entry;
-		for (int depth = 0; depth < 40; depth++) {
-			FileSource to = file.getLinkedTo();
-			if( to == null ) {
-				break;
-			}
-			file = to;
-		}
-		if( !file.exists() ) {
-			file = entry;
-		}
+		FileSource file = Mlst.shown(entry);
 		String ret = "";
 		String dt = formatListDate(file.lastModified(), System.currentTimeMillis(), ZoneId.systemDefault());
 

@@ -385,8 +385,11 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 	 * @param cwdPath {@link #currentDirPath(FtpRequestProcessor)}, worked out once per listing
 	 * @return the MLSx facts and name of the entry
 	 */
-	public static String formatFile(FileSource file, FtpRequestProcessor processor, String cwdPath) throws IOException{
+	public static String formatFile(FileSource entry, FtpRequestProcessor processor, String cwdPath) throws IOException{
 
+		// The facts are those of what a link leads to (the FTP server hides links); only the name,
+		// and the path the client sees it by, are the entry's own.
+		FileSource file = shown(entry);
 		Map<String, Integer> factsWanted = getWantedFacts(processor);
 
 		// RFC 3659 7.2: entry = [facts] SP pathname, so with no facts it is " name". No
@@ -407,7 +410,7 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 				val = (""+file.contentLength());
 				//}
 				break;
-			case FACT_PERM: val = (formatPerms(file, processor)); 
+			case FACT_PERM: val = (formatPerms(entry, processor)); 
 			break;
 			case FACT_TYPE:
 				if( file.isDirectory() ){
@@ -416,7 +419,7 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 					 * used to call equals() and isChildOfMine() (two canonical path lookups,
 					 * file system calls or network round trips) for every directory entry.
 					 */
-					String path = FtpRequestProcessor.normalizePath(file.getAbsolutePath());
+					String path = FtpRequestProcessor.normalizePath(entry.getAbsolutePath());
 					if( cwdPath != null && cwdPath.equals(path)){
 						val = ("cdir");
 					} else if( cwdPath != null && FtpRequestProcessor.isSameOrBelow(cwdPath, path)){
@@ -445,10 +448,26 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 
 		ret.append(' ');
 
-		ret.append(file.getName());
+		ret.append(entry.getName());
 
 		return ret.toString();
 
+	}
+
+	/**
+	 * @return what a client is shown of this entry: the file a link leads to, as a link is
+	 * hidden from clients, or the entry itself when it isn't a link or leads nowhere
+	 */
+	static FileSource shown(FileSource entry) throws IOException {
+		FileSource file = entry;
+		for (int depth = 0; depth < 40; depth++) {
+			FileSource to = file.getLinkedTo();
+			if( to == null ) {
+				break;
+			}
+			file = to;
+		}
+		return file.exists() ? file : entry;
 	}
 
 	/**
