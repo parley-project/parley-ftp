@@ -404,7 +404,7 @@ public class Mlst  extends BaseCommand  implements FeatCommand {
 			case FACT_OWNER: val = file.getOwner().getName();break;
 			case FACT_SIZE:
 				//if( file.isFile()) {
-				val = (""+file.length());
+				val = (""+file.contentLength());
 				//}
 				break;
 			case FACT_PERM: val = (formatPerms(file, processor)); 

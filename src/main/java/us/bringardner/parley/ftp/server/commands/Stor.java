@@ -116,7 +116,7 @@ public class Stor  extends BaseCommand {
 				processor.reply(REPLY_554_INVALID_REST,"Restart marker "+rest+" is not accepted on a link");
 				return;
 			}
-			long len = target.exists() ? target.length() : 0;
+			long len = target.exists() ? target.contentLength() : 0;
 			if( rest.longValue() > len ) {
 				// RFC 3659 section 5.5
 				processor.reply(REPLY_554_INVALID_REST,"Invalid REST "+rest+": the file is "+len+" bytes");
@@ -126,7 +126,7 @@ public class Stor  extends BaseCommand {
 			return;
 		}
 		if( resume ){
-			long len = target.exists() ? target.length() : 0;
+			long len = target.exists() ? target.contentLength() : 0;
 			if( len != rest.longValue()) {
 				processor.reply(REPLY_554_INVALID_REST,"Restart marker "+rest+" does not match the file size ("+len+")");
 				return;
@@ -171,7 +171,7 @@ public class Stor  extends BaseCommand {
 			processor.reply(REPLY_554_INVALID_REST,"RANG with STOR is not accepted on a link");
 			return;
 		}
-		long len = target.exists() ? target.length() : 0;
+		long len = target.exists() ? target.contentLength() : 0;
 		if( range.getStart() > len ) {
 			processor.reply(REPLY_554_INVALID_REST,"Invalid RANG "+range.getStart()+" "+range.getEnd()+": the file is "+len+" bytes");
 			return;

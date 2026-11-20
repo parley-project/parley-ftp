@@ -118,7 +118,7 @@ public class XHash extends BaseCommand implements FeatCommand {
 			processor.reply(REPLY_550_ACTION_NOT_TAKEN,path+" is a directory");
 			return;
 		}
-		long len = f.length();
+		long len = f.contentLength();
 		if( end < 0 || end > len ) {
 			end = len;
 		}
