@@ -296,7 +296,12 @@ public class FtpServer extends Server {
 	 */
 	public FtpServer(int port, String name,  boolean secure) {
 		super(port, name);
-		setPropertyPrefix(secure ? FTPS_PREFIX : FTP_PREFIX);
+		// An FTPS server shares the passive settings and the external address with the FTP server unless it has its own.
+		if( secure ) {
+			setPropertyPrefixes(FTPS_PREFIX, FTP_PREFIX);
+		} else {
+			setPropertyPrefix(FTP_PREFIX);
+		}
 		readSettings();
 		setSecure(secure);
 		setDaemon(false);
@@ -323,8 +328,25 @@ public class FtpServer extends Server {
 	 * @since 2.0.0
 	 */
 	public FtpServer(int port, String name, boolean secure, String propertyPrefix, FileSource root) {
+		this(port, name, secure, propertyPrefix, root, new String[0]);
+	}
+
+	/**
+	 * Like {@link #FtpServer(int, String, boolean, String, FileSource)}, for a server that shares some
+	 * settings with others: the passive ports ({@code passiveMinPort}, {@code passiveMaxPort}) and the
+	 * {@code externalAddress} are read from <code>propertyPrefix.name</code>, then from each of the fallback
+	 * prefixes in order. A setting under the server's own prefix always wins; every other setting is read
+	 * under that prefix only.
+	 *
+	 * @param fallbackPrefixes prefixes to read the shared settings from when the server's own has none
+	 * @since 2.0.0
+	 */
+	public FtpServer(int port, String name, boolean secure, String propertyPrefix, FileSource root, String... fallbackPrefixes) {
 		super(port, name);
-		setPropertyPrefix(propertyPrefix);
+		String[] all = new String[1+fallbackPrefixes.length];
+		all[0] = propertyPrefix;
+		System.arraycopy(fallbackPrefixes, 0, all, 1, fallbackPrefixes.length);
+		setPropertyPrefixes(all);
 		readSettings();
 		setSecure(secure);
 		setDaemon(false);
@@ -386,12 +408,12 @@ public class FtpServer extends Server {
 		uploadMode = tmp == null || tmp.trim().isEmpty() ? UploadMode.ATOMIC : UploadMode.parse(tmp);
 		storeAtOffset = getBooleanProperty(propertyName("storeAtOffset"), false);
 		linger = getIntProperty(propertyName("linger"), -1);
-		int min = getIntProperty(propertyName("passiveMinPort"), PassivePorts.DEFAULT_MIN);
-		int max = getIntProperty(propertyName("passiveMaxPort"), PassivePorts.DEFAULT_MAX);
+		int min = getIntProperty(sharedName("passiveMinPort"), PassivePorts.DEFAULT_MIN);
+		int max = getIntProperty(sharedName("passiveMaxPort"), PassivePorts.DEFAULT_MAX);
 		try {
 			passivePorts.setRange(min, max);
 		} catch (IllegalArgumentException e) {
-			throw new IllegalArgumentException("Invalid "+propertyName("passiveMinPort")+" / "+propertyName("passiveMaxPort")+": "+e.getMessage(), e);
+			throw new IllegalArgumentException("Invalid "+sharedName("passiveMinPort")+" / "+sharedName("passiveMaxPort")+": "+e.getMessage(), e);
 		}
 		int first = getIntProperty(propertyName("passivePort"), 0);
 		if( first > 0 ) {
@@ -539,8 +561,14 @@ public class FtpServer extends Server {
 	 * @since 2.0.0
 	 */
 	public String getExternalAddress() {
-		String ret = getProperty(propertyName("externalAddress"));
+		String ret = getInheritedProperty("externalAddress");
 		return ret == null || ret.trim().isEmpty() ? null : ret.trim();
+	}
+
+	/** The full name of a setting the servers share: the one that has a value, else the server's own. */
+	private String sharedName(String name) {
+		String ret = getInheritedPropertyName(name);
+		return ret == null ? propertyName(name) : ret;
 	}
 
 	private void claimStores() throws IOException {
