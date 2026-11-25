@@ -75,7 +75,7 @@ public abstract class ClientDataTransferProcess extends BaseObject implements FT
 
 	public void setClient(FtpClient client) {
 		this.client = client;
-		setLogLevel(client.getLogLevel());
+		useConfigurationOf(client);
 	}
 
 

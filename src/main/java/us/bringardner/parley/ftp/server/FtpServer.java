@@ -429,7 +429,7 @@ public class FtpServer extends Server {
 		setProcessorFactory(new IProcessorFactory() {
 			public IProcessor getProcessor() {
 				FtpRequestProcessor ret = new FtpRequestProcessor();
-				ret.setLogLevel(FtpServer.this.getLogLevel());
+				ret.useConfigurationOf(FtpServer.this);
 				ret.setActivityTimeOut(getDataTimeout());
 				return ret;
 			}			
