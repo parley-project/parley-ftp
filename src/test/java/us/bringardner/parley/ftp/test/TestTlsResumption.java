@@ -126,7 +126,7 @@ public class TestTlsResumption {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setDataTimeout(5000);
-		s.setLogLevel(LogLevel.ERROR);
+		s.getLogger().setLevel(LogLevel.ERROR);
 		s.start();
 		long start = System.currentTimeMillis();
 		while (!s.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -171,7 +171,7 @@ public class TestTlsResumption {
 		}
 		client.setActive(active);
 		client.setTrustManagers(new TrustManager[] { trust });
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			assertTrue(client.isDataChannelSecure());
@@ -205,7 +205,7 @@ public class TestTlsResumption {
 			FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 			client.setRequestSecure(true);
 			client.setTrustManagers(new TrustManager[] { trust });
-			client.setLogLevel(LogLevel.ERROR);
+			client.getLogger().setLevel(LogLevel.ERROR);
 			try {
 				assertTrue(client.connect("anonymous", "x", null));
 				assertEquals("TLSv1.2", trust.protocols.get(0));
@@ -222,7 +222,7 @@ public class TestTlsResumption {
 			client.setRequestSecure(true);
 			client.setTls12Fallback(false);
 			client.setTrustManagers(new TrustManager[] { trust });
-			client.setLogLevel(LogLevel.ERROR);
+			client.getLogger().setLevel(LogLevel.ERROR);
 			try {
 				assertTrue(client.connect("anonymous", "x", null));
 				assertEquals("TLSv1.3", trust.protocols.get(0));
@@ -241,7 +241,7 @@ public class TestTlsResumption {
 		FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 		client.setRequestSecure(true);
 		client.setTrustManagers(new TrustManager[] { new CountingTrust() });
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			for (int i = 0; i < 2; i++) {

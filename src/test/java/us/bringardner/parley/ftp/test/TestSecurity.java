@@ -69,7 +69,7 @@ public class TestSecurity {
 		server.setFtpRoot(fs);
 		server.setPort(PORT);
 		server.setDataTimeout(2000);
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -237,7 +237,7 @@ public class TestSecurity {
 	@Test
 	public void clientDialogDoesNotContainPassword() throws Exception {
 		FtpClient client = new FtpClient("localhost", PORT);
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		client.setRequestSecure(false); // this test server has no TLS keystore
 		try {
 			assertTrue(client.connect("anonymous", "SuperSecret-123", null), "can't connect");

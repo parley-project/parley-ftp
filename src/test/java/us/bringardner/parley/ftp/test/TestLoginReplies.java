@@ -58,7 +58,7 @@ public class TestLoginReplies {
 		server.setFtpRoot(fs);
 		server.setPort(PORT);
 		server.setLoginFailureDelay(0);
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -175,7 +175,7 @@ public class TestLoginReplies {
 
 	private static boolean connect(String user, String password, String account) throws IOException {
 		FtpClient client = new FtpClient("localhost", PORT);
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		client.setRequestSecure(false);
 		try {
 			return client.connect(user, password, account);

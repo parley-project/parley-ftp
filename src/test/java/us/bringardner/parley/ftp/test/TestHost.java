@@ -60,7 +60,7 @@ public class TestHost {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setLoginFailureDelay(0);
-		s.setLogLevel(LogLevel.ERROR);
+		s.getLogger().setLevel(LogLevel.ERROR);
 		return s;
 	}
 
@@ -309,7 +309,7 @@ public class TestHost {
 	private static FtpClient client(String host, int port) {
 		FtpClient c = new FtpClient(host, port);
 		c.setRequestSecure(false);
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		return c;
 	}
 

@@ -52,7 +52,7 @@ public class TestTransferThreads {
 		server.setSecure(false);
 		server.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		server.setPort(PORT);
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		waitFor(server::isRunning, "server did not start");
 		return server;

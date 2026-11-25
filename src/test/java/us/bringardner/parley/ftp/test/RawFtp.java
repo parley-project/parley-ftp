@@ -52,7 +52,7 @@ class RawFtp implements AutoCloseable {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setLoginFailureDelay(0);
-		s.setLogLevel(LogLevel.ERROR);
+		s.getLogger().setLevel(LogLevel.ERROR);
 		s.start();
 		long t = System.currentTimeMillis();
 		while (!s.isRunning() && System.currentTimeMillis() - t < 5000) {

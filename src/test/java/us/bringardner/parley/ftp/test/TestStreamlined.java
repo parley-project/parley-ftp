@@ -173,7 +173,7 @@ public class TestStreamlined {
 		tree("ctree");
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
 			assertTrue(c.getFreeSpace(null) > 0);

@@ -42,11 +42,31 @@ import us.bringardner.parley.ftp.server.FtpServer;
  */
 public class TestSharedSettings {
 
+	/** The system properties a test set with setSystem, cleared after it */
+	private static final java.util.Set<String> SET_HERE = new java.util.HashSet<>();
+
+	private static void setSystem(java.util.Properties settings) {
+		for (String n : settings.stringPropertyNames()) {
+			System.setProperty(n, settings.getProperty(n));
+			SET_HERE.add(n);
+		}
+	}
+
+	@org.junit.jupiter.api.AfterEach
+	public void clearSystem() {
+		for (String n : SET_HERE) {
+			System.clearProperty(n);
+		}
+		SET_HERE.clear();
+	}
+
+
 	private static FtpServer make(Properties c, String prefix, boolean secure, String... fallbacks) throws Exception {
 		File dir = Files.createTempDirectory("ftp-shared").toFile();
 		dir.deleteOnExit();
 		FileSource root = FileSourceFactory.getDefaultFactory().createFileSource(dir.getAbsolutePath());
-		return BaseObject.makeWith(c, () -> new FtpServer(0, "FtpTest", secure, prefix, root, fallbacks));
+		setSystem(c);
+		return new FtpServer(0, "FtpTest", secure, prefix, root, fallbacks);
 	}
 
 	@Test

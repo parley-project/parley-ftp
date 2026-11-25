@@ -59,7 +59,7 @@ public class TestSiteReplies {
 		server.setFtpRoot(fs);
 		server.setPort(PORT);
 		server.setLoginFailureDelay(0);
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {

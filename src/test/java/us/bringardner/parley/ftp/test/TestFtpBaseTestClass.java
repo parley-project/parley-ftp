@@ -205,7 +205,7 @@ public abstract class TestFtpBaseTestClass {
 			_client = new FtpClient("localhost", ftpPort2);
 			boolean s = ftpServer.isSecure();
 			_client.setSecure(s);
-			_client.setLogLevel(clientLogLevel);
+			_client.getLogger().setLevel(clientLogLevel);
 			_client.setCmdTimeout(100000);
 			_client.setCmdTimeout(9999999);
 			
@@ -301,7 +301,7 @@ public abstract class TestFtpBaseTestClass {
 			//  this creates a sand box for the users
 			ftpServer.setFtpRoot(root);			
 			ftpServer.setPort(ftpPort2);
-			ftpServer.setLogLevel(serverLogLevel);
+			ftpServer.getLogger().setLevel(serverLogLevel);
 			acl = ftpServer.getUserRegistry();
 			
 			

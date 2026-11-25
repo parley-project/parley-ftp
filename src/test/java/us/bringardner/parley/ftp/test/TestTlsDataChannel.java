@@ -81,7 +81,7 @@ public class TestTlsDataChannel {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setDataTimeout(5000);
-		s.setLogLevel(LogLevel.ERROR);
+		s.getLogger().setLevel(LogLevel.ERROR);
 		s.start();
 		long start = System.currentTimeMillis();
 		while (!s.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -150,7 +150,7 @@ public class TestTlsDataChannel {
 		FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 		client.setRequestSecure(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			assertTrue(client.isChannelSecure(), "AUTH TLS failed");
@@ -172,7 +172,7 @@ public class TestTlsDataChannel {
 		FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 		client.setRequestSecure(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			client.close();
@@ -203,7 +203,7 @@ public class TestTlsDataChannel {
 		client.setRequestSecure(true);
 		client.setActive(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			assertTrue(client.isDataChannelSecure());
@@ -229,7 +229,7 @@ public class TestTlsDataChannel {
 		FtpClient client = new FtpClient("localhost", IMPLICIT_PORT);
 		client.setSecure(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			try (OutputStream out = client.getOutputStream("up-implicit.txt")) {

@@ -173,7 +173,7 @@ public class TestSpsvModeZ {
 	private static FtpClient client() throws Exception {
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}

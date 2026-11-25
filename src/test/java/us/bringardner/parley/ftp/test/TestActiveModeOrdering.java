@@ -59,7 +59,7 @@ public class TestActiveModeOrdering {
 	@Test
 	public void activeTransfersWhenServerConnectsAfterCommand() throws IOException {
 		FtpClient client = new FtpClient(InetAddress.getLoopbackAddress().getHostAddress(), control.getLocalPort());
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		client.setActive(true);
 		// short, so the old ordering fails in seconds instead of hanging
 		client.setTransferTimeout(3000);

@@ -65,7 +65,7 @@ public class TestSymlinkPolicy {
 		server.setSecure(false);
 		server.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		server.setPort(PORT);
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - t < 5000) {

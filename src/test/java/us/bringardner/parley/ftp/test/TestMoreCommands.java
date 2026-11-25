@@ -152,7 +152,7 @@ public class TestMoreCommands {
 	public void clientStoreUnique() throws Exception {
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
 			String first;
@@ -192,7 +192,7 @@ public class TestMoreCommands {
 		}
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
 			assertEquals(java.util.Collections.singletonList("EN*"), c.getLanguages());
@@ -251,7 +251,7 @@ public class TestMoreCommands {
 		}
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		try {
 			assertEquals(hex("SHA-256", "hello"), c.hash("file.txt"));

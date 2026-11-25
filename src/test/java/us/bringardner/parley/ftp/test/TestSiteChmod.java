@@ -50,7 +50,7 @@ public class TestSiteChmod {
 		server.setSecure(false);
 		server.setFtpRoot(root);
 		server.setPort(PORT);
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -90,7 +90,7 @@ public class TestSiteChmod {
 	private static FtpClient connect() throws Exception {
 		FtpClient client = new FtpClient("localhost", PORT);
 		client.setRequestSecure(false);
-		client.setLogLevel(LogLevel.ERROR);
+		client.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(client.connect("anonymous", "x", null));
 		return client;
 	}

@@ -57,7 +57,7 @@ public class InteropServer {
 		s.setSecure(implicit);
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
-		s.setLogLevel(LogLevel.ERROR);
+		s.getLogger().setLevel(LogLevel.ERROR);
 		s.start();
 		long t = System.currentTimeMillis();
 		while (!s.isRunning()) {

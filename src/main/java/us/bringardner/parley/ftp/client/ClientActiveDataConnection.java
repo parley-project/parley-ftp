@@ -41,7 +41,6 @@ public final class ClientActiveDataConnection extends ClientDataTransferProcess 
 
     public ClientActiveDataConnection(FtpClient client) throws IOException {
         super(client);
-        useConfigurationOf(client);
         setPassive(false);
 
         /*

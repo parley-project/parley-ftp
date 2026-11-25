@@ -63,7 +63,7 @@ public class TestLinksAreInvisible {
 		server.setPort(PORT);
 		server.setSymlinkPolicy(SymlinkPolicy.ALLOWED_TARGETS);
 		server.setAllowedLinkTargets(Arrays.asList(shared.getAbsolutePath()));
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - t < 5000) {

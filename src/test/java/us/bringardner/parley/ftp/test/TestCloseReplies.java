@@ -29,7 +29,7 @@ public class TestCloseReplies {
 		s.setFtpRoot(us.bringardner.parley.files.FileSourceFactory.getDefaultFactory().createFileSource(root("CloseLogin").getPath()));
 		s.setPort(PORT);
 		s.setLoginTimeLimit(300);
-		s.setLogLevel(us.bringardner.parley.core.LogLevel.ERROR);
+		s.getLogger().setLevel(us.bringardner.parley.core.LogLevel.ERROR);
 		s.start();
 		try {
 			long t = System.currentTimeMillis();
@@ -88,7 +88,7 @@ public class TestCloseReplies {
 		java.util.logging.Logger root = java.util.logging.Logger.getLogger("");
 		root.addHandler(handler);
 		FtpServer s = RawFtp.startServer(PORT + 2, root("CloseQuit"));
-		s.setLogLevel(us.bringardner.parley.core.LogLevel.INFO);
+		s.getLogger().setLevel(us.bringardner.parley.core.LogLevel.INFO);
 		try {
 			try (RawFtp c = new RawFtp(PORT + 2)) {
 				// (not one(): it sends a NOOP after the command, and the connection is closed by then)

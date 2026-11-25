@@ -64,7 +64,7 @@ public class TestClientCommands {
 			c.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
 			c.setVerifyHostname(false);
 		}
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}
@@ -99,7 +99,7 @@ public class TestClientCommands {
 		FtpClient q = new FtpClient("127.0.0.1", PORT);
 		q.setRequestSecure(false);
 		q.setSendClientName(false);
-		q.setLogLevel(LogLevel.ERROR);
+		q.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(q.connect("anonymous", "x", null));
 		try {
 			assertFalse(q.getDialog().contains("Write:CLNT"), q.getDialog());

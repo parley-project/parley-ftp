@@ -44,7 +44,7 @@ public class TestStoreAtOffset {
 		server.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		server.setPort(port);
 		server.setStoreAtOffset(storeAtOffset);
-		server.setLogLevel(LogLevel.ERROR);
+		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - t < 5000) {
@@ -92,7 +92,7 @@ public class TestStoreAtOffset {
 	private static FtpClient client(int port) throws IOException {
 		FtpClient c = new FtpClient("localhost", port);
 		c.setRequestSecure(false);
-		c.setLogLevel(LogLevel.ERROR);
+		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}

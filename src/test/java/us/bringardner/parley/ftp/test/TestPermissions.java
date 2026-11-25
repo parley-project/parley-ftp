@@ -75,7 +75,7 @@ public class TestPermissions {
 			_client = new FtpClient("localhost", ftpPort2);
 			_client.setSecure(false);
 			_client.setRequestSecure(false);
-			_client.setLogLevel(clientLogLevel);
+			_client.getLogger().setLevel(clientLogLevel);
 			_client.setCmdTimeout(100000);
 			_client.setCmdTimeout(9999999);
 			
@@ -117,7 +117,7 @@ public class TestPermissions {
 			//  this creates a sand box for the users
 			ftpServer.setFtpRoot(root);			
 			ftpServer.setPort(ftpPort2);
-			ftpServer.setLogLevel(serverLogLevel);
+			ftpServer.getLogger().setLevel(serverLogLevel);
 			
 			ftpServer.start();
 			int cnt = 0;
