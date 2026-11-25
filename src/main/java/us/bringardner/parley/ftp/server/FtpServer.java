@@ -308,6 +308,24 @@ public class FtpServer extends Server {
 		initMe(true);
 	}
 	
+	@Override
+	protected String getSettingsFileName() {
+		return "parley-ftp.properties";
+	}
+
+	@Override
+	protected String getSettingsFileProperty() {
+		return CONFIG_PROP;
+	}
+
+	/** The settings file is read when the server starts: what was read from the settings before is read again. */
+	@Override
+	protected void settingsRead(boolean fromFile) throws IOException {
+		if (fromFile) {
+			readSettings();
+		}
+	}
+
 	public FtpServer() {
 		this(FTP_PORT,FTP_NAME,false);
 	}
@@ -373,17 +391,12 @@ public class FtpServer extends Server {
 	 * (AUTH TLS). A server with implicit TLS is made in code (secure true), with a prefix of its own.
 	 */
 	public static void main(String[] args) throws InterruptedException {
-		ServerMain.run("FtpServer", args, CONFIG_PROP, "parley-ftp.properties", () -> {
+		ServerMain.run("FtpServer", args, () -> {
 			if( System.getProperty(FTP_PREFIX+".secure") != null ) {
 				System.err.println(FTP_PREFIX+".secure is no longer read: FtpServer.main runs FTP with explicit TLS (AUTH TLS); "
 						+"a server with implicit TLS is made in code (secure true)");
 			}
-			int port = FTP_PORT;
-			String tmp = System.getProperty(FTP_PREFIX+".port");
-			if( tmp != null ) {
-				port = Integer.parseInt(tmp.trim());
-			}
-			return java.util.Collections.singletonList(ServerMain.service(new FtpServer(port, FTP_NAME, false), "FtpServer"));
+			return java.util.Collections.singletonList(ServerMain.service(new FtpServer(FTP_PORT, FTP_NAME, false), "FtpServer"));
 		});
 	}
 
