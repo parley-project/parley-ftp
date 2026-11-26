@@ -510,32 +510,46 @@ public class FtpServer extends Server {
 	/**
 	 * Claims the store of the root and of every virtual host (see {@link #SHARED_STORE_PROPERTY})
 	 * before accepting connections: with sharing off a second server on one is refused, shared
-	 * the servers that share it are let in. Fails to start if a claim fails.
+	 * the servers that share it are let in. Fails to start if a claim fails. The claim is made when
+	 * the server prepares to start, after its settings are read, so the roots are the ones the settings give.
 	 */
 	@Override
 	public synchronized void start() {
-		if( lockDomains.isEmpty() ) {
-			try {
-				claimStores();
-			} catch (IOException e) {
-				releaseStores();
-				logError("Can't start "+getName()+": "+e.getMessage(), e);
-				throw new java.io.UncheckedIOException(e);
-			} catch (RuntimeException e) {
-				releaseStores();
-				logError("Can't start "+getName()+": "+e.getMessage(), e);
-				throw e;
-			}
-		}
 		boolean started = false;
 		try {
-			super.start();
+			super.start(); // prepares (the settings, then the store claims) and starts
+			Throwable err = getStartupError();
+			if( err != null ) {
+				throw err instanceof IOException ? new java.io.UncheckedIOException((IOException) err)
+						: new java.io.UncheckedIOException(new IOException(err.getMessage() != null ? err.getMessage() : err.toString(), err));
+			}
 			started = true;
+		} catch (java.io.UncheckedIOException e) {
+			logError("Can't start "+getName()+": "+e.getCause().getMessage(), e.getCause());
+			throw e;
 		} finally {
 			if( !started ) {
 				releaseStores();
 			}
 		}
+	}
+
+	/** After the settings are read: the stores of the roots are claimed (a problem is the server's startup error) */
+	@Override
+	protected Throwable prepareToStart() {
+		Throwable ret = super.prepareToStart();
+		if( ret != null ) {
+			return ret;
+		}
+		if( lockDomains.isEmpty() ) {
+			try {
+				claimStores();
+			} catch (IOException | RuntimeException e) {
+				releaseStores();
+				return e;
+			}
+		}
+		return null;
 	}
 
 	@Override
