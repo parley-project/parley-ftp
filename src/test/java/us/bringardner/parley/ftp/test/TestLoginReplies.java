@@ -19,7 +19,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.iam.AuthenticationResult;
@@ -28,11 +27,13 @@ import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * BJL-4: login replies follow RFC 959. A failed PASS gets 530 (not 332), and an account
  * (user@account) can still be given with ACCT after it, or as part of the user name.
  */
+@ErrorsExpected
 public class TestLoginReplies {
 
 	private static final int PORT = 8038;
@@ -58,7 +59,6 @@ public class TestLoginReplies {
 		server.setFtpRoot(fs);
 		server.setPort(PORT);
 		server.setLoginFailureDelay(0);
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -175,7 +175,6 @@ public class TestLoginReplies {
 
 	private static boolean connect(String user, String password, String account) throws IOException {
 		FtpClient client = new FtpClient("localhost", PORT);
-		client.getLogger().setLevel(LogLevel.ERROR);
 		client.setRequestSecure(false);
 		try {
 			return client.connect(user, password, account);

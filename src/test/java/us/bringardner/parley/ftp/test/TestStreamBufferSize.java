@@ -14,7 +14,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.client.ClientFtpInputStream;
@@ -50,7 +49,6 @@ public class TestStreamBufferSize {
 		server.setSecure(false);
 		server.setFtpRoot(root);
 		server.setPort(PORT);
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -84,7 +82,6 @@ public class TestStreamBufferSize {
 	private static FtpClient connect() throws Exception {
 		FtpClient client = new FtpClient("localhost", PORT);
 		client.setRequestSecure(false);
-		client.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(client.connect("anonymous", "x", null));
 		return client;
 	}

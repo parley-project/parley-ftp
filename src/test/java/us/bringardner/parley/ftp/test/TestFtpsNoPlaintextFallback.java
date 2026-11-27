@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import us.bringardner.parley.ftp.client.FtpClient;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * When the server accepts AUTH TLS but TLS can't be set up (here: its certificate is for another
@@ -40,6 +41,7 @@ import us.bringardner.parley.ftp.client.FtpClient;
  * password in clear text, which is exactly what an attacker who breaks the TLS step wants.
  * A server that refuses AUTH (no TLS at all) still gets a plain login, unless requireSecure is set.
  */
+@ErrorsExpected
 public class TestFtpsNoPlaintextFallback {
 
 	private static final String PASSWORD = "test-only";

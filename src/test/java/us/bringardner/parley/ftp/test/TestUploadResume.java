@@ -16,13 +16,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.ftp.server.FtpServer.UploadMode;
 import us.bringardner.parley.ftp.test.TestTransferReliability.Session;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * What an interrupted STOR leaves, and what REST can then do. By default (ATOMIC) an upload goes to
@@ -31,6 +31,7 @@ import us.bringardner.parley.net.server.IServer;
  * a client resuming with the length SIZE gave (the old file's) would otherwise have done. With IN_PLACE
  * a broken upload leaves what arrived and REST carries on with it.
  */
+@ErrorsExpected
 public class TestUploadResume {
 
 	private static final int ATOMIC_PORT = 8052;
@@ -48,7 +49,6 @@ public class TestUploadResume {
 		if( mode != null ) {
 			server.setUploadMode(mode);
 		}
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - t < 5000) {

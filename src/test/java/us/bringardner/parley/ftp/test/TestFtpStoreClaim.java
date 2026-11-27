@@ -13,12 +13,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * A server claims the store of the root its settings give, not the root it had when it was made: servers made
@@ -81,7 +81,6 @@ public class TestFtpStoreClaim {
 
 	private FtpServer make(int port, FileSource placeholder, FileSource wanted) throws IOException {
 		FtpServer s = new SettingsRoot(port, placeholder, wanted);
-		s.getLogger().setLevel(LogLevel.ERROR);
 		servers.add(s);
 		return s;
 	}
@@ -105,6 +104,7 @@ public class TestFtpStoreClaim {
 		assertTrue(waitRunning(a) && waitRunning(b));
 	}
 
+	@ErrorsExpected
 	@Test
 	public void twoServersOnTheSameRootStillKeepEachOtherOut() throws Exception {
 		File scratch = scratch("q");

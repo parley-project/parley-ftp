@@ -28,7 +28,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -71,7 +70,6 @@ public class TestTransferReliability {
 		server.setFtpRoot(root);
 		server.setPort(PORT);
 		server.setDataTimeout(DATA_TIMEOUT_MS);
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long start = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -119,7 +117,6 @@ public class TestTransferReliability {
 		}
 		us.bringardner.parley.ftp.client.FtpClient client = new us.bringardner.parley.ftp.client.FtpClient("localhost", PORT);
 		client.setRequestSecure(false);
-		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			for (int i = 0; i < 1500; i++) {

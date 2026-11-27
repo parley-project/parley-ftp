@@ -22,7 +22,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.ftp.server.FtpServer.SymlinkPolicy;
@@ -63,7 +62,6 @@ public class TestLinksAreInvisible {
 		server.setPort(PORT);
 		server.setSymlinkPolicy(SymlinkPolicy.ALLOWED_TARGETS);
 		server.setAllowedLinkTargets(Arrays.asList(shared.getAbsolutePath()));
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - t < 5000) {

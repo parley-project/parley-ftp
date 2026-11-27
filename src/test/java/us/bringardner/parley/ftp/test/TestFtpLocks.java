@@ -18,7 +18,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.server.FtpServer;
@@ -33,6 +32,7 @@ import us.bringardner.parley.net.lock.Sharing;
 import us.bringardner.parley.net.lock.StoreClaim;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * Uploads, deletes and renames of one file keep out of each other: sessions of this server, and
@@ -64,7 +64,6 @@ public class TestFtpLocks {
 		server.setSecure(false);
 		server.setFtpRoot(root);
 		server.setPort(PORT);
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while( !server.isRunning() && System.currentTimeMillis() - t < 5000 ) {
@@ -197,6 +196,7 @@ public class TestFtpLocks {
 		}
 	}
 
+	@ErrorsExpected
 	@Test
 	public void aSecondServerIsRefusedAStoreClaimedAlone() throws Exception {
 		try (Locks other = Locks.open(LockOptions.sharing(Sharing.OFF).withOwnerId("other"))) {

@@ -20,11 +20,11 @@ import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
 import us.bringardner.parley.ftp.server.FtpServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * BJL-60: the framework runs and manages FTP transfer threads (Server.startTask) and the idle
@@ -32,6 +32,7 @@ import us.bringardner.parley.ftp.server.FtpServer;
  * server stops, and no FTP thread is left after the server stops (the watchdog used to be a
  * static executor whose thread was never shut down).
  */
+@ErrorsExpected
 public class TestTransferThreads {
 
 	private static final int PORT = 8045;
@@ -52,7 +53,6 @@ public class TestTransferThreads {
 		server.setSecure(false);
 		server.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		server.setPort(PORT);
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		waitFor(server::isRunning, "server did not start");
 		return server;

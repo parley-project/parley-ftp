@@ -30,7 +30,6 @@
 package us.bringardner.parley.ftp.server;
 
 
-import us.bringardner.parley.core.LogLevel;
 import java.io.IOException;
 
 import us.bringardner.parley.files.FileSource;

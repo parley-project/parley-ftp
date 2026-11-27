@@ -1,6 +1,5 @@
 package us.bringardner.parley.ftp.test;
 
-import us.bringardner.parley.core.LogLevel;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,8 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 import us.bringardner.parley.ftp.server.FtpServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
+import us.bringardner.parley.logging.testing.LogCapture;
 
 /** The 421 the server sends before it closes a session on its own (RFC 959). */
 public class TestCloseReplies {
@@ -22,6 +25,7 @@ public class TestCloseReplies {
 		return root;
 	}
 
+	@ErrorsExpected
 	@Test
 	public void notLoggedInInTimeIs421() throws Exception {
 		FtpServer s = new FtpServer();
@@ -29,7 +33,6 @@ public class TestCloseReplies {
 		s.setFtpRoot(us.bringardner.parley.files.FileSourceFactory.getDefaultFactory().createFileSource(root("CloseLogin").getPath()));
 		s.setPort(PORT);
 		s.setLoginTimeLimit(300);
-		s.getLogger().setLevel(us.bringardner.parley.core.LogLevel.ERROR);
 		s.start();
 		try {
 			long t = System.currentTimeMillis();
@@ -49,6 +52,7 @@ public class TestCloseReplies {
 		}
 	}
 
+	@ErrorsExpected
 	@Test
 	public void stoppingTheServerIs421() throws Exception {
 		FtpServer s = RawFtp.startServer(PORT + 1, root("CloseStop"));
@@ -67,54 +71,32 @@ public class TestCloseReplies {
 
 	/** To-Do 19.7: QUIT is the reason in the server's disconnect line. */
 	@Test
+	@ResourceLock(Resources.SYSTEM_OUT)
 	public void quitIsTheReasonInTheDisconnectLine() throws Exception {
-		java.util.List<String> lines = new java.util.concurrent.CopyOnWriteArrayList<>();
-		java.util.logging.Handler handler = new java.util.logging.Handler() {
-			@Override
-			public void publish(java.util.logging.LogRecord record) {
-				if (record != null && record.getMessage() != null) {
-					lines.add(record.getMessage());
+		try (LogCapture capture = new LogCapture()) {
+			FtpServer s = RawFtp.startServer(PORT + 2, root("CloseQuit"));
+			try {
+				try (RawFtp c = new RawFtp(PORT + 2)) {
+					// (not one(): it sends a NOOP after the command, and the connection is closed by then)
+					assertTrue(c.send("QUIT").get(0).startsWith("221"));
+					assertNull(c.in.readLine(), "then closed");
 				}
-			}
-
-			@Override
-			public void flush() {
-			}
-
-			@Override
-			public void close() {
-			}
-		};
-		java.util.logging.Logger root = java.util.logging.Logger.getLogger("");
-		root.addHandler(handler);
-		FtpServer s = RawFtp.startServer(PORT + 2, root("CloseQuit"));
-		s.getLogger().setLevel(us.bringardner.parley.core.LogLevel.INFO);
-		try {
-			try (RawFtp c = new RawFtp(PORT + 2)) {
-				// (not one(): it sends a NOOP after the command, and the connection is closed by then)
-				assertTrue(c.send("QUIT").get(0).startsWith("221"));
-				assertNull(c.in.readLine(), "then closed");
-			}
-			String line = null;
-			long end = System.currentTimeMillis() + 10000;
-			while (line == null && System.currentTimeMillis() < end) {
-				for (String l : lines) {
-					if (l.contains("Disconnected (")) {
-						line = l;
+				String line = null;
+				long end = System.currentTimeMillis() + 10000;
+				while (line == null && System.currentTimeMillis() < end) {
+					line = capture.first("Disconnected (");
+					if (line == null) {
+						Thread.sleep(20);
 					}
 				}
-				if (line == null) {
+				assertTrue(line != null, "no disconnect line");
+				assertTrue(line.startsWith("INFO [" + s.getName() + "-") && line.contains("] Disconnected (client quit) after "), line);
+			} finally {
+				s.stop();
+				long t = System.currentTimeMillis();
+				while (s.isRunning() && System.currentTimeMillis() - t < 10000) {
 					Thread.sleep(20);
 				}
-			}
-			assertTrue(line != null, "no disconnect line in " + lines);
-			assertTrue(line.startsWith("[" + s.getName() + "-") && line.contains("] Disconnected (client quit) after "), line);
-		} finally {
-			root.removeHandler(handler);
-			s.stop();
-			long t = System.currentTimeMillis();
-			while (s.isRunning() && System.currentTimeMillis() - t < 10000) {
-				Thread.sleep(20);
 			}
 		}
 	}

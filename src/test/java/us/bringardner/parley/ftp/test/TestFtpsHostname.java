@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import us.bringardner.parley.ftp.client.FtpClient;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * FtpClient checks that an FTPS server's certificate was issued for the host it connects to,
@@ -40,6 +41,7 @@ import us.bringardner.parley.ftp.client.FtpClient;
  * host name check can reject one. A minimal fake server is used so the certificate is the only
  * thing that differs: it records whether the TLS handshake completed.
  */
+@ErrorsExpected
 public class TestFtpsHostname {
 
 	private static final String PASSWORD = "test-only";

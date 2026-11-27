@@ -17,13 +17,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.client.ClientFtpResponse;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * RANG (draft-bryan-ftp-range-08): advertised in FEAT as "RANG STREAM"; RETR sends the inclusive
@@ -44,7 +44,6 @@ public class TestRang {
 		server.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		server.setPort(port);
 		server.setStoreAtOffset(storeAtOffset);
-		server.getLogger().setLevel(LogLevel.ERROR);
 		server.start();
 		long t = System.currentTimeMillis();
 		while (!server.isRunning() && System.currentTimeMillis() - t < 5000) {
@@ -92,7 +91,6 @@ public class TestRang {
 	private static FtpClient client(int port) throws IOException {
 		FtpClient c = new FtpClient("localhost", port);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}
@@ -232,6 +230,7 @@ public class TestRang {
 		}
 	}
 
+	@ErrorsExpected
 	@Test
 	public void storeOfMoreThanTheRangeFailsAndChangesNothingOutsideIt() throws Exception {
 		File f = file(onRoot, "m.txt", "0123456789");
@@ -331,7 +330,6 @@ public class TestRang {
 			fake.data = "0123456789".getBytes(StandardCharsets.US_ASCII);
 			FtpClient c = new FtpClient("127.0.0.1", fake.port());
 			c.setRequestSecure(false);
-			c.getLogger().setLevel(LogLevel.ERROR);
 			assertTrue(c.connect("anonymous", "x", null));
 			try {
 				assertEquals("2345", read(c.getInputStream("f", false, 2, 5, 0)));

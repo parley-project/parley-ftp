@@ -56,7 +56,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSource;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.FTP;
@@ -82,8 +81,6 @@ public abstract class TestFtpBaseTestClass {
 	protected static boolean implicitSecure = false;
 	protected static int ftpPort2=8026;
 	protected static boolean useFileBasedAcl = true; 
-	protected static LogLevel serverLogLevel = LogLevel.ERROR;
-	protected static LogLevel clientLogLevel = LogLevel.ERROR;
 	private static FtpServer ftpServer;
 
 	private static FileSource root;
@@ -205,7 +202,6 @@ public abstract class TestFtpBaseTestClass {
 			_client = new FtpClient("localhost", ftpPort2);
 			boolean s = ftpServer.isSecure();
 			_client.setSecure(s);
-			_client.getLogger().setLevel(clientLogLevel);
 			_client.setCmdTimeout(100000);
 			_client.setCmdTimeout(9999999);
 			
@@ -301,7 +297,6 @@ public abstract class TestFtpBaseTestClass {
 			//  this creates a sand box for the users
 			ftpServer.setFtpRoot(root);			
 			ftpServer.setPort(ftpPort2);
-			ftpServer.getLogger().setLevel(serverLogLevel);
 			acl = ftpServer.getUserRegistry();
 			
 			

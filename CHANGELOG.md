@@ -2,6 +2,12 @@
 
 ## parley-ftp 2.0.0 (unreleased)
 
+### Changed (2026-11-27: logging through System.Logger)
+
+- Nothing in the module's code changed except an unused import: it already logged through BaseObject. Its tests no
+  longer set a level on a logger (the build's default is ERROR) and read log lines through parley-logging's
+  `LogCapture`, with parley-logging (and its test jar) as test dependencies. Tests of error cases carry `@ErrorsExpected`.
+
 ### Changed (2026-11-11: session IDs in the log, To-Do 19.7)
 
 - **QUIT says so in the log**: with parley-net's session IDs, the server's disconnect line for a session

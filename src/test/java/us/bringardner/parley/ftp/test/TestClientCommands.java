@@ -17,11 +17,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * The client's STAT, NLST, REIN, CCC, ABOR-on-close and CLNT, and the server's CLNT and CCC.
@@ -64,7 +64,6 @@ public class TestClientCommands {
 			c.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
 			c.setVerifyHostname(false);
 		}
-		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("anonymous", "x", null));
 		return c;
 	}
@@ -99,7 +98,6 @@ public class TestClientCommands {
 		FtpClient q = new FtpClient("127.0.0.1", PORT);
 		q.setRequestSecure(false);
 		q.setSendClientName(false);
-		q.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(q.connect("anonymous", "x", null));
 		try {
 			assertFalse(q.getDialog().contains("Write:CLNT"), q.getDialog());
@@ -125,6 +123,7 @@ public class TestClientCommands {
 		}
 	}
 
+	@ErrorsExpected
 	@Test
 	public void abortOnClose() throws Exception {
 		for (boolean abort : new boolean[] { true, false }) {

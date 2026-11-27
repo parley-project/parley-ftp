@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
@@ -57,7 +56,6 @@ public class InteropServer {
 		s.setSecure(implicit);
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
-		s.getLogger().setLevel(LogLevel.ERROR);
 		s.start();
 		long t = System.currentTimeMillis();
 		while (!s.isRunning()) {

@@ -29,7 +29,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.net.lock.Sharing;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -81,7 +80,6 @@ public class TestTlsDataChannel {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setDataTimeout(5000);
-		s.getLogger().setLevel(LogLevel.ERROR);
 		s.start();
 		long start = System.currentTimeMillis();
 		while (!s.isRunning() && System.currentTimeMillis() - start < 5000) {
@@ -150,7 +148,6 @@ public class TestTlsDataChannel {
 		FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 		client.setRequestSecure(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			assertTrue(client.isChannelSecure(), "AUTH TLS failed");
@@ -172,7 +169,6 @@ public class TestTlsDataChannel {
 		FtpClient client = new FtpClient("localhost", EXPLICIT_PORT);
 		client.setRequestSecure(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			client.close();
@@ -203,7 +199,6 @@ public class TestTlsDataChannel {
 		client.setRequestSecure(true);
 		client.setActive(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			assertTrue(client.isDataChannelSecure());
@@ -229,7 +224,6 @@ public class TestTlsDataChannel {
 		FtpClient client = new FtpClient("localhost", IMPLICIT_PORT);
 		client.setSecure(true);
 		client.setTrustManagers(new TrustManager[] { new TestFtpBaseTestClass.TrustAll() });
-		client.getLogger().setLevel(LogLevel.ERROR);
 		try {
 			assertTrue(client.connect("anonymous", "x", null));
 			try (OutputStream out = client.getOutputStream("up-implicit.txt")) {

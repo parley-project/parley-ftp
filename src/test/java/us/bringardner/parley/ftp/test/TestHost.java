@@ -31,7 +31,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.files.FileSourceFactory;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
@@ -39,10 +38,12 @@ import us.bringardner.parley.ftp.server.commands.Host;
 import us.bringardner.parley.net.lock.Sharing;
 import us.bringardner.parley.net.server.FileUserRegistry;
 import us.bringardner.parley.net.server.IServer;
+import us.bringardner.parley.logging.testing.ErrorsExpected;
 
 /**
  * HOST (RFC 7151): virtual hosts on the server, and the client sending HOST before logging in.
  */
+@ErrorsExpected
 public class TestHost {
 
 	private static final int VHOST_PORT = 8061;
@@ -60,7 +61,6 @@ public class TestHost {
 		s.setFtpRoot(FileSourceFactory.getDefaultFactory().createFileSource(root.getAbsolutePath()));
 		s.setPort(port);
 		s.setLoginFailureDelay(0);
-		s.getLogger().setLevel(LogLevel.ERROR);
 		return s;
 	}
 
@@ -309,7 +309,6 @@ public class TestHost {
 	private static FtpClient client(String host, int port) {
 		FtpClient c = new FtpClient(host, port);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(LogLevel.ERROR);
 		return c;
 	}
 

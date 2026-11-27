@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import us.bringardner.parley.core.LogLevel;
 import us.bringardner.parley.ftp.client.FtpClient;
 import us.bringardner.parley.ftp.server.FtpServer;
 import us.bringardner.parley.net.server.FileUserRegistry;
@@ -132,7 +131,6 @@ public class TestMfxx {
 		File f = file("c.txt");
 		FtpClient c = new FtpClient("127.0.0.1", PORT);
 		c.setRequestSecure(false);
-		c.getLogger().setLevel(LogLevel.ERROR);
 		assertTrue(c.connect("plain", "1234", null));
 		try {
 			assertTrue(c.setModificationTime("c.txt", T + 999));
@@ -158,7 +156,6 @@ public class TestMfxx {
 		for (boolean mfmt : new boolean[] { true, false }) {
 			FtpClient c = new FtpClient("127.0.0.1", PORT);
 			c.setRequestSecure(false);
-			c.getLogger().setLevel(LogLevel.ERROR);
 			c.setUseModifyFacts(mfmt);
 			assertTrue(c.connect("plain", "1234", null));
 			try {
